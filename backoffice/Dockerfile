@@ -1,9 +1,10 @@
 FROM node:24-alpine AS build
 WORKDIR /app
+ARG VITE_MODE=docker
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build:docker
+RUN npm run build:${VITE_MODE}
 
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

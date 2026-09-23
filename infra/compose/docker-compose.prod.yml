@@ -1,0 +1,30 @@
+# ── Entorno PRODUCCIÓN (overlay sobre docker-compose.yml) ──────────────
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --env-file .env.prod build frontend backoffice
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     --env-file .env.prod up -d
+#
+# Solo define lo que difiere del entorno docker:
+#   - backend: APP_ENV=prod + variables reales desde backend/.env.prod
+#   - frontend/backoffice: build con VITE_MODE=prod (incrusta la URL real)
+# El resto (db, traefik, red, healthchecks) lo hereda del archivo base.
+
+services:
+  backend:
+    environment:
+      APP_ENV: prod
+    env_file:
+      - ../../backend/.env.prod
+
+  frontend:
+    build:
+      context: ../../frontend
+      args:
+        VITE_MODE: prod
+
+  backoffice:
+    build:
+      context: ../../backoffice
+      args:
+        VITE_MODE: prod

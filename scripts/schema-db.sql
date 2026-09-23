@@ -1,0 +1,1 @@
+marca y crea el esquema de la base de datos, crea todo, tablas, columnas...etc

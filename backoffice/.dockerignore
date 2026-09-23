@@ -3,5 +3,4 @@ dist
 coverage
 .git
 .env.dev
-.env.prod
 .env.docker.example

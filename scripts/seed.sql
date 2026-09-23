@@ -1,0 +1,1 @@
+semilla inicial, sirve para inicializar cosas que deben estar en la db desde el comienzo

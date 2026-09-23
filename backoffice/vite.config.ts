@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), devHealth],
-    base: mode === 'docker' ? '/admin/' : '/',
+    base: mode === 'dev' ? '/' : '/admin/',
     server: { port },
     preview: { port },
   }
