@@ -1,0 +1,56 @@
+# ── Traefik: routers (config DINÁMICA) ──────────────────────────────
+# Define "quién va a dónde". Se recarga en caliente (file.watch: true).
+# PRIORIDAD: traefik ordena por longitud de regla → /api y /admin
+# ganan al catch-all "/". No hace falta declarar priority explícita.
+
+http:
+  routers:
+    # http://localhost/  → frontend (catch-all)
+    frontend:
+      rule: "Host(`localhost`) && PathPrefix(`/`)"
+      entryPoints:
+        - web
+      service: frontend
+
+    # http://localhost/admin → backoffice (SPA servido bajo subruta)
+    backoffice:
+      rule: "Host(`localhost`) && PathPrefix(`/admin`)"
+      entryPoints:
+        - web
+      service: backoffice
+
+    # http://localhost/api → backend (el middleware strip-api le quita /api)
+    api:
+      rule: "Host(`localhost`) && PathPrefix(`/api`)"
+      entryPoints:
+        - web
+      middlewares:
+        - strip-api
+      service: api
+
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ VARIANTE HOST-BASED (alternativa)                                ║
+    # ║ Para activarla: descomentar estos 3 routers, comentar los de      ║
+    # ║ arriba, y cambiar además:                                         ║
+    # ║  - front/back .env.docker: VITE_API_URL=http://api.localhost      ║
+    # ║  - backend  .env.docker : CORS_ORIGINS=http://localhost,          ║
+    # ║                                  http://backoffice.localhost      ║
+    # ║  Los navegadores resuelven *.localhost → 127.0.0.1;               ║
+    # ║  si no, agrega 2 líneas a /etc/hosts.                             ║
+    # ║  ⚠ NO usa middleware strip-api (aquí la API va en su propio host) ║
+    # ╚══════════════════════════════════════════════════════════════════╝
+    # frontend:
+    #   rule: "Host(`localhost`)"
+    #   entryPoints:
+    #     - web
+    #   service: frontend
+    # backoffice:
+    #   rule: "Host(`backoffice.localhost`)"
+    #   entryPoints:
+    #     - web
+    #   service: backoffice
+    # api:
+    #   rule: "Host(`api.localhost`)"
+    #   entryPoints:
+    #     - web
+    #   service: api

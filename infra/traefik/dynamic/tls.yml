@@ -1,0 +1,16 @@
+# ── Traefik: TLS / certificados (config DINÁMICA) ────────────────────
+# Sin uso todavía. Esta carpeta dynamic/ monta certs/ en /etc/traefik/certs
+# (gitignored: los certificados no se commitean).
+# Cuando haya un dominio real, ejemplo con Let's Encrypt (ACME):
+#
+# certificatesResolvers:
+#   letsencrypt:
+#     acme:
+#       email: tu@dominio.com
+#       storage: /etc/traefik/certs/acme.json
+#       httpChallenge:
+#         entryPoint: web
+#
+# Y en routes.yml los routers pasarían a:
+#   tls:
+#     certResolver: letsencrypt

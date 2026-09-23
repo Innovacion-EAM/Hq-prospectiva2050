@@ -1,0 +1,22 @@
+# ── Traefik: services (config DINÁMICA) ─────────────────────────────
+# Destinos reales dentro de la red hq-net. Los nombres (frontend, backend,
+# backoffice) los resuelve Docker DNS.
+# Son LOS MISMOS para la variante path-based y la host-based: solo cambian
+# las reglas de routes.yml.
+
+http:
+  services:
+    frontend:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
+
+    backoffice:
+      loadBalancer:
+        servers:
+          - url: "http://backoffice:80"
+
+    api:
+      loadBalancer:
+        servers:
+          - url: "http://backend:3000"

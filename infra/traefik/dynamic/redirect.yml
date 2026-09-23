@@ -1,0 +1,18 @@
+# ── Traefik: redirecciones (config DINÁMICA) ─────────────────────────
+# Sin uso todavía. Cuando se active TLS, redirige todo http → https.
+# Requiere tls.yml + certs/ (ver tls.yml).
+#
+# http:
+#   routers:
+#     https-redirect:
+#       rule: "HostRegexp(`{host:.+}`)"
+#       entryPoints:
+#         - web
+#       middlewares:
+#         - https-redirect
+#       service: noop@internal
+#   middlewares:
+#     https-redirect:
+#       redirectScheme:
+#         scheme: https
+#         permanent: true

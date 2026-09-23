@@ -1,0 +1,104 @@
+name: hq-prospectiva2050
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hq-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-hq_prospectiva2050}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-hq_prospectiva2050}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
+  backend:
+    build:
+      context: ../../backend
+    container_name: hq-backend
+    restart: unless-stopped
+    env_file:
+      - ../../backend/.env.docker
+    environment:
+      APP_ENV: docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - hq-net
+
+  frontend:
+    build:
+      context: ../../frontend
+    container_name: hq-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
+  backoffice:
+    build:
+      context: ../../backoffice
+    container_name: hq-backoffice
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
+  traefik:
+    image: traefik:v3.5
+    container_name: hq-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+      backoffice:
+        condition: service_healthy
+    volumes:
+      - ../traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ../traefik/dynamic:/etc/traefik/dynamic:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
+volumes:
+  pgdata:
+
+networks:
+  hq-net:
+    driver: bridge

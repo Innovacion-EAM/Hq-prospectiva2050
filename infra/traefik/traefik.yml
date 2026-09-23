@@ -1,0 +1,31 @@
+# ── Traefik: config ESTÁTICA (motor del proxy) ─────────────────────────
+# Se carga 1 sola vez al arrancar (por eso va en archivo y no en flags
+# del compose). Necesita REINICIO de traefik cuando cambie.
+# La config dinámica (rutas/servicios) vive en dynamic/ y se recarga sola.
+# ⚠ Sin provider docker a propósito: nuestro traefik v3.5 reporta API docker
+#   1.24 y el daemon (Docker 29+) exige ≥1.40. Enrutamos 100% por archivos
+#   (dynamic/) → no se necesita el socket docker.
+
+# Dashboard bindeado a 127.0.0.1:8080 vía entryPoint traefik
+api:
+  dashboard: true
+  insecure: true
+
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  traefik:
+    address: ":8080"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Endpoint /ping usado por el healthcheck del compose
+ping: true
+
+log:
+  level: INFO

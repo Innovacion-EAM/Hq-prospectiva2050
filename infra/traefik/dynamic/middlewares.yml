@@ -1,0 +1,30 @@
+# ── Traefik: middlewares (config DINÁMICA) ──────────────────────────
+# Transformaciones aplicadas al request ANTES de entrar al servicio.
+
+http:
+  middlewares:
+    # strip-api: quita el prefijo /api de la petición.
+    # Así el navegador llama a http://localhost/api/lista-animales
+    # y el backend recibe /lista-animales.
+    strip-api:
+      stripPrefix:
+        prefixes:
+          - /api
+
+    # ── ALTERNATIVA CORS por middleware ──────────────────────────────
+    # Ojo: con path-based NO hace falta (todo vive bajo localhost =
+    # mismo origen). Con host-based el backend ya lo cubre vía su variable
+    # CORS_ORIGINS. Este quedaría si quisieras manejarlo aquí:
+    # headers:
+    #   accessControlAllowOriginList:
+    #     - "http://localhost"
+    #     - "http://backoffice.localhost"
+    #   accessControlAllowMethods:
+    #     - GET
+    #     - POST
+    #     - PUT
+    #     - PATCH
+    #     - DELETE
+    #     - OPTIONS
+    #   accessControlAllowHeaders:
+    #     - "*"
