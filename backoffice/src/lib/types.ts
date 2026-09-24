@@ -10,6 +10,7 @@ export type Noticia = {
   etiquetas: string[];
   publicado: boolean;
   destacado: boolean;
+  publicadoEn?: string | null;
 };
 
 export type Documento = {
@@ -21,6 +22,7 @@ export type Documento = {
   delimitacion: string;
   formato: string;
   link: string;
+  archivo?: string | null;
 };
 
 export type Convocatoria = {
@@ -155,3 +157,21 @@ export const FORMATOS = ["PDF", "DOCX", "XLSX", "PPTX", "Enlace"] as const;
 export const STATUS_TALLER = ["Realizado", "Abierto", "Próximo", "Suspendido"] as const;
 
 export const TIPOS_MENSAJE = ["contacto", "inscripciones"] as const;
+
+export type Role = "admin" | "editor";
+
+export type User = {
+  id: number;
+  email: string;
+  role: Role;
+  createdAt: string;
+};
+
+export type Media = {
+  id: number;
+  filename: string;
+  url: string;
+  mime: string;
+  size: number;
+  createdAt: string;
+};

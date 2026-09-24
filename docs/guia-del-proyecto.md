@@ -90,6 +90,8 @@ Variables principales:
 | `POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB` | Credenciales del contenedor de la db (compose) |
 | `APP_ENV` | Entorno del backend (`dev` / `docker` / `prod`) |
 | `DB_SYNCHRONIZE` | Esquema automático de TypeORM (`true` en dev/docker, `false` en prod) |
+| `JWT_SECRET` | Clave para firmar los tokens de sesión del backoffice (obligatorio) |
+| `UPLOAD_DIR` | Carpeta (relativa al backend o absoluta) donde se guardan los archivos de la biblioteca |
 
 > **Esquema y datos iniciales:** con `DB_SYNCHRONIZE=true` (dev/docker) TypeORM crea las tablas y el **seeder** del backend (`SeederService` + `seed-data.ts`) carga los datos de arranque al iniciar, si la db está vacía. En producción va `false`.
 
@@ -286,7 +288,33 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 
 ---
 
-## 11. Solución de problemas
+## 11. Backoffice, autenticación y biblioteca de archivos
+
+### Login y roles
+
+- El backoffice exige sesión: se entra por `/login`. La primera cuenta se **siembra** automáticamente: `admin@prospectiva.com` / `Admin123*` (cámbiala tras el primer uso, o edítala en `backend/src/seed-data.ts` → `SEED_USERS`).
+- Roles: **admin** (todos los módulos: contenido, usuarios, galería, mensajes) y **editor** (CRUD de contenido; no gestiona usuarios, ni la galería, ni elimina mensajes).
+- El backend firma JWTs con `JWT_SECRET` (expira en 12 h). El guard global exige `Bearer` salvo en rutas `@Public()` (`/api/site`, `/api/health`, GET públicos de noticias/documentos/convocatorias, `/api/uploads/*`).
+
+### Sitio público dinámico
+
+- El frontend público consume **`GET /api/site`** (público) mediante `frontend/src/data/site-context.tsx` (`SiteProvider` + `useSite()`): trae SITE, stats, entidades, talleres, categorías de documentos, páginas del proyecto y dimensiones.
+- `frontend/src/data/site.ts` queda como **fallback**: si la API no responde o devuelve listas vacías, el sitio muestra los datos por defecto (mismas formas, no se rompe).
+- Las noticias con **`publicadoEn` futuro** quedan ocultas al público y aparecen automáticamente a partir de esa fecha; el backoffice las muestra como "Programada" y el admin puede verlas con `includeAll=true`.
+
+### Galería (media)
+
+- `POST /api/media/uploads` (multipart, máx. 20 MB; imágenes JPG/PNG/WEBP/GIF/SVG y PDF/DOC/XLS/PPT) + `GET /api/media`, `DELETE /api/media/:id` — **solo admin**.
+- Se sirven estáticamente desde `/api/uploads/*`. En docker, la carpeta persiste en el volumen **`hq-uploads`** montado en `/app/uploads`.
+- En backoffice, el componente **MediaPicker** permite subir o escoger un archivo de la biblioteca desde las fichas de noticias y documentos. Los documentos pueden ofrecer **archivo subido** (en vez de enlace externo).
+
+### Nota de URLs en docker
+
+Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta: el navegador llama `http://localhost/api/api/media`, traefik quita **un** `/api` y el backend (con prefix global `api`) recibe `/api/media`. En desarrollo npm local la URL es directa: `http://localhost:3006/api/...`.
+
+---
+
+## 12. Solución de problemas
 
 | Síntoma | Qué hacer |
 |---|---|
@@ -298,8 +326,9 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 
 ---
 
-## 12. Pendientes
+## 13. Pendientes
 
 - **SSL/TLS** en Traefik (decidir automática vs manual).
 - **Migraciones del esquema** (hoy dev/docker usan `DB_SYNCHRONIZE=true` + seeder; para producción estricta se pueden generar migraciones/scripts SQL con `make db-schema` y `make db-seed`).
 - **CI/CD** (GitHub Actions: carpeta `.github/workflows/` preparada).
+- **Tests e2e de auth** (`backend/test/auth.e2e-spec.ts`) requieren una base PostgreSQL accesible desde el runner (usan el `AppModule` real y el seeder).

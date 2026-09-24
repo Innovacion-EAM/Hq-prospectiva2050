@@ -1,5 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
+import { Public } from '../auth/public.decorator';
 
 interface ContactoBody {
   nombre?: string;
@@ -22,6 +23,7 @@ function todayISO(): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+@Public()
 @Controller('forms')
 export class FormsController {
   constructor(private readonly mensajes: MensajesService) {}

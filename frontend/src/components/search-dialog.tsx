@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Search, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { searchSite } from "@/data/site";
+import { useEffect, useRef, useState } from "react";
+import { useSite } from "@/data/site-context";
 import { cn } from "@/lib/utils";
 
 export function SearchDialog({
@@ -13,7 +13,8 @@ export function SearchDialog({
 }) {
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const hits = useMemo(() => searchSite(q), [q]);
+  const { searchSite } = useSite();
+  const hits = searchSite(q);
 
   useEffect(() => {
     if (open) {

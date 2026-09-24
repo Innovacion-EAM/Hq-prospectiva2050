@@ -19,6 +19,7 @@ import {
   Spinner,
   TextArea,
 } from "@/components/ui";
+import { MediaPicker } from "@/components/media-picker";
 import { FORMATOS, TIPOS_DOCUMENTO, type Documento } from "@/lib/types";
 
 const TIPO_LABEL: Record<string, string> = {
@@ -40,6 +41,7 @@ function emptyDocumento(): Documento {
     delimitacion: "Departamental",
     formato: "PDF",
     link: "",
+    archivo: null,
   };
 }
 
@@ -122,6 +124,7 @@ export function DocumentosListPage() {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{TIPO_LABEL[d.tipo]}</Badge>
                     <Badge>{d.formato}</Badge>
+                    {d.archivo ? <Badge tone="lime">Subido</Badge> : null}
                     {d.delimitacion ? <Badge tone="ink">{d.delimitacion}</Badge> : null}
                   </div>
                   <p className="mt-1.5 truncate font-display text-sm font-semibold text-ink">{d.titulo}</p>
@@ -251,9 +254,46 @@ export function DocumentoFormPage() {
               </Select>
             </Field>
           </FormGrid>
-          <Field label="Enlace de descarga" hint="URL del archivo (PDF) en el servidor o en un enlace externo.">
-            <TextArea rows={2} value={guardar.link} onChange={(e) => commit({ link: e.target.value })} placeholder="https://... o /files/..." />
-          </Field>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink">Fuente del documento</p>
+            <div className="mb-3 flex gap-1.5">
+              {(
+                [
+                  ["enlace", "Enlace externo"],
+                  ["archivo", "Archivo subido"],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => commit(v === "archivo" ? { link: "" } : { archivo: null })}
+                  className={
+                    (guardar.archivo ? "archivo" : "enlace") === v
+                      ? "rounded-pill bg-lime px-3.5 py-1.5 font-display text-xs font-semibold text-lime-fg"
+                      : "rounded-pill border border-mist bg-paper px-3.5 py-1.5 font-display text-xs font-semibold text-muted hover:text-ink"
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {guardar.archivo ? (
+              <MediaPicker
+                value={guardar.archivo}
+                onSelect={(url) => commit({ archivo: url, link: "" })}
+                hint="El archivo se guarda en la biblioteca y se sirve desde /api/uploads."
+              />
+            ) : (
+              <Field label="Enlace de descarga" hint="URL externa del documento.">
+                <TextArea
+                  rows={2}
+                  value={guardar.link}
+                  onChange={(e) => commit({ link: e.target.value })}
+                  placeholder="https://..."
+                />
+              </Field>
+            )}
+          </div>
         </CardBody>
       </Card>
       <div className="flex justify-end gap-2">

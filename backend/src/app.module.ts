@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthGuard } from './auth/auth.guard';
+import { AuthModule } from './auth/auth.module';
 import { DataModule } from './data/data.module';
 import { HealthController } from './health/health.controller';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -26,8 +30,13 @@ import { HealthController } from './health/health.controller';
       }),
     }),
     DataModule,
+    AuthModule,
+    UploadModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: AuthGuard },
+  ],
 })
 export class AppModule {}

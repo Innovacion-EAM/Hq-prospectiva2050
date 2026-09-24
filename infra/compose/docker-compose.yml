@@ -31,6 +31,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - hq-uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/health || exit 1"]
       interval: 10s
@@ -98,6 +100,7 @@ services:
 
 volumes:
   pgdata:
+  hq-uploads:
 
 networks:
   hq-net:

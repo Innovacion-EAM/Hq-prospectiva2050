@@ -2,11 +2,13 @@ import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/commo
 import type { DeepPartial } from 'typeorm';
 import { Convocatoria } from '../entities/convocatoria.entity';
 import { ConvocatoriasService } from './convocatorias.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('convocatorias')
 export class ConvocatoriasController {
   constructor(private readonly convocatorias: ConvocatoriasService) {}
 
+  @Public()
   @Get()
   list() {
     return this.convocatorias.listActiveFirst();

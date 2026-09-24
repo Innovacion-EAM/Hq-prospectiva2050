@@ -1,11 +1,12 @@
 import { Link, useParams } from "react-router-dom";
 import { DimensionDetail } from "@/components/dimension-panel";
 import { PageHero } from "@/components/site-shell";
-import { DIMENSIONS, getDimension } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { NotFoundPage } from "./NotFoundPage";
 
 export function DimensionDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { DIMENSIONS, getDimension } = useSite();
   const dim = getDimension(slug ?? "");
 
   if (!dim) {

@@ -1,8 +1,9 @@
 import { HomeContact } from "@/components/shared-sections";
 import { PageHero } from "@/components/site-shell";
-import { ENTITIES, SITE } from "@/data/site";
+import { useSite } from "@/data/site-context";
 
 export function ContactosPage() {
+  const { ENTITIES, SITE } = useSite();
   return (
     <>
       <PageHero

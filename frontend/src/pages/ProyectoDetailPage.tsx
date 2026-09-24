@@ -1,10 +1,11 @@
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/site-shell";
-import { getProject, PROJECT_PAGES } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { NotFoundPage } from "./NotFoundPage";
 
 export function ProyectoDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const { PROJECT_PAGES, getProject } = useSite();
   const page = getProject(slug ?? "");
 
   if (!page) {

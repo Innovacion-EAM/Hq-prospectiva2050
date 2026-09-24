@@ -2,7 +2,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
-import { FOOTER_COLS, NAV, SITE } from "@/data/site";
+import { FOOTER_COLS, NAV } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Logo, LogoMark } from "./logo";
@@ -158,6 +159,7 @@ function MobileNav({
 function Footer() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const { SITE } = useSite();
 
   async function subscribe(e: FormEvent) {
     e.preventDefault();

@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
 import { Convocatoria } from '../entities/convocatoria.entity';
 import { Dimension } from '../entities/dimension.entity';
 import { DocCategoria } from '../entities/doc-categoria.entity';
@@ -11,6 +12,7 @@ import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
 import { SiteConfig } from '../entities/site-config.entity';
 import { Stat } from '../entities/stat.entity';
 import { Taller } from '../entities/taller.entity';
+import { User } from '../entities/user.entity';
 import {
   SEED_CATEGORIAS,
   SEED_CONVOCATORIAS,
@@ -23,6 +25,7 @@ import {
   SEED_SITE,
   SEED_STATS,
   SEED_TALLERES,
+  SEED_USERS,
 } from '../seed-data';
 
 @Injectable()
@@ -43,6 +46,7 @@ export class SeederService implements OnApplicationBootstrap {
     await this.seed(Convocatoria, SEED_CONVOCATORIAS);
     await this.seed(Mensaje, SEED_MENSAJES);
     await this.seedSite();
+    await this.seedUsers();
   }
 
   private async seed<T extends object>(entity: new () => T, rows: unknown[]): Promise<void> {
@@ -60,6 +64,23 @@ export class SeederService implements OnApplicationBootstrap {
     if (!existing) {
       await repo.save(repo.create({ id: 1, ...SEED_SITE } as never));
       this.logger.log('Configuración del sitio sembrada (fila 1)');
+    }
+  }
+
+  private async seedUsers(): Promise<void> {
+    const repo = this.dataSource.getRepository(User);
+    const count = await repo.count();
+    if (count === 0) {
+      for (const seed of SEED_USERS) {
+        await repo.save(
+          repo.create({
+            email: seed.email,
+            passwordHash: await bcrypt.hash(seed.password, 12),
+            role: seed.role,
+          }),
+        );
+      }
+      this.logger.log(`Sembradas ${SEED_USERS.length} cuentas de usuario`);
     }
   }
 }

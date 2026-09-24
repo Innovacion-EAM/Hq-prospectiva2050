@@ -3,12 +3,13 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site-shell";
-import { DOC_CATEGORIES } from "@/data/site";
 import { fetchDocumentos, formatFecha, type ApiDocumento } from "@/lib/api";
+import { useSite } from "@/data/site-context";
 import { NotFoundPage } from "./NotFoundPage";
 
 export function DocumentosCategoriaPage() {
   const { categoria } = useParams<{ categoria: string }>();
+  const { DOC_CATEGORIES } = useSite();
   const cat = DOC_CATEGORIES.find((c) => c.slug === categoria);
 
   const [docs, setDocs] = useState<ApiDocumento[]>([]);

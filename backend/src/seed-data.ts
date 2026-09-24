@@ -523,6 +523,231 @@ export const SEED_DIMENSIONES: SeedDimension[] = [
       },
     ],
   },
+  {
+    slug: "socio-cultural",
+    title: "Dimensión socio - Cultural",
+    short: "Dimensión Socio - Cultural",
+    icon: "users",
+    summary:
+      "Gente, cultura cafetera, educación, salud y el derecho a permanecer en el territorio.",
+    body: [
+      "Sin talento local no hay horizonte. Esta dimensión pone en el centro la demografía, la educación, la cultura viva del café y las desigualdades urbano-rurales.",
+      "El ejercicio busca que la visión 2050 se construya con las comunidades, no sobre ellas.",
+    ],
+    layers: ["Talento y educación", "Cultura viva", "Bienestar"],
+    steps: [
+      { n: "01", title: "Gente" },
+      { n: "02", title: "Oficios" },
+      { n: "03", title: "Escuela" },
+      { n: "04", title: "Cultura" },
+      { n: "05", title: "Cuidado" },
+      { n: "06", title: "Voces" },
+    ],
+    charts: [
+      {
+        name: "Retención de talento joven",
+        color: "#0b3336",
+        data: [
+          { year: "2018", value: 36 },
+          { year: "2020", value: 33 },
+          { year: "2022", value: 35 },
+          { year: "2024", value: 41 },
+          { year: "2026", value: 49 },
+        ],
+      },
+      {
+        name: "Cobertura educativa superior",
+        color: "#8fcb32",
+        data: [
+          { year: "2018", value: 44 },
+          { year: "2020", value: 46 },
+          { year: "2022", value: 50 },
+          { year: "2024", value: 55 },
+          { year: "2026", value: 61 },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "misiones",
+    title: "Misiones del proceso",
+    short: "Misiones del proceso",
+    icon: "trophy",
+    summary:
+      "Un puñado de misiones orientadoras que organizan el esfuerzo colectivo alrededor de resultados verificables.",
+    body: [
+      "Las misiones traducen la visión en apuestas concretas: agua segura, empleo de calidad, paisaje vivo, instituciones que anticipan.",
+      "Cada misión cruza dimensiones y obliga a coordinar entidades que normalmente trabajan por separado.",
+    ],
+    layers: ["Misión agua", "Misión talento", "Misión paisaje"],
+    steps: [
+      { n: "01", title: "Definir" },
+      { n: "02", title: "Priorizar" },
+      { n: "03", title: "Aliados" },
+      { n: "04", title: "Metas" },
+      { n: "05", title: "Ruta" },
+      { n: "06", title: "Pilotos" },
+    ],
+    charts: [
+      {
+        name: "Avance misional",
+        color: "#0b3336",
+        data: [
+          { year: "2018", value: 12 },
+          { year: "2020", value: 18 },
+          { year: "2022", value: 27 },
+          { year: "2024", value: 39 },
+          { year: "2026", value: 54 },
+        ],
+      },
+      {
+        name: "Alianzas activas",
+        color: "#8fcb32",
+        data: [
+          { year: "2018", value: 8 },
+          { year: "2020", value: 14 },
+          { year: "2022", value: 22 },
+          { year: "2024", value: 31 },
+          { year: "2026", value: 45 },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "retos",
+    title: "Retos priorizados",
+    short: "Retos priorizados",
+    icon: "alert",
+    summary:
+      "Los nudos que, si no se resuelven, impiden cualquier escenario de futuro deseable.",
+    body: [
+      "Los retos no son una lista infinita. Se priorizan con evidencia y con la voz de quienes viven el territorio: empleo juvenil, agua, ordenamiento, coordinación institucional y diversificación productiva.",
+      "Priorizar es también decir qué no se va a atender de primero. Esa conversación es parte del ejercicio.",
+    ],
+    layers: ["Estructura", "Coyuntura", "Emergentes"],
+    steps: [
+      { n: "01", title: "Inventario" },
+      { n: "02", title: "Severidad" },
+      { n: "03", title: "Urgencia" },
+      { n: "04", title: "Viabilidad" },
+      { n: "05", title: "Prioridad" },
+      { n: "06", title: "Dueños" },
+    ],
+    charts: [
+      {
+        name: "Severidad percibida",
+        color: "#0b3336",
+        data: [
+          { year: "2018", value: 72 },
+          { year: "2020", value: 80 },
+          { year: "2022", value: 76 },
+          { year: "2024", value: 70 },
+          { year: "2026", value: 64 },
+        ],
+      },
+      {
+        name: "Capacidad de respuesta",
+        color: "#8fcb32",
+        data: [
+          { year: "2018", value: 24 },
+          { year: "2020", value: 26 },
+          { year: "2022", value: 34 },
+          { year: "2024", value: 42 },
+          { year: "2026", value: 55 },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "iniciativas",
+    title: "Iniciativas y fichas por dimensión",
+    short: "Iniciativas y fichas por Dimensión",
+    icon: "folder",
+    summary:
+      "El portafolio de iniciativas que convierte la visión en proyectos con responsable, costo y meta.",
+    body: [
+      "Cada iniciativa se documenta en una ficha: problema, población, entidad líder, aliados, presupuesto indicativo y contribución a la visión 2050.",
+      "El portafolio se alimenta de lo que ya existe en el departamento y de lo que el ejercicio prospectivo revela que falta.",
+    ],
+    layers: ["Formulación", "Banco de proyectos", "Financiamiento"],
+    steps: [
+      { n: "01", title: "Ideas" },
+      { n: "02", title: "Filtro" },
+      { n: "03", title: "Ficha" },
+      { n: "04", title: "Costo" },
+      { n: "05", title: "Líder" },
+      { n: "06", title: "Banco" },
+    ],
+    charts: [
+      {
+        name: "Fichas formuladas",
+        color: "#0b3336",
+        data: [
+          { year: "2018", value: 6 },
+          { year: "2020", value: 9 },
+          { year: "2022", value: 14 },
+          { year: "2024", value: 22 },
+          { year: "2026", value: 36 },
+        ],
+      },
+      {
+        name: "Con financiamiento",
+        color: "#8fcb32",
+        data: [
+          { year: "2018", value: 3 },
+          { year: "2020", value: 4 },
+          { year: "2022", value: 7 },
+          { year: "2024", value: 11 },
+          { year: "2026", value: 18 },
+        ],
+      },
+    ],
+  },
+  {
+    slug: "hallazgos",
+    title: "Hallazgos y tendencias",
+    short: "Hallazgos y tendencias",
+    icon: "file",
+    summary:
+      "Las señales del entorno global, nacional y local que condicionan cualquier escenario del Quindío.",
+    body: [
+      "Cambio climático, transición energética, envejecimiento, digitalización y nuevas geografías del turismo son tendencias que no caben en un plan de cuatro años.",
+      "El diagnóstico inicial lee esas tendencias a la luz de las capacidades reales del departamento para no construir una visión ingenua.",
+    ],
+    layers: ["Globales", "Nacionales", "Locales"],
+    steps: [
+      { n: "01", title: "Señales" },
+      { n: "02", title: "Drivers" },
+      { n: "03", title: "Impacto" },
+      { n: "04", title: "Incertidumbre" },
+      { n: "05", title: "Escenarios" },
+      { n: "06", title: "Implicaciones" },
+    ],
+    charts: [
+      {
+        name: "Exposición climática",
+        color: "#0b3336",
+        data: [
+          { year: "2018", value: 48 },
+          { year: "2020", value: 52 },
+          { year: "2022", value: 58 },
+          { year: "2024", value: 63 },
+          { year: "2026", value: 67 },
+        ],
+      },
+      {
+        name: "Digitalización de mipymes",
+        color: "#8fcb32",
+        data: [
+          { year: "2018", value: 18 },
+          { year: "2020", value: 29 },
+          { year: "2022", value: 38 },
+          { year: "2024", value: 47 },
+          { year: "2026", value: 58 },
+        ],
+      },
+    ],
+  },
 ];
 
 export const SEED_MENSAJES: SeedMensaje[] = [
@@ -543,5 +768,19 @@ export const SEED_MENSAJES: SeedMensaje[] = [
     tipo: "contacto",
     fecha: "2026-06-21",
     leido: false,
+  },
+];
+
+export type SeedUser = {
+  email: string;
+  password: string;
+  role: 'admin' | 'editor';
+};
+
+export const SEED_USERS: SeedUser[] = [
+  {
+    email: 'admin@prospectiva.com',
+    password: 'Admin123*',
+    role: 'admin',
   },
 ];

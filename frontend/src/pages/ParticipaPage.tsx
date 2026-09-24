@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { PageHero } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
-import { WORKSHOPS } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { fetchConvocatorias, formatFecha, type ApiConvocatoria } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ParticipaPage() {
+  const { WORKSHOPS } = useSite();
   const [convocatorias, setConvocatorias] = useState<ApiConvocatoria[]>([]);
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({

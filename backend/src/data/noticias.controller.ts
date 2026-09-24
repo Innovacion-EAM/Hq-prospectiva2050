@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   NotFoundException,
   Param,
   Patch,
@@ -10,26 +11,46 @@ import {
   Query,
 } from '@nestjs/common';
 import type { DeepPartial } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
 import { Noticia } from '../entities/noticia.entity';
 import { NoticiasService } from './noticias.service';
+import { Public } from '../auth/public.decorator';
+import type { JwtPayload } from '../auth/auth.guard';
 
 @Controller('noticias')
 export class NoticiasController {
-  constructor(private readonly noticias: NoticiasService) {}
+  constructor(
+    private readonly noticias: NoticiasService,
+    private readonly jwt: JwtService,
+  ) {}
 
+  @Public()
   @Get()
   list(
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
     @Query('categoria') categoria?: string,
     @Query('q') q?: string,
+    @Headers('authorization') authorization?: string,
   ) {
-    return this.noticias.list({ page: Number(page), perPage: Number(perPage), categoria, q });
+    return this.noticias.list({
+      page: Number(page),
+      perPage: Number(perPage),
+      categoria,
+      q,
+      includeAll: this.isAdmin(authorization),
+    });
   }
 
+  @Public()
   @Get(':slug')
-  async detail(@Param('slug') slug: string) {
-    const noticia = await this.noticias.findBySlug(slug);
+  async detail(
+    @Param('slug') slug: string,
+    @Headers('authorization') authorization?: string,
+  ) {
+    const noticia = this.isAdmin(authorization)
+      ? await this.noticias.findBySlug(slug)
+      : await this.noticias.findBySlugPublic(slug);
     if (!noticia) {
       throw new NotFoundException('Noticia no encontrada');
     }
@@ -49,5 +70,17 @@ export class NoticiasController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.noticias.remove(Number(id));
+  }
+
+  private isAdmin(authorization?: string): boolean {
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      return false;
+    }
+    try {
+      const payload = this.jwt.verify<JwtPayload>(authorization.slice(7));
+      return ['admin', 'editor'].includes(payload.role);
+    } catch {
+      return false;
+    }
   }
 }

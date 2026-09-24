@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
-import { DIMENSIONS } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { cn } from "@/lib/utils";
 import { DimensionDetail, DimensionGrid, TopPillTabs } from "./dimension-panel";
 import { LimeCta } from "./site-shell";
@@ -45,6 +45,7 @@ const CAROUSEL_CARDS = [
 ];
 
 export function HomeProject() {
+  const { DIMENSIONS } = useSite();
   const [slide, setSlide] = useState(0);
   const [dim, setDim] = useState(DIMENSIONS[0].slug);
   const [expanded, setExpanded] = useState(false);

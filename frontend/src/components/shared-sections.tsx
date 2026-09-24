@@ -11,12 +11,14 @@ import {
 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
-import { DOC_CATEGORIES, SITE, STATS, type DocCategory } from "@/data/site";
+import type { DocCategory } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
 export function HomeStats() {
+  const { STATS } = useSite();
   return (
     <section className="border-y border-stone bg-paper px-4 py-10 sm:px-6">
       <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -50,6 +52,7 @@ const DOC_ICONS: Record<DocCategory["icon"], typeof FileText> = {
 };
 
 export function HomeDocuments() {
+  const { DOC_CATEGORIES } = useSite();
   return (
     <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
@@ -177,6 +180,7 @@ export function HomeNews({ news }: { news?: { slug: string; title: string; categ
 
 
 export function HomeContact() {
+  const { SITE } = useSite();
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
     nombre: "",

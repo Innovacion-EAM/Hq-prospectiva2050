@@ -9,6 +9,7 @@ export interface NoticiaListQuery {
   perPage?: number;
   categoria?: string;
   q?: string;
+  includeAll?: boolean;
 }
 
 export interface Paginated<T> {
@@ -31,6 +32,12 @@ export class NoticiasService extends CrudService<Noticia> {
     const { categoria, q } = query;
 
     const qb = this.repository.createQueryBuilder('n');
+    if (!query.includeAll) {
+      qb.andWhere('n.publicado = :pub', { pub: true }).andWhere(
+        '(n.publicadoEn IS NULL OR n.publicadoEn <= :now)',
+        { now: new Date() },
+      );
+    }
     if (categoria && categoria !== 'Todas') {
       qb.andWhere('n.categoria = :categoria', { categoria });
     }
@@ -51,5 +58,14 @@ export class NoticiasService extends CrudService<Noticia> {
 
   findBySlug(slug: string): Promise<Noticia | null> {
     return this.repository.findOne({ where: { slug } });
+  }
+
+  findBySlugPublic(slug: string): Promise<Noticia | null> {
+    return this.repository
+      .createQueryBuilder('n')
+      .where('n.slug = :slug', { slug })
+      .andWhere('n.publicado = :pub', { pub: true })
+      .andWhere('(n.publicadoEn IS NULL OR n.publicadoEn <= :now)', { now: new Date() })
+      .getOne();
   }
 }

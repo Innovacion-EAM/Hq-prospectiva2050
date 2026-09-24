@@ -23,6 +23,8 @@ import { MensajesService } from './mensajes.service';
 import { NoticiasController } from './noticias.controller';
 import { NoticiasService } from './noticias.service';
 import { SeederService } from './seeder.service';
+import { SiteController } from './site.controller';
+import { SiteService } from './site.service';
 
 @Module({
   imports: [
@@ -47,6 +49,7 @@ import { SeederService } from './seeder.service';
     ConfigController,
     MensajesController,
     FormsController,
+    SiteController,
   ],
   providers: [
     NoticiasService,
@@ -55,6 +58,7 @@ import { SeederService } from './seeder.service';
     MensajesService,
     ConfigService,
     SeederService,
+    SiteService,
   ],
 })
 export class DataModule {}

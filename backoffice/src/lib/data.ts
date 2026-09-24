@@ -5,16 +5,54 @@ import type {
   DocCategoria,
   Documento,
   Entidad,
+  Media,
   Mensaje,
   Noticia,
   PaginaProyecto,
+  Role,
   SiteSettings,
   Stat,
   Taller,
+  User,
 } from "./types";
 
 const API_BASE: string =
   (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:3000";
+
+const TOKEN_KEY = "hq_admin_token";
+const USER_KEY = "hq_admin_user";
+
+const BASENAME: string =
+  import.meta.env.MODE === "dev" ? "" : "/admin";
+
+function gotoLogin(): void {
+  if (typeof window === "undefined") return;
+  window.location.href = `${BASENAME}/login`;
+}
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setSession(token: string, user: unknown): void {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function clearSession(): void {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
+export function getStoredUser<T>(): T | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
 
 export type Crud<T> = {
   list(): Promise<T[]>;
@@ -26,13 +64,42 @@ export type Crud<T> = {
 type HttpList<T> = T[] | { data: T[] };
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "content-type": "application/json", accept: "application/json" },
-    ...init,
-  });
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+    accept: "application/json",
+  };
+  const token = getToken();
+  if (token) headers.authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  if (res.status === 401) {
+    clearSession();
+    gotoLogin();
+  }
   if (!res.ok) throw new Error(`API ${path} respondió ${res.status}`);
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+export async function loginRequest(email: string, password: string) {
+  return http<{ accessToken: string; user: User }>("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function uploadFileRequest(file: File): Promise<Media> {
+  const form = new FormData();
+  form.append("file", file);
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/api/media/uploads`, { method: "POST", body: form, headers });
+  if (res.status === 401) {
+    clearSession();
+    gotoLogin();
+  }
+  if (!res.ok) throw new Error(`Upload respondió ${res.status}`);
+  return res.json() as Promise<Media>;
 }
 
 function normalizeList<T>(raw: HttpList<T>): T[] {
@@ -67,7 +134,17 @@ export const collections = {
   paginas: () => httpCrud<PaginaProyecto>("/api/config/proyecto-paginas"),
   dimensiones: () => httpCrud<Dimension>("/api/config/dimensiones"),
   mensajes: () => httpCrud<Mensaje>("/api/mensajes"),
+  media: () => httpCrud<Media>("/api/media"),
+  users: () => ({
+    ...httpCrud<User>("/api/users"),
+    create: (item: { email: string; password: string; role: Role }) =>
+      http<User>("/api/users", { method: "POST", body: JSON.stringify(item) }),
+    update: (id: number, patch: { email?: string; password?: string; role?: Role }) =>
+      http<User>(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  }),
 };
+
+export { API_BASE, http };
 
 export type ConfigBackend<C> = {
   get(): Promise<C>;

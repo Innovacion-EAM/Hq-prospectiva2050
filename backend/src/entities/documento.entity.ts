@@ -25,4 +25,7 @@ export class Documento {
 
   @Column({ type: 'text', nullable: true })
   link: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  archivo: string | null;
 }

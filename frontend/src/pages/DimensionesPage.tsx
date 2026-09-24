@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { DimensionDetail, DimensionGrid } from "@/components/dimension-panel";
 import { PageHero } from "@/components/site-shell";
-import { DIMENSIONS } from "@/data/site";
+import { useSite } from "@/data/site-context";
 
 export function DimensionesPage() {
+  const { DIMENSIONS } = useSite();
   const [slug, setSlug] = useState(DIMENSIONS[0].slug);
   const dim = DIMENSIONS.find((d) => d.slug === slug) ?? DIMENSIONS[0];
 

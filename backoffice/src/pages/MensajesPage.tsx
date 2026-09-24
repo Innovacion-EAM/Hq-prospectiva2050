@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { CheckCheck, Inbox, Mail, Trash2 } from "lucide-react";
 import { collections, useCollection } from "@/lib/data";
+import { useAuth } from "@/lib/auth";
 import { Badge, Card, ConfirmButton, EmptyState, PageHeader, SearchInput, Spinner, Toggle } from "@/components/ui";
 import { cn, formatFechaLocal } from "@/lib/utils";
 import type { Mensaje } from "@/lib/types";
 
 export function MensajesPage() {
   const { items, loading, update, remove } = useCollection(collections.mensajes());
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState<"todos" | "contacto" | "inscripciones">("todos");
   const [openId, setOpenId] = useState<number | null>(null);
@@ -114,14 +116,16 @@ export function MensajesPage() {
                         label={m.leido ? "Leído" : "Marcar como leído"}
                       />
                       <div className="flex-1" />
-                      <ConfirmButton
-                        label="Eliminar mensaje"
-                        onConfirm={() => remove(m.id)}
-                        confirmText="¿Eliminar mensaje?"
-                        variant="outline"
-                      >
-                        <Trash2 className="size-3.5" /> Eliminar
-                      </ConfirmButton>
+                      {user?.role === "admin" ? (
+                        <ConfirmButton
+                          label="Eliminar mensaje"
+                          onConfirm={() => remove(m.id)}
+                          confirmText="¿Eliminar mensaje?"
+                          variant="outline"
+                        >
+                          <Trash2 className="size-3.5" /> Eliminar
+                        </ConfirmButton>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}

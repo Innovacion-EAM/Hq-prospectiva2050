@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { SITE } from "@/data/site";
+import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
 export function HomeHero() {
+  const { SITE } = useSite();
   return (
     <section className="relative isolate overflow-hidden bg-ink text-paper pb-16 sm:pb-20 lg:pb-24">
       {/* Background aerial city image */}

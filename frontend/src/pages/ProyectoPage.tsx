@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { PageHero } from "@/components/site-shell";
-import { ENTITIES, PROJECT_PAGES } from "@/data/site";
+import { useSite } from "@/data/site-context";
 
 export function ProyectoPage() {
+  const { ENTITIES, PROJECT_PAGES } = useSite();
   return (
     <>
       <PageHero

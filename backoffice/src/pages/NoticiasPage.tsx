@@ -26,6 +26,7 @@ import {
   Toggle,
 } from "@/components/ui";
 import { CATEGORIAS_NOTICIA, type Noticia } from "@/lib/types";
+import { MediaPicker } from "@/components/media-picker";
 
 function emptyNoticia(): Noticia {
   return {
@@ -40,7 +41,26 @@ function emptyNoticia(): Noticia {
     etiquetas: [],
     publicado: true,
     destacado: false,
+    publicadoEn: null,
   };
+}
+
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toIso(local: string): string | null {
+  if (!local) return null;
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function esProgramada(n: Noticia): boolean {
+  return Boolean(n.publicadoEn) && new Date(n.publicadoEn as string).getTime() > Date.now();
 }
 
 export function NoticiasListPage() {
@@ -171,9 +191,15 @@ export function NoticiasListPage() {
                       </Badge>
                     ) : null}
                     {n.publicado ? (
-                      <Badge tone="lime">
-                        <Eye className="size-2.5" /> Publicada
-                      </Badge>
+                      esProgramada(n) ? (
+                        <Badge tone="ink">
+                          <EyeOff className="size-2.5" /> Programada
+                        </Badge>
+                      ) : (
+                        <Badge tone="lime">
+                          <Eye className="size-2.5" /> Publicada
+                        </Badge>
+                      )
                     ) : (
                       <Badge>
                         <EyeOff className="size-2.5" /> Borrador
@@ -334,12 +360,8 @@ export function NoticiaFormPage() {
                 placeholder="se-genera-automaticamente"
               />
             </Field>
-            <Field label="Imagen" hint="Ruta dentro de public/ o URL completa.">
-              <Input
-                value={guardar.imagen}
-                onChange={(e) => commit({ imagen: e.target.value })}
-                placeholder="/images/news-ciudad.jpg"
-              />
+            <Field label="Imagen" hint="Usa la galería o escribe una ruta dentro de public/ o una URL completa.">
+              <MediaPicker value={guardar.imagen} onSelect={(url) => commit({ imagen: url })} />
             </Field>
             <Field label="Resumen" hint="Texto breve que se muestra en tarjetas y en el buscador.">
               <TextArea rows={3} value={guardar.resumen} onChange={(e) => commit({ resumen: e.target.value })} />
@@ -356,6 +378,16 @@ export function NoticiaFormPage() {
               <Toggle checked={guardar.publicado} onChange={(v) => commit({ publicado: v })} label="Publicada" />
               <Toggle checked={guardar.destacado} onChange={(v) => commit({ destacado: v })} label="Destacada (portada)" />
             </div>
+            <Field
+              label="Programar publicación"
+              hint="Si lo llenas, la noticia se mantiene oculta hasta esa fecha y hora y luego aparece sola."
+            >
+              <Input
+                type="datetime-local"
+                value={guardar.publicadoEn ? toLocalInput(guardar.publicadoEn) : ""}
+                onChange={(e) => commit({ publicadoEn: toIso(e.target.value) })}
+              />
+            </Field>
             <Divider />
             <StringsEditor
               label="Etiquetas"

@@ -34,4 +34,7 @@ export class Noticia {
 
   @Column({ type: 'boolean', default: false })
   destacado: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  publicadoEn: Date | null;
 }

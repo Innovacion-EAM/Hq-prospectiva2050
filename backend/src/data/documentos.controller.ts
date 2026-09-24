@@ -2,11 +2,13 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import type { DeepPartial } from 'typeorm';
 import { Documento } from '../entities/documento.entity';
 import { DocumentosService } from './documentos.service';
+import { Public } from '../auth/public.decorator';
 
 @Controller('documentos')
 export class DocumentosController {
   constructor(private readonly documentos: DocumentosService) {}
 
+  @Public()
   @Get()
   async list(@Query('tipo') tipo?: string, @Query('delimitacion') delimitacion?: string) {
     const data = await this.documentos.findFiltered(tipo, delimitacion);
