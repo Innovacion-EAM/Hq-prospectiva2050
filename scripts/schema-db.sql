@@ -1,1 +1,12 @@
-marca y crea el esquema de la base de datos, crea todo, tablas, columnas...etc
+-- Esquema de la base de datos (OPCIONAL en dev/docker)
+--
+-- En dev y docker local el esquema se crea solo: el backend arranca con
+-- DB_SYNCHRONIZE=true (TypeORM genera las tablas) y el seeder
+-- (backend/src/data/seeder.service.ts + backend/src/seed-data.ts) carga los
+-- datos iniciales.
+--
+-- Este archivo queda disponible para el flujo estricto de PRODUCCIÓN
+-- (DB_SYNCHRONIZE=false), donde se recomienda aplicar el esquema con:
+--     make db-schema
+-- Se puede generar desde las entidades TypeORM (backend/src/entities/**)
+-- para no mantener el SQL a mano.

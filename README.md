@@ -29,4 +29,6 @@ make backup        # respaldo de la base de datos
 make doctor        # diagnóstico del entorno
 ```
 
+> **Base de datos:** en dev/docker el esquema y los datos iniciales se crean solos al arrancar el backend (TypeORM `synchronize` + seeder). En producción `DB_SYNCHRONIZE=false` (ver guía §12).
+
 **Pendientes:** SSL/TLS, migraciones del esquema, CI/CD — ver [Pendientes en la guía](docs/guia-del-proyecto.md#12-pendientes).

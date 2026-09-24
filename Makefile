@@ -230,15 +230,15 @@ db-reset:
 		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
 		$(DOCKER) down -v && $(DOCKER) up -d postgres --wait && echo "Base de datos recreada."
 
-## db-schema: Aplica scripts/schema-db.sql a la db (crea tablas/columnas del esquema)
-#  El backend usa TypeORM con synchronize:false, así que el esquema se monta con este
-#  script. (hoy scripts/schema-db.sql es un stub: al llenarlo, esto ejecuta el SQL.)
+## db-schema: Aplica scripts/schema-db.sql a la db (complemento de PRODUCCIÓN)
+#  Opcional: en dev/docker el esquema y la semilla se crean solos (TypeORM
+#  synchronize + seeder). Aquí para el flujo estricto de prod (DB_SYNCHRONIZE=false).
 db-schema:
 	@if [ ! -s scripts/schema-db.sql ]; then echo "[!] scripts/schema-db.sql está vacío. Llénalo con el SQL del esquema."; exit 1; fi
 	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/schema-db.sql && echo "Esquema aplicado."
 
-## db-seed: Aplica scripts/seed.sql a la db (datos iniciales de arranque)
-#  Ídem: ejecuta la semilla inicial. (hoy scripts/seed.sql es un stub: al llenarlo, esto lo aplica.)
+## db-seed: Aplica scripts/seed.sql a la db (semilla inicial para PRODUCCIÓN)
+#  Opcional: el seeder del backend carga los datos iniciales en dev/docker.
 db-seed:
 	@if [ ! -s scripts/seed.sql ]; then echo "[!] scripts/seed.sql está vacío. Llénalo con la semilla inicial."; exit 1; fi
 	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/seed.sql && echo "Semilla aplicada."

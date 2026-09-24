@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DataModule } from './data/data.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -21,9 +22,10 @@ import { HealthController } from './health/health.controller';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
       }),
     }),
+    DataModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

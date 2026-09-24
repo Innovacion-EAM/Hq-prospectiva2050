@@ -1,1 +1,10 @@
-semilla inicial, sirve para inicializar cosas que deben estar en la db desde el comienzo
+-- Semilla inicial de la base de datos (OPCIONAL en dev/docker)
+--
+-- Los datos de arranque (noticias, documentos, dimensiones, stats, entidades,
+-- talleres, categorías, páginas del proyecto, configuración del sitio, etc.)
+-- ya los carga el seeder del backend al arrancar si la db está vacía
+-- (backend/src/seed-data.ts + backend/src/data/seeder.service.ts).
+--
+-- Este archivo queda disponible para el flujo estricto de PRODUCCIÓN
+-- (DB_SYNCHRONIZE=false), donde se puede aplicar la semilla con:
+--     make db-seed

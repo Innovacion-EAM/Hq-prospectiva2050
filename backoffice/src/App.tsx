@@ -1,61 +1,53 @@
-import { useEffect, useState } from 'react'
-import { getBackendStatus, type BackendStatus } from './api'
+import { Route, Routes } from "react-router-dom";
+import { Layout } from "@/components/layout";
+import { DashboardPage } from "@/pages/DashboardPage";
+import { MensajesPage } from "@/pages/MensajesPage";
+import { NoticiaFormPage, NoticiasListPage } from "@/pages/NoticiasPage";
+import { DocumentoFormPage, DocumentosListPage } from "@/pages/DocumentosPage";
+import { ConvocatoriaFormPage, ConvocatoriasListPage } from "@/pages/ConvocatoriasPage";
+import { ProyectoFormPage, ProyectoListPage } from "@/pages/ProyectoPages";
+import { DimensionFormPage, DimensionesListPage } from "@/pages/DimensionesPage";
+import { AjustesPage } from "@/pages/AjustesPage";
+import {
+  CategoriasPage,
+  EntidadesPage,
+  EstadisticasPage,
+  TalleresPage,
+} from "@/pages/ConfiguracionPages";
 
-type State =
-  | { kind: 'loading' }
-  | { kind: 'ok'; data: BackendStatus }
-  | { kind: 'error' }
-
-function App() {
-  const [state, setState] = useState<State>({ kind: 'loading' })
-
-  useEffect(() => {
-    let active = true
-    getBackendStatus().then((result) => {
-      if (!active) return
-      if (result.ok && result.data) {
-        setState({ kind: 'ok', data: result.data })
-      } else {
-        setState({ kind: 'error' })
-      }
-    })
-    return () => {
-      active = false
-    }
-  }, [])
-
-  function retry() {
-    setState({ kind: 'loading' })
-    getBackendStatus().then((result) => {
-      if (result.ok && result.data) {
-        setState({ kind: 'ok', data: result.data })
-      } else {
-        setState({ kind: 'error' })
-      }
-    })
-  }
-
+export default function App() {
   return (
-    <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-      <h1>Backoffice</h1>
-      <h2>Estado de conexion</h2>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/mensajes" element={<MensajesPage />} />
 
-      {state.kind === 'loading' && <p>Comprobando...</p>}
-      {state.kind === 'error' && (
-        <p style={{ color: '#cc0000' }}>API: no disponible</p>
-      )}
-      {state.kind === 'ok' && (
-        <ul>
-          <li>API: {state.data.api}</li>
-          <li>Database: {state.data.database}</li>
-        </ul>
-      )}
+        <Route path="/noticias" element={<NoticiasListPage />} />
+        <Route path="/noticias/nuevo" element={<NoticiaFormPage />} />
+        <Route path="/noticias/:id" element={<NoticiaFormPage />} />
 
-      <button type="button" onClick={retry}>
-        Re-probar
-      </button>
-    </main>
-  )
+        <Route path="/documentos" element={<DocumentosListPage />} />
+        <Route path="/documentos/nuevo" element={<DocumentoFormPage />} />
+        <Route path="/documentos/:id" element={<DocumentoFormPage />} />
+
+        <Route path="/convocatorias" element={<ConvocatoriasListPage />} />
+        <Route path="/convocatorias/nuevo" element={<ConvocatoriaFormPage />} />
+        <Route path="/convocatorias/:id" element={<ConvocatoriaFormPage />} />
+
+        <Route path="/proyecto" element={<ProyectoListPage />} />
+        <Route path="/proyecto/nuevo" element={<ProyectoFormPage />} />
+        <Route path="/proyecto/:id" element={<ProyectoFormPage />} />
+
+        <Route path="/dimensiones" element={<DimensionesListPage />} />
+        <Route path="/dimensiones/nuevo" element={<DimensionFormPage />} />
+        <Route path="/dimensiones/:id" element={<DimensionFormPage />} />
+
+        <Route path="/configuracion" element={<AjustesPage />} />
+        <Route path="/configuracion/estadisticas" element={<EstadisticasPage />} />
+        <Route path="/configuracion/entidades" element={<EntidadesPage />} />
+        <Route path="/configuracion/talleres" element={<TalleresPage />} />
+        <Route path="/configuracion/categorias" element={<CategoriasPage />} />
+      </Route>
+    </Routes>
+  );
 }
-
-export default App

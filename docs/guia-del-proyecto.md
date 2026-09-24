@@ -28,8 +28,8 @@ Hay **3 formas de correr** cada servicio:
 
 | Servicio | Lenguaje / Framework | Versiones clave | Puerto dev (npm) | Puerto en contenedor | Imagen runtime |
 |---|---|---|---|---|---|
-| **backend** | TypeScript + **NestJS 12** + TypeORM | Node 24 · TS ~6 · `@nestjs/core ^12` · `typeorm ^1.1.1` · `pg ^8.23` | **3006** | 3000 | `node:24-alpine` |
-| **frontend** | TypeScript + **React 19** + **Vite 8** | React 19.2.8 · Vite 8.3.0 · TS ~6· oxlint | **5173** | 80 | `nginx:1.27-alpine` |
+| **backend** | TypeScript + **NestJS 12** + TypeORM | Node 24 · TS ~6 · `@nestjs/core ^12` · `@nestjs/config ^12` · `typeorm ^1.1.1` · `pg ^8.23` | **3006** | 3000 | `node:24-alpine` |
+| **frontend** | TypeScript + **React 19** + **Vite 8** | React 19.2.8 · Vite 8.3.0 · TS ~6 · Tailwind 4 · oxlint | **5173** | 80 | `nginx:1.27-alpine` |
 | **backoffice** | TypeScript + **React 19** + **Vite 8** | ídem frontend | **1234** | 80 (en `/admin`) | `nginx:1.27-alpine` |
 | **postgres** | PostgreSQL | 16-alpine | — | 5432 | `postgres:16-alpine` |
 | **traefik** | Go (proxy reverso) | v3.5 | — | expone 80 · 443 · 8080 | `traefik:v3.5` |
@@ -58,7 +58,7 @@ Instalación rápida de dependencias: `make install` (npm install en los 3 servi
 ├── infra/
 │   ├── compose/        # docker-compose.yml (+ overlay prod) y .env de credenciales
 │   └── traefik/        # config estática (traefik.yml) y dinámica (dynamic/)
-├── scripts/            # Scripts SQL: schema-db.sql y seed.sql (en preparación)
+├── scripts/            # Scripts SQL (opcionales en prod: schema-db.sql y seed.sql)
 ├── docs/               # Documentación
 ├── backups/            # Dumps de la base de datos (make backup) — gitignored
 ├── Makefile            # La "interfaz" de comandos del proyecto
@@ -89,6 +89,9 @@ Variables principales:
 | `VITE_API_URL` | **URL de la API** que llaman las apps web |
 | `POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB` | Credenciales del contenedor de la db (compose) |
 | `APP_ENV` | Entorno del backend (`dev` / `docker` / `prod`) |
+| `DB_SYNCHRONIZE` | Esquema automático de TypeORM (`true` en dev/docker, `false` en prod) |
+
+> **Esquema y datos iniciales:** con `DB_SYNCHRONIZE=true` (dev/docker) TypeORM crea las tablas y el **seeder** del backend (`SeederService` + `seed-data.ts`) carga los datos de arranque al iniciar, si la db está vacía. En producción va `false`.
 
 > **Importante:** en frontend/backoffice, `VITE_API_URL` y `PORT` se **incrustan en el build** (`vite build`). Si los cambias, hay que **reconstruir** (`make rebuild` o `make prod-deploy`); reiniciar el contenedor no basta.
 
@@ -159,6 +162,8 @@ docker compose -f infra/compose/docker-compose.yml --project-directory infra/com
 | `http://127.0.0.1:8080` | dashboard de Traefik |
 
 Health de todo el stack: `http://localhost/api/health/db` → `{"status":"ok", ..., "database":"connected"}`.
+
+> **Primera subida:** con `DB_SYNCHRONIZE=true` la db se crea sola: el backend genera las tablas y el seeder carga los datos iniciales. No hay que ejecutar nada a mano (los `scripts/*.sql` son opcionales).
 
 ### Contenedores y puertos
 
@@ -296,5 +301,5 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 ## 12. Pendientes
 
 - **SSL/TLS** en Traefik (decidir automática vs manual).
-- **Migraciones del esquema** (TypeORM: hoy `synchronize: false` y scripts SQL en preparación).
+- **Migraciones del esquema** (hoy dev/docker usan `DB_SYNCHRONIZE=true` + seeder; para producción estricta se pueden generar migraciones/scripts SQL con `make db-schema` y `make db-seed`).
 - **CI/CD** (GitHub Actions: carpeta `.github/workflows/` preparada).

@@ -16,6 +16,7 @@ async function bootstrap() {
     .filter(Boolean);
 
   app.enableCors({ origin: corsOrigins });
+  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
 
   await app.listen(config.get<number>('PORT') ?? 3000);
 }
