@@ -8,10 +8,13 @@ import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Logo, LogoMark } from "./logo";
 import { SearchDialog } from "./search-dialog";
+import { useSearchShortcut } from "@/hooks/use-search";
 import { Button } from "./ui/button";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  // "/" y Ctrl/Cmd+K abren el buscador desde cualquier página.
+  useSearchShortcut(() => setSearchOpen(true));
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const pathname = location.pathname;
@@ -70,6 +73,11 @@ function Header({
               <Link
                 key={item.href}
                 to={item.href}
+                // El resaltado visual no lo anuncia nadie: `aria-current` es lo
+                // que le dice al lector de pantalla que esta es la página en la
+                // que se está, y es lo único que distingue un enlace activo de
+                // uno que solo se ve distinto.
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "rounded-pill px-4 py-2 font-display text-[0.8rem] font-semibold tracking-wide no-underline transition-colors duration-200",
                   active ? "bg-lime text-lime-fg" : "text-paper hover:bg-paper/10",
@@ -132,6 +140,7 @@ function MobileNav({
             <li key={item.href}>
               <Link
                 to={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "block rounded-xl px-4 py-3 font-display text-sm font-semibold no-underline",
                   active ? "bg-lime text-lime-fg" : "text-paper hover:bg-paper/10",
@@ -159,6 +168,7 @@ function MobileNav({
 function Footer() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const [consentimiento, setConsentimiento] = useState(false);
   const { SITE } = useSite();
 
   async function subscribe(e: FormEvent) {
@@ -166,9 +176,10 @@ function Footer() {
     if (!email.trim() || sending) return;
     setSending(true);
     try {
-      await postForm("boletin", { email: email.trim() });
+      await postForm("boletin", { email: email.trim(), consentimiento: true });
       toast.success("Te suscribiste al canal de noticias.");
       setEmail("");
+      setConsentimiento(false);
     } catch {
       toast.error("No pudimos procesar tu suscripción. Inténtalo de nuevo más tarde.");
     } finally {
@@ -213,10 +224,37 @@ function Footer() {
                 placeholder="Correo"
                 className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm text-ink outline-none placeholder:text-muted"
               />
-              <Button type="submit" variant="lime" size="sm" className="m-1" disabled={sending}>
+              <Button
+                type="submit"
+                variant="lime"
+                size="sm"
+                className="m-1"
+                disabled={sending || !consentimiento}
+              >
                 {sending ? "…" : "Enviar"}
               </Button>
             </div>
+            {/*
+              El pie tiene fondo oscuro, así que la casilla no puede usar el
+              componente compartido: sus clases están pensadas para papel claro.
+              Aquí la variante es `text-mist` y el acento es `lime-btn`, que es el
+              único que se lee sobre ese fondo.
+            */}
+            <label className="flex items-start gap-2 text-[0.7rem] leading-snug text-mist">
+              <input
+                type="checkbox"
+                checked={consentimiento}
+                onChange={(e) => setConsentimiento(e.target.checked)}
+                className="mt-0.5 size-3.5 shrink-0 accent-[var(--color-lime-btn)]"
+              />
+              <span>
+                Autorizo el tratamiento de mis datos para recibir novedades.{" "}
+                <Link to="/privacidad" className="font-semibold text-lime underline">
+                  Aviso de privacidad
+                </Link>
+                .
+              </span>
+            </label>
           </form>
           <div>
             <p className="font-display text-sm font-semibold">Síguenos en redes</p>

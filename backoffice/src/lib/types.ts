@@ -4,6 +4,7 @@ export type Noticia = {
   titulo: string;
   fecha: string;
   categoria: string;
+  autor?: string | null;
   imagen: string;
   resumen: string;
   contenido: string[];
@@ -11,6 +12,8 @@ export type Noticia = {
   publicado: boolean;
   destacado: boolean;
   publicadoEn?: string | null;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type Documento = {
@@ -23,6 +26,8 @@ export type Documento = {
   formato: string;
   link: string;
   archivo?: string | null;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type Convocatoria = {
@@ -32,6 +37,8 @@ export type Convocatoria = {
   descripcion: string;
   enlace: string;
   activa: boolean;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type SiteSettings = {
@@ -53,11 +60,28 @@ export type Stat = {
   value: string;
   label: string;
   subtext: string;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type Entidad = {
   id: number;
   nombre: string;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
+};
+
+/**
+ * Uno de los doce municipios del departamento. `dato` es la línea corta y
+ * `descripcion` el párrafo; los dos son opcionales, y solo `nombre` es
+ * obligatorio. La lista completa la da `GET /api/site`.
+ */
+export type Municipio = {
+  id: number;
+  nombre: string;
+  dato?: string | null;
+  descripcion?: string | null;
+  eliminadoAt?: string | null;
 };
 
 export type Taller = {
@@ -66,6 +90,8 @@ export type Taller = {
   title: string;
   place: string;
   status: string;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type DocCategoria = {
@@ -74,6 +100,8 @@ export type DocCategoria = {
   title: string;
   description: string;
   icon: string;
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type PaginaProyecto = {
@@ -85,6 +113,8 @@ export type PaginaProyecto = {
   excerpt: string;
   lead: string;
   body: string[];
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
 };
 
 export type ChartSeries = {
@@ -98,12 +128,29 @@ export type Dimension = {
   slug: string;
   title: string;
   short: string;
+  /** 'dimension' = una de las 4 dimensiones oficiales. 'bloque' = apoyo. */
+  tipo: "dimension" | "bloque";
   icon: string;
   summary: string;
   body: string[];
   layers: string[];
   steps: { n: string; title: string }[];
   charts: ChartSeries[];
+  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
+  eliminadoAt?: string | null;
+};
+
+/** Origen del mensaje. Los cuatro públicos los produce el backend en /api/forms. */
+export const TIPOS_MENSAJE = ["contacto", "inscripciones", "boletin", "sugerencias"] as const;
+
+export type TipoMensaje = (typeof TIPOS_MENSAJE)[number];
+
+export const ETIQUETAS_TIPO: Record<TipoMensaje | "todos", string> = {
+  todos: "Todos",
+  contacto: "Contacto",
+  inscripciones: "Inscripciones",
+  boletin: "Boletín",
+  sugerencias: "Sugerencias",
 };
 
 export type Mensaje = {
@@ -115,6 +162,12 @@ export type Mensaje = {
   tipo: string;
   fecha: string;
   leido: boolean;
+  /**
+   * El titular marcó la casilla de autorización del Aviso de Privacidad.
+   * `false` en los mensajes anteriores a la migración 0006: se recogieron
+   * cuando todavía no existía el aviso, y no hay que fingir una autorización.
+   */
+  consentimiento?: boolean;
 };
 
 export const TIPOS_DOCUMENTO = [
@@ -130,6 +183,16 @@ export const CATEGORIAS_NOTICIA = [
   "Noticias y Comunicados",
   "Talleres y Eventos",
   "Convocatorias Abiertas",
+  // Categorías que usa el Excel oficial de noticias (docs/doc/2-NOTICIAS).
+  "Institucional",
+  "Diagnóstico",
+  "Socialización",
+  "Avances",
+  "Misión CEPAL",
+  "Participación",
+  "Participación Ciudadana",
+  "Municipios",
+  "Consulta Ciudadana",
 ] as const;
 
 export const ICONOS_DIMENSION = [
@@ -155,8 +218,6 @@ export const ICONOS_CATEGORIA = [
 export const FORMATOS = ["PDF", "DOCX", "XLSX", "PPTX", "Enlace"] as const;
 
 export const STATUS_TALLER = ["Realizado", "Abierto", "Próximo", "Suspendido"] as const;
-
-export const TIPOS_MENSAJE = ["contacto", "inscripciones"] as const;
 
 export type Role = "admin" | "editor";
 

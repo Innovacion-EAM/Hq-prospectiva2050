@@ -28,7 +28,8 @@ export class NoticiasService extends CrudService<Noticia> {
 
   async list(query: NoticiaListQuery): Promise<Paginated<Noticia>> {
     const page = Math.max(1, Number(query.page) || 1);
-    const perPage = Math.max(1, Number(query.perPage) || 30);
+    // Tope duro: sin él, ?perPage=100000000 se traduce en un SELECT gigante.
+    const perPage = Math.min(200, Math.max(1, Number(query.perPage) || 30));
     const { categoria, q } = query;
 
     const qb = this.repository.createQueryBuilder('n');

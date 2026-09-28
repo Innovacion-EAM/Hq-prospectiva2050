@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Trash2, Upload } from "lucide-react";
-import { collections, uploadFileRequest } from "@/lib/data";
+import { collections, TIPOS_ARCHIVO_ACEPTADOS, uploadFileRequest } from "@/lib/data";
+import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { Button, ConfirmButton, EmptyState, PageHeader, Spinner } from "@/components/ui";
 import type { Media } from "@/lib/types";
@@ -16,6 +17,10 @@ function formatSize(bytes: number): string {
 }
 
 export function MediaPage() {
+  const { user } = useAuth();
+  // El backend restringe el borrado a admin, así que el botón se oculta en vez
+  // de dejar al editor con un error 403 al pulsarlo.
+  const puedeBorrar = user?.role === "admin";
   const [media, setMedia] = useState<Media[]>([]);
   const [loadinglist, setLoadingList] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -41,8 +46,10 @@ export function MediaPage() {
       const saved = await uploadFileRequest(file);
       setMedia((prev) => [saved, ...prev]);
       toast.success("Archivo subido a la biblioteca");
-    } catch {
-      toast.error("No se pudo subir el archivo");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "No se pudo subir el archivo. Inténtalo de nuevo.",
+      );
     } finally {
       setUploading(false);
     }
@@ -53,8 +60,10 @@ export function MediaPage() {
       await collections.media().remove(m.id);
       setMedia((prev) => prev.filter((x) => x.id !== m.id));
       toast.success("Archivo eliminado");
-    } catch {
-      toast.error("No se pudo eliminar el archivo");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "No se pudo eliminar el archivo. Inténtalo de nuevo.",
+      );
     }
   }
 
@@ -72,8 +81,12 @@ export function MediaPage() {
       <input
         ref={inputRef}
         type="file"
+        // Está oculto y se dispara desde el botón de arriba, pero sigue siendo
+        // un control: sin nombre, un lector de pantalla lo anuncia sin decir de
+        // qué se trata.
+        aria-label="Seleccionar archivo para subir"
         className="hidden"
-        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        accept={TIPOS_ARCHIVO_ACEPTADOS}
         onChange={(e) => {
           void onFile(e.target.files?.[0]);
           e.currentTarget.value = "";
@@ -117,13 +130,15 @@ export function MediaPage() {
                   </p>
                   <p className="text-[0.68rem] text-muted">{formatSize(m.size)}</p>
                 </div>
-                <ConfirmButton
-                  label="Eliminar archivo"
-                  confirmText="¿Eliminar archivo de la biblioteca?"
-                  onConfirm={() => borrar(m)}
-                >
-                  <Trash2 className="size-3.5" />
-                </ConfirmButton>
+                {puedeBorrar ? (
+                  <ConfirmButton
+                    label="Eliminar archivo"
+                    confirmText="¿Eliminar archivo de la biblioteca?"
+                    onConfirm={() => borrar(m)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </ConfirmButton>
+                ) : null}
               </div>
             </div>
           ))}

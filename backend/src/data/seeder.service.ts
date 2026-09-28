@@ -7,6 +7,7 @@ import { DocCategoria } from '../entities/doc-categoria.entity';
 import { Documento } from '../entities/documento.entity';
 import { Entidad } from '../entities/entidad.entity';
 import { Mensaje } from '../entities/mensaje.entity';
+import { Municipio } from '../entities/municipio.entity';
 import { Noticia } from '../entities/noticia.entity';
 import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
 import { SiteConfig } from '../entities/site-config.entity';
@@ -20,6 +21,7 @@ import {
   SEED_DOCUMENTOS,
   SEED_ENTIDADES,
   SEED_MENSAJES,
+  SEED_MUNICIPIOS,
   SEED_NOTICIAS,
   SEED_PROYECTO_PAGINAS,
   SEED_SITE,
@@ -37,6 +39,7 @@ export class SeederService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     await this.seed(Stat, SEED_STATS);
     await this.seed(Entidad, SEED_ENTIDADES);
+    await this.seed(Municipio, SEED_MUNICIPIOS);
     await this.seed(Taller, SEED_TALLERES);
     await this.seed(DocCategoria, SEED_CATEGORIAS);
     await this.seed(PaginaProyecto, SEED_PROYECTO_PAGINAS);
@@ -51,7 +54,12 @@ export class SeederService implements OnApplicationBootstrap {
 
   private async seed<T extends object>(entity: new () => T, rows: unknown[]): Promise<void> {
     const repo = this.dataSource.getRepository(entity);
-    const count = await repo.count();
+    // Con borrado lógico, `count()` solo cuenta las filas activas: si alguien
+    // vaciara una colección entera desde la papelera, al reiniciar el backend
+    // el seeder vería 0 y resucitaría justo lo que se pidió eliminar. Se cuentan
+    // también las dadas de baja para que la tabla vacío siga siendo vacío.
+    const incluyeBorradas = repo.metadata.deleteDateColumn ? { withDeleted: true } : {};
+    const count = await repo.count(incluyeBorradas);
     if (count === 0) {
       await repo.save(repo.create(rows as never[]));
       this.logger.log(`Sembradas ${rows.length} filas en ${repo.metadata.name}`);

@@ -12,7 +12,12 @@ const buttonVariants = cva(
         ink: "bg-ink text-paper hover:bg-ink-mid",
         ghost: "bg-transparent text-paper hover:bg-paper/10",
         outline: "border border-mist bg-paper text-ink hover:bg-fog",
-        hot: "bg-lime-hot text-paper hover:bg-lime-deep",
+        // Antes era `bg-lime-hot text-paper`, que daba 1,95:1: el texto blanco
+        // sobre ese lima era ilegible y el botón quedaba inutilizable. Ahora el
+        // fondo es `lime-btn` (#3f6b0e), que con blanco da 6,32:1. El nombre
+        // `hot` se conserva porque aparece en varios `<Button variant="hot">` y
+        // renombrarlo sería romperlos sin ganar nada.
+        hot: "bg-lime-btn text-white hover:brightness-110",
       },
       size: {
         sm: "h-9 rounded-pill px-4 text-xs",

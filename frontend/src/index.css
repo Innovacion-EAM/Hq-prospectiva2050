@@ -9,6 +9,26 @@
   --color-lime-deep: #b5dc4a;
   --color-lime-hot: #8fcb32;
   --color-lime-fg: #1c3334;
+  /* ── Accesibilidad de contraste ──────────────────────────────────────────
+   * `lime-hot` (#8fcb32) y `lime` (#c6e85c) son muy claros: como texto sobre
+   * papel dan 1,95:1 y 1,39:1, y el umbral de WCAG AA para texto normal es 4,5:1.
+   * Ni siquiera cumplen el 3:1 de texto grande. Sirven de relleno, de borde y de
+   * fondo —para eso el contraste con el texto encima ya está bien: `bg-lime` con
+   * `text-lime-fg` da 9,60:1—, pero NO como color de texto.
+   *
+   * Estos dos tokens son los que hay que usar cuando el lima va a leerse:
+   *  - `lime-ink` #43700f → 5,89 sobre papel, 5,42 sobre niebla, 4,85 sobre
+   *    piedra. Los tres por encima de 4,5, o sea pasa en los tres fondos en los
+   *    que aparece el texto del sitio.
+   *  - `lime-btn` #3f6b0e → 6,32:1 con texto blanco encima. Es el fondo de los
+   *    botones primarios que antes usaban `bg-lime-hot` con letra blanca, que
+   *    daba 1,95:1 y era ilegible.
+   *
+   * `lime-hot` y `lime` se conservan para las superficies de color, que ya
+   * cumplen: no se tocan para no romper los fondos que hoy funcionan.
+   */
+  --color-lime-ink: #43700f;
+  --color-lime-btn: #3f6b0e;
   --color-paper: #ffffff;
   --color-fog: #f3f6f4;
   --color-stone: #e6eae8;

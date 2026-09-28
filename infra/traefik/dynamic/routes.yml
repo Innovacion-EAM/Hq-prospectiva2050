@@ -2,24 +2,33 @@
 # Define "quién va a dónde". Se recarga en caliente (file.watch: true).
 # PRIORIDAD: traefik ordena por longitud de regla → /api y /admin
 # ganan al catch-all "/". No hace falta declarar priority explícita.
+#
+# El dominio está escrito a mano en "Host(`localhost`)", y para producción se
+# reescribe con:  make traefik-host HOST=prospectivaquindio2050.com
+# (lee HQ_SITE_HOST de infra/compose/.env.prod si no se pasa HOST=).
+#
+# Ojo: NO se usa ${HQ_SITE_HOST} en este archivo. El file provider de Traefik
+# v3.5 NO sustituye variables de entorno en la configuración dinámica: la
+# regla se toma literal y el Host queda vacío, así que ningún router coincide
+# y todo devuelve 404.
 
 http:
   routers:
-    # http://localhost/  → frontend (catch-all)
+    # /  → frontend (catch-all)
     frontend:
       rule: "Host(`localhost`) && PathPrefix(`/`)"
       entryPoints:
         - web
       service: frontend
 
-    # http://localhost/admin → backoffice (SPA servido bajo subruta)
+    # /admin → backoffice (SPA servido bajo subruta)
     backoffice:
       rule: "Host(`localhost`) && PathPrefix(`/admin`)"
       entryPoints:
         - web
       service: backoffice
 
-    # http://localhost/api → backend (el middleware strip-api le quita /api)
+    # /api → backend (el middleware strip-api le quita /api)
     api:
       rule: "Host(`localhost`) && PathPrefix(`/api`)"
       entryPoints:
@@ -45,12 +54,12 @@ http:
     #     - web
     #   service: frontend
     # backoffice:
-    #   rule: "Host(`backoffice.localhost`)"
+    #   rule: "Host(`localhost`)"
     #   entryPoints:
     #     - web
     #   service: backoffice
     # api:
-    #   rule: "Host(`api.localhost`)"
+    #   rule: "Host(`localhost`)"
     #   entryPoints:
     #     - web
     #   service: api

@@ -91,6 +91,11 @@ export function SuggestForm({
 }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  // La caja del hero es anónima —no pide nombre ni correo— pero el backend exige
+  // la autorización igual, porque el texto libre puede contener datos personales
+  // que quien escribe no repara en poner. Se le pide lo mismo que en los demás
+  // formularios, en una sola línea para no romper la caja.
+  const [consentimiento, setConsentimiento] = useState(false);
 
   async function send(e: FormEvent) {
     e.preventDefault();
@@ -101,9 +106,11 @@ export function SuggestForm({
         nombre: "Ciudadanía",
         email: undefined,
         sugerencia: text.trim(),
+        consentimiento: true,
       });
       toast.success("Gracias. Recibimos tu pregunta o recomendación.");
       setText("");
+      setConsentimiento(false);
     } catch {
       toast.error("No pudimos recibir tu mensaje. Inténtalo de nuevo más tarde.");
     } finally {
@@ -133,12 +140,27 @@ export function SuggestForm({
         aria-label="Tu pregunta o recomendación"
         className="mt-2.5 h-8.5 w-full rounded-pill bg-paper px-3 text-xs text-ink outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
       />
+      <label className="mt-2.5 flex items-start gap-1.5 text-[0.6rem] leading-tight text-ink-mid">
+        <input
+          type="checkbox"
+          checked={consentimiento}
+          onChange={(e) => setConsentimiento(e.target.checked)}
+          className="mt-px size-3 shrink-0 accent-[var(--color-lime-btn)]"
+        />
+        <span>
+          Autorizo el tratamiento de mis datos.{" "}
+          <Link to="/privacidad" className="font-semibold underline">
+            Aviso de privacidad
+          </Link>
+          .
+        </span>
+      </label>
       <Button
         type="submit"
         variant="hot"
         size="sm"
-        className="mt-2.5 w-full text-xs py-1.5 font-bold uppercase tracking-wider"
-        disabled={sending}
+        className="mt-2 w-full text-xs py-1.5 font-bold uppercase tracking-wider"
+        disabled={sending || !consentimiento}
       >
         {sending ? "Enviando…" : "Enviar"}
       </Button>

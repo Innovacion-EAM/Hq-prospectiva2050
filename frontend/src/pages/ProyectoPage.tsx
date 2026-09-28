@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { MunicipiosSection } from "@/components/municipios-section";
 import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 
@@ -9,7 +10,7 @@ export function ProyectoPage() {
       <PageHero
         kicker="El proyecto"
         title="Una visión compartida para el Quindío"
-        intro="Once entidades del departamento y la CEPAL construyen, entre 2026 y 2027, la hoja de ruta al 2050."
+        intro="Catorce entidades del departamento y la CEPAL construyen, entre 2026 y 2027, la hoja de ruta al 2050."
       />
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr]">
@@ -30,15 +31,15 @@ export function ProyectoPage() {
             <p className="font-display text-sm font-bold text-ink">Tres etapas</p>
             <ol className="mt-4 flex flex-col gap-3 text-sm">
               <li>
-                <span className="font-display font-semibold text-lime-hot">01</span>{" "}
+                <span className="font-display font-semibold text-lime-ink">01</span>{" "}
                 Diagnóstico y diseño metodológico
               </li>
               <li>
-                <span className="font-display font-semibold text-lime-hot">02</span>{" "}
+                <span className="font-display font-semibold text-lime-ink">02</span>{" "}
                 Escenarios y visión compartida
               </li>
               <li>
-                <span className="font-display font-semibold text-lime-hot">03</span>{" "}
+                <span className="font-display font-semibold text-lime-ink">03</span>{" "}
                 Institucionalización y observatorio
               </li>
             </ol>
@@ -64,6 +65,11 @@ export function ProyectoPage() {
             </Link>
           ))}
         </div>
+        {/* La cobertura territorial va antes que las aliadas: el territorio es
+            quién participa, las entidades son quién organiza. Y con la lista de
+            municipios ya a la vista, la de las catorce aliadas se lee como lo que
+            es —el andamiaje del ejercicio— y no como su sujeto. */}
+        <MunicipiosSection />
         <div className="mt-16">
           <h2 className="font-display text-xl font-bold text-ink">Entidades aliadas</h2>
           <ul className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">

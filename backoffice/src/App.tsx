@@ -5,6 +5,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MediaPage } from "@/pages/MediaPage";
 import { MensajesPage } from "@/pages/MensajesPage";
+import PapeleraPage from "@/pages/PapeleraPage";
 import { NoticiaFormPage, NoticiasListPage } from "@/pages/NoticiasPage";
 import { DocumentoFormPage, DocumentosListPage } from "@/pages/DocumentosPage";
 import { ConvocatoriaFormPage, ConvocatoriasListPage } from "@/pages/ConvocatoriasPage";
@@ -12,10 +13,12 @@ import { ProyectoFormPage, ProyectoListPage } from "@/pages/ProyectoPages";
 import { DimensionFormPage, DimensionesListPage } from "@/pages/DimensionesPage";
 import { AjustesPage } from "@/pages/AjustesPage";
 import { UsuariosPage } from "@/pages/UsuariosPage";
+import { RutaNoEncontradaPage } from "@/pages/RutaNoEncontradaPage";
 import {
   CategoriasPage,
   EntidadesPage,
   EstadisticasPage,
+  MunicipiosPage,
   TalleresPage,
 } from "@/pages/ConfiguracionPages";
 
@@ -57,16 +60,13 @@ export default function App() {
         <Route path="/configuracion" element={<AjustesPage />} />
         <Route path="/configuracion/estadisticas" element={<EstadisticasPage />} />
         <Route path="/configuracion/entidades" element={<EntidadesPage />} />
+        <Route path="/configuracion/municipios" element={<MunicipiosPage />} />
         <Route path="/configuracion/talleres" element={<TalleresPage />} />
         <Route path="/configuracion/categorias" element={<CategoriasPage />} />
-        <Route
-          path="/configuracion/galeria"
-          element={
-            <RequireRole role="admin">
-              <MediaPage />
-            </RequireRole>
-          }
-        />
+        {/* La galería es parte del flujo editorial de noticias y documentos,
+            así que la usan tanto admin como editor. Solo el borrado está
+            reservado al admin. */}
+        <Route path="/configuracion/galeria" element={<MediaPage />} />
         <Route
           path="/configuracion/usuarios"
           element={
@@ -75,6 +75,16 @@ export default function App() {
             </RequireRole>
           }
         />
+        <Route
+          path="/papelera"
+          element={
+            <RequireRole role="admin">
+              <PapeleraPage />
+            </RequireRole>
+          }
+        />
+        {/* Antes, una ruta inexistente renderizaba la página en blanco. */}
+        <Route path="*" element={<RutaNoEncontradaPage />} />
       </Route>
     </Routes>
     </AuthProvider>

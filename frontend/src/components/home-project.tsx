@@ -33,7 +33,7 @@ const CAROUSEL_CARDS = [
     title: "Gobernanza",
     image: "/images/hero-city.jpg",
     excerpt:
-      "Once entidades y la CEPAL conforman el arreglo institucional que sostiene el ejercicio.",
+      "Catorce entidades y la CEPAL conforman el arreglo institucional que sostiene el ejercicio.",
   },
   {
     slug: "principios",
@@ -47,9 +47,14 @@ const CAROUSEL_CARDS = [
 export function HomeProject() {
   const { DIMENSIONS } = useSite();
   const [slide, setSlide] = useState(0);
-  const [dim, setDim] = useState(DIMENSIONS[0].slug);
   const [expanded, setExpanded] = useState(false);
-  const active = DIMENSIONS.find((d) => d.slug === dim) ?? DIMENSIONS[0];
+  // El documento de arquitectura define 4 dimensiones de análisis; el resto de
+  // entradas son bloques de apoyo (misiones, retos, iniciativas, hallazgos).
+  const analisis = DIMENSIONS.filter((d) => d.tipo === "dimension");
+  const bloques = DIMENSIONS.filter((d) => d.tipo === "bloque");
+  const visibles = analisis.length > 0 ? analisis : DIMENSIONS;
+  const [dim, setDim] = useState(visibles[0].slug);
+  const active = visibles.find((d) => d.slug === dim) ?? visibles[0];
   const max = CAROUSEL_CARDS.length;
 
   const visible = useMemo(() => {
@@ -76,7 +81,7 @@ export function HomeProject() {
             </h2>
             
             <p className="mx-auto mt-3 max-w-4xl text-center text-xs text-muted sm:text-sm font-medium truncate">
-              Un ejercicio participativo con once entidades y la CEPAL para construir la visión de largo plazo del departamento.
+              Un ejercicio participativo con catorce entidades y la CEPAL para construir la visión de largo plazo del departamento.
             </p>
 
             {/* Carousel Container */}
@@ -167,10 +172,10 @@ export function HomeProject() {
             <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
               <div>
                 <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
-                  Dimensiones, Misiones, Retos
+                  Las cuatro dimensiones
                 </h2>
                 <p className="mt-2 text-xs text-muted sm:text-sm">
-                  Explora las dimensiones que estructuran la lectura del territorio y sus misiones.
+                  Cuatro lecturas del territorio que estructuran la lectura del Quindío.
                 </p>
               </div>
 
@@ -179,6 +184,7 @@ export function HomeProject() {
 
             <div className="mt-8">
               <DimensionGrid
+                items={visibles}
                 active={dim}
                 onSelect={(slug) => {
                   setDim(slug);
@@ -186,6 +192,29 @@ export function HomeProject() {
                 }}
               />
               {expanded ? <DimensionDetail dim={active} /> : null}
+
+              {bloques.length > 0 ? (
+                <div className="mt-8 rounded-2xl border border-stone/70 bg-fog/30 p-5 sm:p-6">
+                  <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
+                    Del diagnóstico a la acción
+                  </p>
+                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {bloques.map((b) => (
+                      <li
+                        key={b.slug}
+                        className="flex items-start gap-2 rounded-lg border border-stone bg-paper px-3 py-2"
+                      >
+                        <span className="font-display text-xs font-semibold text-ink">
+                          {b.title}
+                        </span>
+                        {b.short ? (
+                          <span className="text-xs text-muted">— {b.short}</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

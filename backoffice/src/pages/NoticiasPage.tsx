@@ -34,6 +34,7 @@ function emptyNoticia(): Noticia {
     slug: "",
     titulo: "",
     categoria: CATEGORIAS_NOTICIA[0] ?? "Noticias y Comunicados",
+    autor: "",
     fecha: todayISO(),
     imagen: "/images/news-ciudad.jpg",
     resumen: "",
@@ -67,25 +68,31 @@ export function NoticiasListPage() {
   const { items, loading, update, remove } = useCollection(collections.noticias());
   const [q, setQ] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<
-    "todas" | "publicadas" | "borradores" | "destacadas"
+    "todas" | "publicadas" | "borradores" | "destacadas" | "sin-imagen"
   >("todas");
   const [categoria, setCategoria] = useState("Todas");
+  /**
+   * Id de la noticia a la que se le está cambiando la portada desde la propia
+   * lista. Antes había que abrir el formulario de cada noticia una por una,
+   * solo para cambiar un campo: con doce noticias sin imagen, eran doce viajes
+   * al formulario, doce guardados y doce recargas de página.
+   */
+  const [imagenEnEdicion, setImagenEnEdicion] = useState<number | null>(null);
 
   const categorias = Array.from(new Set(["Todas", ...items.map((n) => n.categoria)]));
+  const sinImagen = items.filter((n) => !n.imagen).length;
 
   const filtered = items
     .filter((n) => (categoria === "Todas" ? true : n.categoria === categoria))
+    .filter((n) => {
+      if (filtroEstado === "todas") return true;
+      if (filtroEstado === "publicadas") return n.publicado;
+      if (filtroEstado === "borradores") return !n.publicado;
+      if (filtroEstado === "sin-imagen") return !n.imagen;
+      return n.destacado;
+    })
     .filter((n) =>
-      filtroEstado === "todas"
-        ? true
-        : filtroEstado === "publicadas"
-          ? n.publicado
-          : filtroEstado === "borradores"
-            ? !n.publicado
-            : n.destacado,
-    )
-    .filter((n) =>
-      `${n.titulo} ${n.resumen} ${n.categoria} ${n.etiquetas.join(" ")}`
+      `${n.titulo} ${n.resumen} ${n.categoria} ${n.etiquetas.join(" ")} ${n.autor ?? ""}`
         .toLowerCase()
         .includes(q.toLowerCase()),
     )
@@ -105,7 +112,7 @@ export function NoticiasListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Noticias"
-        description="CRUD de noticias, comunicados, talleres y convocatorias. La primeras publicaciones aparecen en la portada de /noticias."
+        description="CRUD de noticias, comunicados, talleres y convocatorias. La primeras publicaciones aparecen en la portada de /noticias. Pasa el cursor por la miniatura para cambiar la portada sin abrir el formulario."
         actions={
           <LinkBtn to="/noticias/nuevo" variant="lime">
             <Star className="size-4" /> Nueva noticia
@@ -136,6 +143,7 @@ export function NoticiasListPage() {
               ["publicadas", "Publicadas"],
               ["borradores", "Borradores"],
               ["destacadas", "Destacadas"],
+              ["sin-imagen", `Sin imagen${sinImagen ? ` (${sinImagen})` : ""}`],
             ] as const
           ).map(([v, label]) => (
             <button
@@ -181,7 +189,43 @@ export function NoticiasListPage() {
                 key={n.id}
                 className="group flex flex-col gap-3 px-5 py-4 transition-colors hover:bg-fog/60 sm:flex-row sm:items-center"
               >
-                <Thumb src={n.imagen} alt={n.titulo} />
+                {imagenEnEdicion === n.id ? (
+                  <div className="w-full sm:w-72">
+                    <MediaPicker
+                      kind="imagen"
+                      value={n.imagen}
+                      hint="Se guarda al elegir. «Quitar» la deja sin imagen."
+                      onSelect={(url) => {
+                        void (async () => {
+                          try {
+                            // Cadena vacía = quitar la imagen. El backend espera
+                            // `null`, no `""`, y `forbidNonWhitelisted` no es el
+                            // problema aquí: es el `@IsString` del DTO.
+                            await update(n.id, { imagen: url || null } as Partial<Noticia>);
+                            setImagenEnEdicion(null);
+                            toast.success(url ? "Portada actualizada" : "Portada quitada");
+                          } catch (e) {
+                            toast.error(
+                              e instanceof Error ? e.message : "No se pudo cambiar la portada",
+                            );
+                          }
+                        })();
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setImagenEnEdicion(n.id)}
+                    title="Cambiar la portada sin abrir el formulario"
+                    className="group/img relative shrink-0 rounded-lg"
+                  >
+                    <Thumb src={n.imagen} alt={n.titulo} />
+                    <span className="pointer-events-none absolute inset-0 grid place-items-center rounded-lg bg-ink/0 text-[0.6rem] font-bold text-paper opacity-0 transition-all group-hover/img:bg-ink/65 group-hover/img:opacity-100">
+                      Cambiar
+                    </span>
+                  </button>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge tone="neutral">{n.categoria}</Badge>
@@ -208,7 +252,8 @@ export function NoticiasListPage() {
                   </div>
                   <p className="mt-1.5 truncate font-display text-sm font-semibold text-ink">{n.titulo}</p>
                   <p className="mt-0.5 text-xs text-muted">
-                    {n.fecha} · /noticias/{n.slug}
+                    {n.fecha}
+                    {n.autor ? ` · ${n.autor}` : ""} · /noticias/{n.slug}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -268,7 +313,17 @@ export function NoticiaFormPage() {
     setForm(item ? { ...item, contenido: [...item.contenido], etiquetas: [...item.etiquetas] } : emptyNoticia());
   }, [loading, item, form, isEdit]);
 
-  if (loading || (!form && isEdit && !item)) {
+  // OJO: el orden de estas tres guardas importa.
+  // 1) Si está cargando, spinner.
+  // 2) Si edita y no existe, "no encontrado" — antes de mirar `form`, porque
+  //    cuando no hay item el useEffect nunca inicializa `form` (se queda null)
+  //    y, si esta guarda exigiera `form`, el spinner giraría para siempre.
+  // 3) Si `form` sigue null, spinner. El useEffect que lo inicializa no corre
+  //    hasta después del primer render, así que hay siempre un frame con
+  //    form === null. La guarda antigua (`!form && isEdit && !item`) no cortaba
+  //    ese frame en `/nuevo` (donde isEdit es false) y la página reventaba con
+  //    "Cannot read properties of null (reading 'slug')".
+  if (loading) {
     return (
       <div className="p-14">
         <Spinner />
@@ -282,6 +337,14 @@ export function NoticiaFormPage() {
         title="Noticia no encontrada"
         action={<LinkBtn to="/noticias">Volver</LinkBtn>}
       />
+    );
+  }
+
+  if (!form) {
+    return (
+      <div className="p-14">
+        <Spinner />
+      </div>
     );
   }
 
@@ -345,12 +408,26 @@ export function NoticiaFormPage() {
               </Field>
               <Field label="Categoría">
                 <Select value={guardar.categoria} onChange={(e) => commit({ categoria: e.target.value })}>
-                  {CATEGORIAS_NOTICIA.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                  {(() => {
+                    // Si la noticia ya trae una categoría que no está en la lista
+                    // (p. ej. cargada antes de este cambio), no se pierde al editar.
+                    const lista = CATEGORIAS_NOTICIA.includes(guardar.categoria as never)
+                      ? CATEGORIAS_NOTICIA
+                      : [guardar.categoria, ...CATEGORIAS_NOTICIA];
+                    return lista.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ));
+                  })()}
                 </Select>
+              </Field>
+              <Field label="Autor" hint="El documento de contenido pide registrar quién firma la noticia.">
+                <Input
+                  value={guardar.autor ?? ""}
+                  onChange={(e) => commit({ autor: e.target.value })}
+                  placeholder="Equipo Horizonte Quindío 2050"
+                />
               </Field>
             </FormGrid>
             <Field label="Slug" hint="Deja vacío para generarlo automáticamente desde el título.">

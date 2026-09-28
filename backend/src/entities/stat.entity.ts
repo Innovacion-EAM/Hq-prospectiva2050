@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('config_stats')
 export class Stat {
@@ -13,4 +13,8 @@ export class Stat {
 
   @Column({ type: 'text', nullable: true })
   subtext: string | null;
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

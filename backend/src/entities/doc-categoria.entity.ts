@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('config_doc_categorias')
 export class DocCategoria {
@@ -16,4 +16,8 @@ export class DocCategoria {
 
   @Column()
   icon: string;
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

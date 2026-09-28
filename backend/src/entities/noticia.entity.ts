@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('noticias')
 export class Noticia {
@@ -13,6 +13,10 @@ export class Noticia {
 
   @Column()
   categoria: string;
+
+  /** El documento de contenido pide registrar quién firma cada noticia. */
+  @Column({ type: 'varchar', nullable: true })
+  autor: string | null;
 
   @Column({ type: 'date' })
   fecha: string;
@@ -37,4 +41,8 @@ export class Noticia {
 
   @Column({ type: 'timestamp', nullable: true })
   publicadoEn: Date | null;
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

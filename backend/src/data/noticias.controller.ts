@@ -1,54 +1,71 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
-  Headers,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
 } from '@nestjs/common';
-import type { DeepPartial } from 'typeorm';
-import { JwtService } from '@nestjs/jwt';
-import { Noticia } from '../entities/noticia.entity';
+import { CurrentUser, Public, type AuthUser, Roles } from '../auth/public.decorator';
 import { NoticiasService } from './noticias.service';
-import { Public } from '../auth/public.decorator';
-import type { JwtPayload } from '../auth/auth.guard';
+import { NoticiaDto, NoticiaPatchDto } from '../common/dto';
 
 @Controller('noticias')
 export class NoticiasController {
-  constructor(
-    private readonly noticias: NoticiasService,
-    private readonly jwt: JwtService,
-  ) {}
+  constructor(private readonly noticias: NoticiasService) {}
+
+  /**
+   * `includeAll` solo se activa si el token lo trae un usuario del backoffice.
+   * Antes este método re-verificaba el JWT por su cuenta; ahora se apoya en el
+   * `AuthGuard` global, que ya dejó el payload verificado en `request.user`.
+   */
+  private static esBackoffice(user?: AuthUser): boolean {
+    return user?.role === 'admin' || user?.role === 'editor';
+  }
 
   @Public()
   @Get()
   list(
-    @Query('page') page?: string,
-    @Query('perPage') perPage?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('perPage', new DefaultValuePipe(30), ParseIntPipe) perPage: number,
     @Query('categoria') categoria?: string,
     @Query('q') q?: string,
-    @Headers('authorization') authorization?: string,
+    @CurrentUser() user?: AuthUser,
   ) {
     return this.noticias.list({
-      page: Number(page),
-      perPage: Number(perPage),
+      page,
+      perPage,
       categoria,
       q,
-      includeAll: this.isAdmin(authorization),
+      includeAll: NoticiasController.esBackoffice(user),
     });
+  }
+
+  /**
+   * Papelera. Va antes de `@Get(':slug')` a propósito: si fuera después, Nest
+   * lo interpretaría como una noticia cuyo slug es "papelera".
+   */
+  @Roles('admin')
+  @Get('papelera')
+  papelera() {
+    return this.noticias.findTrashed();
+  }
+
+  @Roles('admin')
+  @Post(':id/restaurar')
+  restaurar(@Param('id', ParseIntPipe) id: number) {
+    return this.noticias.restore(id);
   }
 
   @Public()
   @Get(':slug')
-  async detail(
-    @Param('slug') slug: string,
-    @Headers('authorization') authorization?: string,
-  ) {
-    const noticia = this.isAdmin(authorization)
+  async detail(@Param('slug') slug: string, @CurrentUser() user?: AuthUser) {
+    const noticia = NoticiasController.esBackoffice(user)
       ? await this.noticias.findBySlug(slug)
       : await this.noticias.findBySlugPublic(slug);
     if (!noticia) {
@@ -58,29 +75,17 @@ export class NoticiasController {
   }
 
   @Post()
-  create(@Body() data: DeepPartial<Noticia>) {
-    return this.noticias.create(data);
+  create(@Body() body: NoticiaDto) {
+    return this.noticias.create(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: DeepPartial<Noticia>) {
-    return this.noticias.update(Number(id), data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: NoticiaPatchDto) {
+    return this.noticias.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.noticias.remove(Number(id));
-  }
-
-  private isAdmin(authorization?: string): boolean {
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      return false;
-    }
-    try {
-      const payload = this.jwt.verify<JwtPayload>(authorization.slice(7));
-      return ['admin', 'editor'].includes(payload.role);
-    } catch {
-      return false;
-    }
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.noticias.remove(id);
   }
 }

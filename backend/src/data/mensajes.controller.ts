@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
+import { MensajePatchDto } from '../common/dto';
 
 @Controller('mensajes')
 export class MensajesController {
@@ -11,12 +12,12 @@ export class MensajesController {
   }
 
   @Patch(':id')
-  setLeido(@Param('id') id: string, @Body() body: { leido?: boolean }) {
-    return this.mensajes.setLeido(Number(id), Boolean(body.leido));
+  setLeido(@Param('id', ParseIntPipe) id: number, @Body() body: MensajePatchDto) {
+    return this.mensajes.setLeido(id, body.leido);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mensajes.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.mensajes.remove(id);
   }
 }

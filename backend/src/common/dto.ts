@@ -1,0 +1,631 @@
+import { PartialType } from "@nestjs/mapped-types";
+import { Transform, Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  Equals,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+} from "class-validator";
+
+export const TIPOS_DOCUMENTO = [
+  'proyecto',
+  'informes',
+  'memorias',
+  'boletines',
+  'presentaciones',
+  'publicaciones',
+] as const;
+
+export const FORMATOS_DOCUMENTO = ['PDF', 'DOCX', 'XLSX', 'PPTX', 'OTRO'] as const;
+
+export const STATUS_TALLER = ['Próximo', 'Abierto', 'Realizado', 'Suspendido'] as const;
+
+export const ROLES = ['admin', 'editor'] as const;
+
+/** Convierte '' y null en undefined para que @IsOptional los trate como ausentes. */
+export const VacioOpcional = () =>
+  Transform(({ value }) => (value === '' || value === null ? undefined : value));
+
+const urlOpcional = () =>
+  IsUrl(
+    { require_protocol: true, protocols: ['http', 'https'] },
+    { message: 'Debe ser una URL http(s) válida' },
+  );
+
+/**
+ * Autorización expresa del titular para el tratamiento de sus datos personales
+ * (Ley 1581 de 2012, artículos 4 y 11).
+ *
+ * No es opcional a propósito: los cuatro formularios públicos del sitio piden
+ * nombre y correo, así que sin esta casilla marcada no se puede enviar nada. Se
+ * valida en el servidor y no solo en el navegador, porque una casilla que solo
+ * vive en el cliente se puede saltarse con una petición hecha a mano, y entonces
+ * el "consentimiento" no sería evidencia de nada.
+ *
+ * El mensaje dice lo que falta —autorizar— en vez de repetir el nombre técnico
+ * del campo, que es lo que vería quien recibe el 400. Se usa `@Equals(true)` y no
+ * un `@IsBoolean()` + `@IsIn([true])` porque con los dos juntos, omitir el campo
+ * devolvía los dos mensajes a la vez y la respuesta era un ruido.
+ */
+const Autorizado = () =>
+  Equals(true, {
+    message:
+      'Debes autorizar el tratamiento de tus datos personales para enviar el formulario. Revisa el Aviso de Privacidad.',
+  });
+
+export class LoginDto {
+  @IsEmail({}, { message: 'El correo no es válido' })
+  @MaxLength(180)
+  email!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'La contraseña es obligatoria' })
+  @MaxLength(200)
+  password!: string;
+}
+
+export class CreateUserDto {
+  @IsEmail({}, { message: 'El correo no es válido' })
+  @MaxLength(180)
+  email!: string;
+
+  @IsString()
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @MaxLength(200)
+  password!: string;
+
+  @IsOptional()
+  @IsIn(ROLES, { message: 'El rol debe ser admin o editor' })
+  role?: (typeof ROLES)[number];
+}
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsEmail({}, { message: 'El correo no es válido' })
+  @MaxLength(180)
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @MaxLength(200)
+  password?: string;
+
+  @IsOptional()
+  @IsIn(ROLES, { message: 'El rol debe ser admin o editor' })
+  role?: (typeof ROLES)[number];
+}
+
+export class ContactoDto {
+  @IsString()
+  @MinLength(2, { message: 'Escribe tu nombre' })
+  @MaxLength(120)
+  nombre!: string;
+
+  @IsEmail({}, { message: 'Escribe un correo válido' })
+  @MaxLength(180)
+  email!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  asunto?: string;
+
+  @IsString()
+  @MinLength(5, { message: 'Escribe tu mensaje' })
+  @MaxLength(4000)
+  mensaje!: string;
+
+  @Autorizado()
+  consentimiento!: boolean;
+}
+
+export class InscripcionDto {
+  @IsString()
+  @MinLength(1, { message: 'Selecciona un taller' })
+  @MaxLength(200)
+  taller!: string;
+
+  @IsString()
+  @MinLength(2, { message: 'Escribe tu nombre' })
+  @MaxLength(120)
+  nombre!: string;
+
+  @IsEmail({}, { message: 'Escribe un correo válido' })
+  @MaxLength(180)
+  email!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  adicional?: string;
+
+  @Autorizado()
+  consentimiento!: boolean;
+}
+
+export class BoletinDto {
+  @IsEmail({}, { message: 'Escribe un correo válido' })
+  @MaxLength(180)
+  email!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(120)
+  nombre?: string;
+
+  @Autorizado()
+  consentimiento!: boolean;
+}
+
+export class SugerenciaDto {
+  @IsString()
+  @MinLength(2, { message: 'Escribe tu nombre' })
+  @MaxLength(120)
+  nombre!: string;
+
+  // La caja «Pregunta o recomendación» del hero es anónima: el campo llega
+  // vacío o ausente, así que el correo no puede ser obligatorio.
+  @IsOptional()
+  @VacioOpcional()
+  @IsEmail({}, { message: 'Escribe un correo válido' })
+  @MaxLength(180)
+  email?: string;
+
+  @IsString()
+  @MinLength(5, { message: 'Escribe tu sugerencia' })
+  @MaxLength(4000)
+  sugerencia!: string;
+
+  @Autorizado()
+  consentimiento!: boolean;
+}
+
+export class NoticiaDto {
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(300)
+  titulo!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(320)
+  slug?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(120)
+  categoria?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(160)
+  autor?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsDateString({}, { message: 'La fecha no es válida' })
+  fecha?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  imagen?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  resumen?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  @MaxLength(20000, { each: true })
+  contenido?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(40)
+  @IsString({ each: true })
+  @MaxLength(80, { each: true })
+  etiquetas?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  publicado?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  destacado?: boolean;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsDateString({}, { message: 'La fecha de publicación no es válida' })
+  publicadoEn?: string;
+}
+
+export class DocumentoDto {
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(300)
+  titulo!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  autor?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsDateString({}, { message: 'La fecha no es válida' })
+  fecha?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsIn(TIPOS_DOCUMENTO, { message: 'Tipo de documento no válido' })
+  tipo?: (typeof TIPOS_DOCUMENTO)[number];
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(120)
+  delimitacion?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsIn(FORMATOS_DOCUMENTO, { message: 'Formato no válido' })
+  formato?: (typeof FORMATOS_DOCUMENTO)[number];
+
+  @IsOptional()
+  @VacioOpcional()
+  @urlOpcional()
+  link?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  archivo?: string;
+}
+
+export class ConvocatoriaDto {
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(300)
+  titulo!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsDateString({}, { message: 'La fecha no es válida' })
+  fecha?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(2000)
+  descripcion?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @urlOpcional()
+  enlace?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  activa?: boolean;
+}
+
+export class MensajePatchDto {
+  @IsBoolean()
+  leido!: boolean;
+}
+
+export class SiteConfigDto {
+  @IsString()
+  @MinLength(1, { message: 'El nombre es obligatorio' })
+  @MaxLength(200)
+  nombre!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(300)
+  tagline?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(200, { each: true })
+  headline?: string[];
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsEmail({}, { message: 'El correo no es válido' })
+  @MaxLength(180)
+  email?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(40)
+  telefono?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(40)
+  telefonoHref?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  direccion?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  ciudad?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @urlOpcional()
+  facebook?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @urlOpcional()
+  instagram?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @urlOpcional()
+  x?: string;
+}
+
+export class StatDto {
+  @IsString()
+  @MaxLength(40)
+  value!: string;
+
+  @IsString()
+  @MaxLength(120)
+  label!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  subtext?: string;
+}
+
+export class EntidadDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  nombre!: string;
+}
+
+/**
+ * Los doce municipios del departamento. `dato` y `descripcion` son opcionales a
+ * proposito: el nombre es lo que no puede faltar, el resto es texto de apoyo que
+ * el panel puede dejar vacio sin romper nada.
+ */
+export class MunicipioDto {
+  @IsString()
+  @MinLength(1, { message: 'El nombre del municipio es obligatorio' })
+  @MaxLength(120)
+  nombre!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(120)
+  dato?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(500)
+  descripcion?: string;
+}
+
+export class TallerDto {
+  @IsOptional()
+  @VacioOpcional()
+  @IsDateString({}, { message: 'La fecha no es válida' })
+  date?: string;
+
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(200)
+  title!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  place?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsIn(STATUS_TALLER, { message: 'Estado no válido' })
+  status?: (typeof STATUS_TALLER)[number];
+}
+
+export class DocCategoriaDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  slug!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(200)
+  title!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(500)
+  description?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(60)
+  icon?: string;
+}
+
+export class PaginaProyectoDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  slug!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(300)
+  title!: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(120)
+  kicker?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  image?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(1000)
+  excerpt?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(2000)
+  lead?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  @MaxLength(20000, { each: true })
+  body?: string[];
+}
+
+export class DimensionDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(120)
+  slug!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'El título es obligatorio' })
+  @MaxLength(300)
+  title!: string;
+
+  /**
+   * 'dimension' = una de las 4 dimensiones de análisis del proyecto.
+   * 'bloque'    = contenido de apoyo (misiones, retos, iniciativas, hallazgos).
+   * Si no viene, se asume 'dimension'.
+   */
+  @IsOptional()
+  @IsIn(['dimension', 'bloque'], { message: 'El tipo debe ser "dimension" o "bloque"' })
+  tipo?: 'dimension' | 'bloque';
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(300)
+  short?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(60)
+  icon?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(2000)
+  summary?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsString({ each: true })
+  @MaxLength(20000, { each: true })
+  body?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  layers?: unknown[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  steps?: unknown[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  charts?: unknown[];
+}
+
+/** Payload libre para los CRUD de configuración genéricos ya validados arriba. */
+export const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * Variantes de actualización parcial. El backoffice alterna campos sueltos
+ * (por ejemplo `PATCH /api/noticias/:id { publicado: true }`), así que un PATCH
+ * no puede exigir los campos obligatorios del POST.
+ */
+export class NoticiaPatchDto extends PartialType(NoticiaDto) {}
+export class DocumentoPatchDto extends PartialType(DocumentoDto) {}
+export class ConvocatoriaPatchDto extends PartialType(ConvocatoriaDto) {}
+export class SiteConfigPatchDto extends PartialType(SiteConfigDto) {}
+export class StatPatchDto extends PartialType(StatDto) {}
+export class EntidadPatchDto extends PartialType(EntidadDto) {}
+export class MunicipioPatchDto extends PartialType(MunicipioDto) {}
+export class TallerPatchDto extends PartialType(TallerDto) {}
+export class DocCategoriaPatchDto extends PartialType(DocCategoriaDto) {}
+export class PaginaProyectoPatchDto extends PartialType(PaginaProyectoDto) {}
+export class DimensionPatchDto extends PartialType(DimensionDto) {}
+
+/** Convierte el `:id` de la ruta a entero validado. */
+export class IdParamDto {
+  @Type(() => Number)
+  @IsInt({ message: 'El identificador debe ser un número entero' })
+  id!: number;
+}

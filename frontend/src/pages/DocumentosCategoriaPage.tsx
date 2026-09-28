@@ -3,7 +3,12 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site-shell";
-import { fetchDocumentos, formatFecha, type ApiDocumento } from "@/lib/api";
+import {
+  documentoUrl,
+  fetchDocumentos,
+  formatFecha,
+  type ApiDocumento,
+} from "@/lib/api";
 import { useSite } from "@/data/site-context";
 import { NotFoundPage } from "./NotFoundPage";
 
@@ -17,6 +22,7 @@ export function DocumentosCategoriaPage() {
 
   useEffect(() => {
     if (!categoria) return;
+    setLoading(true);
     fetchDocumentos({ tipo: categoria })
       .then((res) => setDocs(res.data))
       .catch(() => setDocs([]))
@@ -28,11 +34,12 @@ export function DocumentosCategoriaPage() {
   }
 
   function openDoc(doc: ApiDocumento) {
-    if (!doc.link) {
+    const url = documentoUrl(doc);
+    if (!url) {
       toast.info("Documento aún no publicado. Estará disponible en el repositorio.");
       return;
     }
-    window.open(doc.link, "_blank", "noopener,noreferrer");
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -45,23 +52,26 @@ export function DocumentosCategoriaPage() {
           <p className="text-muted">Aún no hay piezas publicadas en esta categoría.</p>
         ) : (
           <ul className="grid gap-4">
-            {docs.map((doc) => (
-              <li
-                key={doc.id}
-                className="flex flex-col gap-4 rounded-2xl border border-stone bg-paper p-5 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-display font-bold text-ink">{doc.titulo}</p>
-                  <p className="mt-1 text-sm text-muted">{doc.autor}</p>
-                  <p className="mt-2 text-xs text-muted">
-                    {formatFecha(doc.fecha)} · {doc.formato}
-                  </p>
-                </div>
-                <Button variant="lime" onClick={() => openDoc(doc)}>
-                  {doc.link ? "Descargar" : "Ver ficha"}
-                </Button>
-              </li>
-            ))}
+            {docs.map((doc) => {
+              const url = documentoUrl(doc);
+              return (
+                <li
+                  key={doc.id}
+                  className="flex flex-col gap-4 rounded-2xl border border-stone bg-paper p-5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-display font-bold text-ink">{doc.titulo}</p>
+                    <p className="mt-1 text-sm text-muted">{doc.autor}</p>
+                    <p className="mt-2 text-xs text-muted">
+                      {formatFecha(doc.fecha)} · {doc.formato}
+                    </p>
+                  </div>
+                  <Button variant="lime" onClick={() => openDoc(doc)}>
+                    {url ? "Descargar" : "Ver ficha"}
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

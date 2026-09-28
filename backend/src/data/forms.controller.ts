@@ -1,20 +1,12 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
 import { Public } from '../auth/public.decorator';
-
-interface ContactoBody {
-  nombre?: string;
-  email?: string;
-  asunto?: string;
-  mensaje?: string;
-}
-
-interface InscripcionBody {
-  taller?: string;
-  nombre?: string;
-  email?: string;
-  adicional?: string;
-}
+import {
+  BoletinDto,
+  ContactoDto,
+  InscripcionDto,
+  SugerenciaDto,
+} from '../common/dto';
 
 function todayISO(): string {
   const d = new Date();
@@ -23,50 +15,92 @@ function todayISO(): string {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
+/**
+ * Respuesta común de los formularios. Antes cada handler devolvía la entidad
+ * `Mensaje` creada, así que un visitante anónimo recibía el id interno y el
+ * campo `leido`. Ahora solo se confirma la recepción.
+ */
+function recibido(): { ok: true } {
+  return { ok: true };
+}
+
+/**
+ * Bandeja de entrada de los formularios públicos del sitio. Todos los endpoints
+ * son `@Public()` porque los visita gente sin sesión; el `ValidationPipe` global
+ * es lo que impide que entren filas vacías o basura.
+ */
 @Public()
 @Controller('forms')
 export class FormsController {
   constructor(private readonly mensajes: MensajesService) {}
 
-  private crear(data: DeepPartialMensaje) {
-    return this.mensajes.create(data);
-  }
-
+  @HttpCode(HttpStatus.CREATED)
   @Post('contacto')
-  contacto(@Body() body: ContactoBody) {
-    const data: DeepPartialMensaje = {
-      nombre: body.nombre ?? '',
-      email: body.email ?? '',
-      asunto: body.asunto ?? '',
-      mensaje: body.mensaje ?? null,
+  async contacto(@Body() body: ContactoDto) {
+    await this.mensajes.create({
+      nombre: body.nombre.trim(),
+      email: body.email.trim().toLowerCase(),
+      asunto: body.asunto?.trim() || 'Formulario de contacto',
+      mensaje: body.mensaje.trim(),
       tipo: 'contacto',
       fecha: todayISO(),
       leido: false,
-    };
-    return this.crear(data);
+      // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
+      consentimiento: true,
+    });
+    return recibido();
   }
 
+  @HttpCode(HttpStatus.CREATED)
   @Post('inscripciones')
-  inscripciones(@Body() body: InscripcionBody) {
-    const data: DeepPartialMensaje = {
-      nombre: body.nombre ?? '',
-      email: body.email ?? '',
-      asunto: body.taller ?? 'Inscripción a taller',
-      mensaje: body.adicional ?? null,
+  async inscripciones(@Body() body: InscripcionDto) {
+    await this.mensajes.create({
+      nombre: body.nombre.trim(),
+      email: body.email.trim().toLowerCase(),
+      asunto: body.taller.trim(),
+      mensaje: body.adicional?.trim() || null,
       tipo: 'inscripciones',
       fecha: todayISO(),
       leido: false,
-    };
-    return this.crear(data);
+      // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
+      consentimiento: true,
+    });
+    return recibido();
+  }
+
+  /** Newsletter del pie de página. */
+  @HttpCode(HttpStatus.CREATED)
+  @Post('boletin')
+  async boletin(@Body() body: BoletinDto) {
+    await this.mensajes.create({
+      nombre: body.nombre?.trim() || 'Suscriptor del boletín',
+      email: body.email.trim().toLowerCase(),
+      asunto: 'Solicitud de suscripción al boletín',
+      mensaje: null,
+      tipo: 'boletin',
+      fecha: todayISO(),
+      leido: false,
+      // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
+      consentimiento: true,
+    });
+    return recibido();
+  }
+
+  /** Caja «Pregunta o recomendación» del hero. Es anónima: el correo es opcional. */
+  @HttpCode(HttpStatus.CREATED)
+  @Post('sugerencias')
+  async sugerencias(@Body() body: SugerenciaDto) {
+    await this.mensajes.create({
+      nombre: body.nombre.trim(),
+      email: body.email?.trim().toLowerCase() || 'anonimo@prospectiva.local',
+      asunto: 'Pregunta o recomendación',
+      mensaje: body.sugerencia.trim(),
+      tipo: 'sugerencias',
+      fecha: todayISO(),
+      leido: false,
+      // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
+      consentimiento: true,
+    });
+    return recibido();
   }
 }
-
-type DeepPartialMensaje = {
-  nombre: string;
-  email: string;
-  asunto: string;
-  mensaje: string | null;
-  tipo: string;
-  fecha: string;
-  leido: boolean;
-};

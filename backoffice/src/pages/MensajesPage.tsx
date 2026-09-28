@@ -4,13 +4,20 @@ import { collections, useCollection } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
 import { Badge, Card, ConfirmButton, EmptyState, PageHeader, SearchInput, Spinner, Toggle } from "@/components/ui";
 import { cn, formatFechaLocal } from "@/lib/utils";
-import type { Mensaje } from "@/lib/types";
+import { ETIQUETAS_TIPO, type Mensaje, type TipoMensaje } from "@/lib/types";
+
+const TONE_POR_TIPO: Record<string, "neutral" | "lime" | "ink" | "convoca" | "rose"> = {
+  inscripciones: "lime",
+  contacto: "ink",
+  boletin: "convoca",
+  sugerencias: "neutral",
+};
 
 export function MensajesPage() {
   const { items, loading, update, remove } = useCollection(collections.mensajes());
   const { user } = useAuth();
   const [q, setQ] = useState("");
-  const [tipo, setTipo] = useState<"todos" | "contacto" | "inscripciones">("todos");
+  const [tipo, setTipo] = useState<TipoMensaje | "todos">("todos");
   const [openId, setOpenId] = useState<number | null>(null);
 
   const filtered = items
@@ -34,7 +41,7 @@ export function MensajesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Mensajes"
-        description={`Mensajes enviados desde el formulario de contacto e inscripciones de talleres.${noLeidos ? ` ${noLeidos} sin leer.` : ""}`}
+        description={`Contactos, inscripciones a talleres, suscripciones al boletín y sugerencias recibidas desde el sitio.${noLeidos ? ` ${noLeidos} sin leer.` : ""}`}
         actions={
           noLeidos > 0 ? (
             <button
@@ -50,7 +57,7 @@ export function MensajesPage() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {(["todos", "contacto", "inscripciones"] as const).map((t) => (
+          {(["todos", "contacto", "inscripciones", "boletin", "sugerencias"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -60,7 +67,7 @@ export function MensajesPage() {
                 tipo === t ? "bg-lime text-lime-fg" : "border border-mist bg-paper text-muted hover:text-ink",
               )}
             >
-              {t === "contacto" ? "Contacto" : t === "inscripciones" ? "Inscripciones" : "Todos"}
+              {ETIQUETAS_TIPO[t]}
             </button>
           ))}
         </div>
@@ -102,7 +109,24 @@ export function MensajesPage() {
                     <span className="mt-0.5 block truncate text-xs text-body">{m.asunto || m.mensaje}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
-                    <Badge tone={m.tipo === "inscripciones" ? "lime" : "neutral"}>{m.tipo}</Badge>
+                    <Badge tone={TONE_POR_TIPO[m.tipo] ?? "neutral"}>
+                      {ETIQUETAS_TIPO[m.tipo as TipoMensaje] ?? m.tipo}
+                    </Badge>
+                    {/* El backend rechaza el formulario si la casilla no vino
+                        marcada, así que `true` es prueba de que la autorización se
+                        pidió. `false` es lo esperable en los mensajes anteriores a
+                        la migración 0006: se recogieron cuando el aviso todavía no
+                        existía, y no hay que inventar una autorización para ellos.
+                        La distinción importa, porque es justo la evidencia que hay
+                        que poder distinguir de la que no. */}
+                    {m.consentimiento === false ? (
+                      <span
+                        title="Llegó antes de que existiera el Aviso de Privacidad (migración 0006), así que no hay constancia de autorización."
+                        className="cursor-help text-[0.65rem] font-semibold tracking-wide text-muted uppercase underline decoration-dotted underline-offset-2"
+                      >
+                        Sin constancia
+                      </span>
+                    ) : null}
                     <span className="hidden text-xs text-muted sm:inline">{formatFechaLocal(m.fecha)}</span>
                   </span>
                 </button>

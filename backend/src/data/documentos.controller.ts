@@ -1,8 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import type { DeepPartial } from 'typeorm';
-import { Documento } from '../entities/documento.entity';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { DocumentosService } from './documentos.service';
-import { Public } from '../auth/public.decorator';
+import { Public, Roles } from '../auth/public.decorator';
+import { DocumentoDto, DocumentoPatchDto } from '../common/dto';
 
 @Controller('documentos')
 export class DocumentosController {
@@ -15,18 +14,30 @@ export class DocumentosController {
     return { data };
   }
 
+  @Roles('admin')
+  @Get('papelera')
+  papelera() {
+    return this.documentos.findTrashed();
+  }
+
+  @Roles('admin')
+  @Post(':id/restaurar')
+  restaurar(@Param('id', ParseIntPipe) id: number) {
+    return this.documentos.restore(id);
+  }
+
   @Post()
-  create(@Body() data: DeepPartial<Documento>) {
+  create(@Body() data: DocumentoDto) {
     return this.documentos.create(data);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: DeepPartial<Documento>) {
-    return this.documentos.update(Number(id), data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() data: DocumentoPatchDto) {
+    return this.documentos.update(id, data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.documentos.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.documentos.remove(id);
   }
 }

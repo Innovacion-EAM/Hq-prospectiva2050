@@ -4,6 +4,7 @@ export type ApiNoticia = {
   titulo: string;
   fecha: string | Date;
   categoria: string;
+  autor?: string | null;
   imagen: string | null;
   resumen: string;
   contenido: string[] | string;
@@ -20,7 +21,10 @@ export type ApiDocumento = {
   tipo: string;
   delimitacion: string;
   formato: string;
+  /** URL externa. */
   link: string | null;
+  /** URL del archivo subido a la galería; tiene prioridad sobre `link`. */
+  archivo: string | null;
 };
 
 export type ApiConvocatoria = {
@@ -36,6 +40,7 @@ export type NewsItem = {
   slug: string;
   title: string;
   category: string;
+  author?: string;
   date: string;
   image: string;
   overlay?: "convoca";
@@ -58,7 +63,10 @@ export function noticiaImage(n: {
   slug?: string;
 }): string {
   const img = n.imagen;
-  if (img && (img.startsWith("/") || img.startsWith("http"))) return img;
+  // Solo hay imagen real si viene una ruta; si no, se reparte una de las cuatro
+  // fotos genéricas según la categoría. `resolveUrl` convierte la ruta relativa
+  // que guarda la base en algo que el navegador pueda pedir.
+  if (img && (img.startsWith("/") || img.startsWith("http"))) return resolveUrl(img);
   const cat = (n.categoria ?? "").toLowerCase();
   const slug = (n.slug ?? "").toLowerCase();
   if (cat.includes("convocat") || slug.includes("convocat")) {
@@ -84,6 +92,7 @@ export function toNewsItem(n: ApiNoticia): NewsItem {
     slug: n.slug,
     title: n.titulo,
     category: cat,
+    author: n.autor || undefined,
     date: formatFecha(n.fecha),
     image: noticiaImage({ imagen: n.imagen, categoria: cat, slug: n.slug }),
     overlay: cat.toLowerCase().includes("convocat") ? "convoca" : undefined,
@@ -94,9 +103,50 @@ export function toNewsItem(n: ApiNoticia): NewsItem {
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || "http://localhost:3000";
 
+/**
+ * Convierte la ruta que guarda la base de datos en una URL que el navegador
+ * pueda pedir.
+ *
+ * Desde la migración 0006, `media.url` y `noticia.imagen` guardan `/uploads/<archivo>`
+ * en vez de `http://host/api/uploads/<archivo>`. La razón: la URL absoluta ataba
+ * cada imagen al host por el que se había subido, así que cambiar de dominio o
+ * de protocolo obligaba a reescribir las filas una por una.
+ *
+ * Hay tres casos, y los tres hacen falta:
+ *  - `http(s)://…` → es una URL externa o una fila vieja: se deja tal cual.
+ *  - `/uploads/…`  → se le añade el `/api` del servidor, porque `API_BASE` es la
+ *                    raíz del backend y los archivos se sirven en
+ *                    `/api/uploads`. Con Traefik delante sale `/api/api/uploads/…`
+ *                    y el middleware `strip-api` quita uno de los dos.
+ *  - cualquier otra ruta (`/images/hero.jpg`) → es un asset del propio sitio y se
+ *    sirve desde el dominio del frontend, sin tocar.
+ */
+export function resolveUrl(path: string | null | undefined): string {
+  const p = (path ?? "").trim();
+  if (!p) return "";
+  if (/^https?:\/\//i.test(p)) return p;
+  if (p.startsWith("/uploads/") || p.startsWith("/api/uploads/")) {
+    const relativa = p.startsWith("/api/") ? p.slice(4) : p;
+    return `${API_BASE}/api${relativa}`;
+  }
+  return p;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly url: string;
+
+  constructor(status: number, url: string) {
+    super(`API ${url} respondió ${status}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.url = url;
+  }
+}
+
 async function parse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    throw new Error(`API ${res.url} respondió ${res.status}`);
+    throw new ApiError(res.status, res.url);
   }
   return res.json() as Promise<T>;
 }
@@ -136,4 +186,15 @@ export async function fetchDocumentos(params?: { tipo?: string; delimitacion?: s
 
 export async function fetchConvocatorias() {
   return get<ApiConvocatoria[]>("/api/convocatorias");
+}
+
+/**
+ * Un documento puede estar publicado de dos formas: subido a la galería
+ * (`archivo`) o enlazado a una URL externa (`link`). Antes la vista solo miraba
+ * `link`, así que todo lo subido a la galería salía como "no publicado".
+ */
+export function documentoUrl(doc: Pick<ApiDocumento, "link" | "archivo">): string | null {
+  // `archivo` viene de la galería y es una ruta relativa; `link` es una URL
+  // externa. `resolveUrl` solo toca la primera y deja la segunda intacta.
+  return resolveUrl(doc.archivo) || doc.link?.trim() || null;
 }

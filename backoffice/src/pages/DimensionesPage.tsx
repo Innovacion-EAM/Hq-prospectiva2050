@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Boxes, Plus, Save, Trash2, X } from "lucide-react";
+import { ArrowLeft, Boxes, LayoutGrid, Plus, Save, Trash2, X } from "lucide-react";
 import { collections, slugify, useCollection } from "@/lib/data";
 import { toast } from "sonner";
 import {
@@ -31,6 +31,7 @@ function emptyDimension(): Dimension {
     slug: "",
     title: "",
     short: "",
+    tipo: "dimension",
     icon: "target",
     summary: "",
     body: [""],
@@ -91,8 +92,8 @@ export function DimensionesListPage() {
                 key={d.id}
                 className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fog/60"
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-fog font-display text-xs font-bold text-lime-hot uppercase">
-                  {d.slug.slice(0, 3)}
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-fog font-display text-xs font-bold text-lime-ink uppercase">
+                  {d.tipo === "bloque" ? <LayoutGrid className="size-4" /> : d.slug.slice(0, 3)}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-sm font-semibold text-ink">{d.title}</p>
@@ -101,6 +102,16 @@ export function DimensionesListPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  <span
+                    className={
+                      "rounded-full border px-2 py-0.5 font-display text-[0.6rem] font-semibold tracking-wide uppercase " +
+                      (d.tipo === "bloque"
+                        ? "border-stone text-muted"
+                        : "border-lime-hot/40 text-lime-ink")
+                    }
+                  >
+                    {d.tipo === "bloque" ? "Bloque" : "Dimensión"}
+                  </span>
                   <LinkBtn to={`/dimensiones/${d.id}`} variant="outline" size="sm">
                     Editar
                   </LinkBtn>
@@ -149,7 +160,17 @@ export function DimensionFormPage() {
     );
   }, [loading, item, form, isEdit]);
 
-  if (loading || (!form && isEdit && !item)) {
+  // OJO: el orden de estas tres guardas importa.
+  // 1) Si está cargando, spinner.
+  // 2) Si edita y no existe, "no encontrado" — antes de mirar `form`, porque
+  //    cuando no hay item el useEffect nunca inicializa `form` (se queda null)
+  //    y, si esta guarda exigiera `form`, el spinner giraría para siempre.
+  // 3) Si `form` sigue null, spinner. El useEffect que lo inicializa no corre
+  //    hasta después del primer render, así que hay siempre un frame con
+  //    form === null. La guarda antigua (`!form && isEdit && !item`) no cortaba
+  //    ese frame en `/nuevo` (donde isEdit es false) y la página reventaba con
+  //    "Cannot read properties of null (reading 'slug')".
+  if (loading) {
     return (
       <div className="p-14">
         <Spinner />
@@ -159,6 +180,14 @@ export function DimensionFormPage() {
 
   if (isEdit && !item) {
     return <EmptyState title="Dimensión no encontrada" action={<LinkBtn to="/dimensiones">Volver</LinkBtn>} />;
+  }
+
+  if (!form) {
+    return (
+      <div className="p-14">
+        <Spinner />
+      </div>
+    );
   }
 
   const guardar = form!;
@@ -217,6 +246,10 @@ export function DimensionFormPage() {
               <Input value={guardar.slug} onChange={(e) => commit({ slug: e.target.value })} placeholder="economica-productiva" />
             </Field>
             <Field label="Icono">
+              <Select value={guardar.tipo} onChange={(e) => commit({ tipo: e.target.value as Dimension["tipo"] })}>
+                <option value="dimension">Dimensión de análisis (una de las 4)</option>
+                <option value="bloque">Bloque de apoyo (misiones, retos, hoja de ruta)</option>
+              </Select>
               <Select value={guardar.icon} onChange={(e) => commit({ icon: e.target.value })}>
                 {ICONOS_DIMENSION.map((i) => (
                   <option key={i} value={i}>
@@ -367,6 +400,7 @@ function ChartsEditor({ value, onChange }: { value: ChartSeries[]; onChange: (ne
                 <Trash2 className="size-3" />
               </button>
               <textarea
+                aria-label={`Definición de la serie ${i + 1} de ${drafts.length}, en JSON`}
                 rows={7}
                 value={block}
                 onChange={(e) => updateDrafts(drafts.map((b, j) => (j === i ? e.target.value : b)))}

@@ -13,10 +13,10 @@ const DEFAULT_NEWS_ITEMS: NewsItem[] = [
     date: "24 mar 2026",
     image: "/images/news-ciudad.jpg",
     excerpt:
-      "Once entidades públicas, privadas y académicas junto a la CEPAL presentaron en la Universidad del Quindío el ejercicio de prospectiva territorial.",
+      "Catorce entidades públicas, privadas y académicas junto a la CEPAL presentaron en la Universidad del Quindío el ejercicio de prospectiva territorial.",
     body: [
       "El 24 de marzo de 2026 se presentó oficialmente en el auditorio Euclides Jaramillo Arango de la Universidad del Quindío el ejercicio de prospectiva territorial Horizonte Quindío 2050.",
-      "El convenio específico 012 de 2026 une a las once principales instituciones del departamento para construir de forma participativa la hoja de ruta estratégica hacia el año 2050.",
+      "El convenio específico 012 de 2026 une a las catorce principales organizaciones del departamento para construir de forma participativa la hoja de ruta estratégica hacia el año 2050.",
       "El evento contó con la participación de autoridades gubernamentales, rectores universitarios, líderes gremiales y representantes de la CEPAL-ILPES.",
     ],
   },
@@ -140,6 +140,7 @@ export function NoticiasPage() {
             <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" aria-hidden />
             <input
               type="text"
+              aria-label="Buscar noticias"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar noticias..."
@@ -189,7 +190,7 @@ export function NoticiasPage() {
                     {featured.title}
                   </h2>
                   <p className="mt-2 text-xs leading-relaxed text-muted">{featured.excerpt}</p>
-                  <span className="mt-4 inline-flex items-center gap-1 font-display text-xs font-bold text-lime-hot">
+                  <span className="mt-4 inline-flex items-center gap-1 font-display text-xs font-bold text-lime-ink">
                     Leer artículo completo »
                   </span>
                 </div>
@@ -233,7 +234,7 @@ export function NoticiasPage() {
                         {n.title}
                       </h3>
                       <p className="mt-2 line-clamp-2 flex-1 text-xs text-muted">{n.excerpt}</p>
-                      <span className="mt-4 inline-flex items-center gap-1 font-display text-xs font-bold text-lime-hot">
+                      <span className="mt-4 inline-flex items-center gap-1 font-display text-xs font-bold text-lime-ink">
                         Ver más »
                       </span>
                     </div>

@@ -12,25 +12,21 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { Media } from '../entities/media.entity';
 
-const ALLOWED: Record<string, string[]> = {
-  images: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'],
-  documents: [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  ],
-};
-
-const EXTENSIONS: Record<string, string> = {
+/**
+ * Lista blanca por tipo MIME real. La extensión del archivo **nunca** decide
+ * el tipo: se decide exclusivamente por el MIME declarado en el multipart, y
+ * la extensión se la pone el servidor desde un mapa fijo. Así nadie puede
+ * subir un `x.html` declarando `Content-Type: image/png` y servirse después
+ * como HTML desde el directorio público de /api/uploads.
+ *
+ * SVG se excluye a propósito: es XML que puede llevar <script> y al servirse
+ * desde el mismo origen del API es XSS almacenado.
+ */
+export const MIME_PERMITIDOS: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
   'image/gif': '.gif',
-  'image/svg+xml': '.svg',
   'application/pdf': '.pdf',
   'application/msword': '.doc',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
@@ -39,6 +35,57 @@ const EXTENSIONS: Record<string, string> = {
   'application/vnd.ms-powerpoint': '.ppt',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
 };
+
+/**
+ * Prefijo con el que se guarda la URL en la base de datos, **sin el host**.
+ *
+ * Es la contraparte de `app.setup.ts`, que sirve los archivos en `/api/uploads`:
+ * la fila guarda `/uploads/<archivo>` y cada cliente la resuelve contra su
+ * `API_BASE` añadiendo el `/api` que su base ya no trae. Ver `resolveUrl()` en
+ * frontend/src/lib/api.ts.
+ */
+export const RUTA_UPLOADS = '/uploads/';
+
+export const EXTENSION_ACEPTADA: Record<string, string[]> = {
+  '.jpg': ['image/jpeg'],
+  '.jpeg': ['image/jpeg'],
+  '.png': ['image/png'],
+  '.webp': ['image/webp'],
+  '.gif': ['image/gif'],
+  '.pdf': ['application/pdf'],
+  '.doc': ['application/msword'],
+  '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  '.xls': ['application/vnd.ms-excel'],
+  '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  '.ppt': ['application/vnd.ms-powerpoint'],
+  '.pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+};
+
+export const MENSAJE_TIPO = [
+  'Tipo de archivo no permitido.',
+  'Se aceptan imágenes (JPG, PNG, WEBP, GIF) y documentos (PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX).',
+].join(' ');
+
+/**
+ * Filtro de multer: rechaza antes de leer el archivo entero a memoria. Al
+ * menos una de las dos señales (MIME o extensión) tiene que estar en la lista,
+ * y la extensión nunca se usa para decidir el tipo final.
+ */
+export function fileFilter(
+  _req: unknown,
+  file: { mimetype?: string; originalname?: string },
+  cb: (error: Error | null, acceptFile: boolean) => void,
+): void {
+  const mime = (file.mimetype ?? '').toLowerCase();
+  const ext = path.extname(file.originalname ?? '').toLowerCase();
+  const mimeOk = Object.hasOwn(MIME_PERMITIDOS, mime);
+  const extOk = (EXTENSION_ACEPTADA[ext] ?? []).includes(mime);
+  if (mimeOk && extOk) {
+    cb(null, true);
+    return;
+  }
+  cb(new BadRequestException(MENSAJE_TIPO), false);
+}
 
 @Injectable()
 export class UploadService implements OnModuleInit {
@@ -59,24 +106,39 @@ export class UploadService implements OnModuleInit {
     return path.join(this.dir, filename);
   }
 
-  async save(file: Express.Multer.File, baseUrl: string): Promise<Media> {
-    const mime = file.mimetype;
-    const ext = EXTENSIONS[mime] ?? path.extname(file.originalname ?? '').toLowerCase();
-    const allowed =
-      ALLOWED.images.includes(mime) ||
-      ALLOWED.documents.includes(mime) ||
-      Boolean(ext && mime.startsWith('image/'));
-    if (!allowed || !ext) {
-      throw new BadRequestException(
-        'Tipo de archivo no permitido (imágenes: JPG, PNG, WEBP, GIF, SVG; documentos: PDF, DOC, XLS, PPT)',
-      );
+  /** Segunda verificación, por si el archivo llegó desde otro camino. */
+  extensionFor(mime: string, originalName: string): string {
+    const mimeLower = mime.toLowerCase();
+    const ext = MIME_PERMITIDOS[mimeLower];
+    const original = path.extname(originalName ?? '').toLowerCase();
+    if (!ext || !(EXTENSION_ACEPTADA[original] ?? []).includes(mimeLower)) {
+      throw new BadRequestException(MENSAJE_TIPO);
     }
+    return ext;
+  }
+
+  /**
+   * Guarda el archivo y devuelve la fila de `media` con la URL **relativa**.
+   *
+   * Antes se armaba aquí `${req.protocol}://${req.get('host')}/api/uploads/...`,
+   * y eso ataba cada imagen al host por el que se había subido: cambiar de
+   * dominio, pasar de http a https o montar el sitio en otro servidor obligaba a
+   * reescribir fila por fila. Guardando `/uploads/<archivo>` la fila es
+   * portable y es el cliente —frontend y panel— quien la resuelve contra su
+   * `API_BASE`, que es el host con el que ese cliente sí se comunica.
+   *
+   * Las filas que ya tenían la URL absoluta se reconvierten con la migración
+   * `0006-privacidad-y-urls-relativas.sql`.
+   */
+  async save(file: Express.Multer.File): Promise<Media> {
+    const mime = file.mimetype.toLowerCase();
+    const ext = this.extensionFor(mime, file.originalname);
     const filename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`;
     fs.writeFileSync(this.diskPath(filename), file.buffer);
 
     const entity = this.repo.create({
       filename,
-      url: `${baseUrl}/api/uploads/${filename}`,
+      url: `${RUTA_UPLOADS}${filename}`,
       mime,
       size: file.size,
     });

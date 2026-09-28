@@ -11,12 +11,14 @@ import {
   Inbox,
   LogOut,
   Megaphone,
+  MapPin,
   Menu,
   Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   Settings,
   ListChecks,
+  Trash2,
   SlidersHorizontal,
   Users,
   ExternalLink,
@@ -63,6 +65,7 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
         { to: "/configuracion", label: "Ajustes del sitio", icon: Settings, end: true },
         { to: "/configuracion/estadisticas", label: "Estadísticas", icon: ListChecks },
         { to: "/configuracion/entidades", label: "Entidades aliadas", icon: Users },
+        { to: "/configuracion/municipios", label: "Municipios", icon: MapPin },
         { to: "/configuracion/talleres", label: "Talleres y eventos", icon: CalendarDays },
         { to: "/configuracion/categorias", label: "Categorías de documentos", icon: FolderOpen },
         {
@@ -72,6 +75,8 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
           adminOnly: true,
         },
         { to: "/configuracion/usuarios", label: "Usuarios", icon: Users, adminOnly: true },
+        // Restaurar contenido es una decisión de gobernanza, no de edición diaria.
+        { to: "/papelera", label: "Papelera", icon: Trash2, adminOnly: true },
       ],
     },
   ].map((section) => ({

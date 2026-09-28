@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User, UserRole } from '../entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { CreateUserDto, UpdateUserDto } from '../common/dto';
 
 export interface UserDto {
   id: number;
@@ -16,17 +17,8 @@ export interface UserDto {
   createdAt: Date;
 }
 
-export interface CreateUserInput {
-  email: string;
-  password: string;
-  role: UserRole;
-}
-
-export interface UpdateUserInput {
-  email?: string;
-  password?: string;
-  role?: UserRole;
-}
+export type CreateUserInput = CreateUserDto;
+export type UpdateUserInput = UpdateUserDto;
 
 @Injectable()
 export class UsersService {

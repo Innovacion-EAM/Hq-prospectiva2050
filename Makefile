@@ -37,10 +37,12 @@ COMPOSE_DIR := infra/compose
 # ── Comandos compose ────────────────────────────────────────────────────────
 # DOCKER = compose del entorno local (aquí se leen infra/compose/.env)
 # PROD   = compose local + overlay prod (aquí se lee infra/compose/.env.prod)
-DOCKER := docker compose -f $(COMPOSE_DIR)/docker-compose.yml \
-          --project-directory $(COMPOSE_DIR)
-PROD   := $(DOCKER) -f $(COMPOSE_DIR)/docker-compose.prod.yml \
-          --env-file $(COMPOSE_DIR)/.env.prod
+# OJO: en una sola linea a proposito. Una variable `:=` puede continuar con `\`, pero
+# el valor guarda el salto de linea, y al expandirse `$(DOCKER)` dentro de una
+# receta inserta saltos reales en el guion de bash. Eso rompia el quoting de
+# `db-migrate`, que usa comillas anidadas, con un "EOF inesperado".
+DOCKER := docker compose -f $(COMPOSE_DIR)/docker-compose.yml --project-directory $(COMPOSE_DIR)
+PROD   := $(DOCKER) -f $(COMPOSE_DIR)/docker-compose.prod.yml --env-file $(COMPOSE_DIR)/.env.prod
 
 # Servicio que usan targets paramétricos (logs, shell, db-*). Vacío = "todos".
 SERVICE ?=
@@ -156,6 +158,18 @@ lint-backoffice:
 test:
 	@cd backend && npm test
 
+## test-e2e: Tests e2e de la API (jest + supertest contra la db de docker)
+#  Requiere el stack levantado (la db se toma de 127.0.0.1:5432).
+test-e2e:
+	@cd backend && APP_ENV=e2e npm run test:e2e
+
+## smoke: Smoke test de extremo a extremo contra el stack levantado
+#  Verifica de verdad lo que el usuario ve: rutas públicas, las 8 dimensiones,
+#  los 4 formularios, validación de entrada, auth, roles y rechazo de archivos
+#  peligrosos. Sale con código 1 si algo falla, para encadenarlo en CI.
+smoke:
+	@BASE=$${BASE:-http://localhost} ./scripts/smoke.sh
+
 ## format: Formatea el código del backend con prettier
 format:
 	@cd backend && npm run format
@@ -212,6 +226,27 @@ config:
 	@$(DOCKER) config
 
 # ────────────────────────────────────────────────────────────────────────────
+#  TRAEFIK — dominio del sitio
+# ────────────────────────────────────────────────────────────────────────────
+
+## traefik-host: Reescribe el Host(...) de los routers de traefik. Uso: make traefik-host HOST=dominio.com
+#  Sin HOST= toma HQ_SITE_HOST de infra/compose/.env.prod (o .env).
+#  Traefik recarga dynamic/ en caliente, no hace falta reiniciar nada.
+traefik-host:
+	@host="$(HOST)"; \
+	if [ -z "$$host" ]; then \
+		envf=$(COMPOSE_DIR)/.env.prod; [ -f "$$envf" ] || envf=$(COMPOSE_DIR)/.env; \
+		host=$$(grep -E '^HQ_SITE_HOST=' "$$envf" 2>/dev/null | cut -d= -f2-); \
+	fi; \
+	if [ -z "$$host" ]; then \
+		echo "[!] No se pudo determinar el dominio. Usa: make traefik-host HOST=tu-dominio.com"; exit 1; \
+	fi; \
+	sed -i.bak 's|Host(`[^`]*`)|Host(`'"$$host"'`)|g' $(COMPOSE_DIR)/../traefik/dynamic/routes.yml; \
+	rm -f $(COMPOSE_DIR)/../traefik/dynamic/routes.yml.bak; \
+	echo "Routers de traefik apuntando a: $$host"; \
+	grep -o 'Host(`[^`]*`)' $(COMPOSE_DIR)/../traefik/dynamic/routes.yml | sort -u
+
+# ────────────────────────────────────────────────────────────────────────────
 # 5. BASE DE DATOS
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -230,12 +265,66 @@ db-reset:
 		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
 		$(DOCKER) down -v && $(DOCKER) up -d postgres --wait && echo "Base de datos recreada."
 
+## db-migrate: Aplica en orden TODAS las migraciones de scripts/migrations/
+#  Pensado para producción (DB_SYNCHRONIZE=false). Cada archivo se guarda en
+#  la tabla schema_migrations, así que es seguro volver a ejecutarlo.
+#  Crear una migración nueva: scripts/migrations/AAAA-nombre-del-cambio.sql
+#  NOTA: el SQL se pasa por stdin con `< $$f`, nunca incrustado en el comando.
+#  Incrustarlo en el sh -c rompe con los bloques DO $$ ... $$ de PostgreSQL, que
+#  expands make/bash y acaban en un error de comillas.
+## db-migrate: Aplica en orden TODAS las migraciones de scripts/migrations/
+#  Pensado para produccion (DB_SYNCHRONIZE=false). Cada archivo queda registrado en
+#  la tabla schema_migrations, asi que es seguro volver a ejecutarlo: una migracion
+#  ya aplicada se salta y no se vuelve a correr.
+#  Crear una migracion nueva: scripts/migrations/AAAA-nombre-del-cambio.sql
+#
+#  REGLA DE ORO: el SQL viaja SIEMPRE por stdin, nunca incrustado en el comando.
+#  Este target no lleva ni una comilla simple dentro del `sh -c`: los literales de
+#  texto van en el `printf` del shell de fuera, que los expands con "$$name", y psql
+#  los lee por stdin. La version anterior metia el SQL dentro de
+#  `sh -c '... VALUES ('"'"'$$name'"'"') ...'`, y esa maraña de comillas fallaba de
+#  dos formas a la vez: el `sh` del contenedor rechazaba la cadena con
+#  "unterminated quoted string", y como el chequeo `already=` fallaba en silencio
+#  el target re-aplicaba TODAS las migraciones en cada llamada, sin registrar
+#  ninguna. Por eso la tabla se crea aqui, una vez y antes del bucle.
+#
+#  PUNTOS DE ATENCION si se toca esto:
+#  - `$$name` con comillas dobles: es lo que deja que bash lo expanda.
+#  - `sort` da el orden numerico correcto porque los archivos llevan 0001, 0002...
+#  - ON_ERROR_STOP=1: si un .sql falla, el target para en vez de seguir y dejar
+#    la base a medias.
+db-migrate:
+	@files=$$(ls -1 scripts/migrations/*.sql 2>/dev/null | sort); \
+	if [ -z "$$files" ]; then echo "[!] No hay migraciones en scripts/migrations/."; exit 1; fi; \
+	$(DOCKER) exec -T postgres sh -c 'exec psql -q -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -c "CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())"' >/dev/null; \
+	for f in $$files; do \
+		name=$$(basename $$f .sql); \
+		already=$$(printf "SELECT 1 FROM schema_migrations WHERE name = '%s';\n" "$$name" | $(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -tA' 2>/dev/null || true); \
+		if [ -n "$$already" ]; then echo "  = $$name (ya aplicada)"; continue; fi; \
+		echo "  > $$name"; \
+		$(DOCKER) exec -T postgres sh -c 'exec psql -q -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < $$f || exit 1; \
+		printf "INSERT INTO schema_migrations (name) VALUES ('$$name') ON CONFLICT DO NOTHING;\n" | $(DOCKER) exec -T postgres sh -c 'exec psql -q -v ON_ERROR_STOP=1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' >/dev/null || exit 1; \
+	done; \
+	echo "Migraciones aplicadas."
+## db-migrations: Lista las migraciones de scripts/migrations/
+db-migrations:
+	@ls -1 scripts/migrations/ 2>/dev/null || echo "(carpeta vacía)"
+
 ## db-schema: Aplica scripts/schema-db.sql a la db (complemento de PRODUCCIÓN)
 #  Opcional: en dev/docker el esquema y la semilla se crean solos (TypeORM
 #  synchronize + seeder). Aquí para el flujo estricto de prod (DB_SYNCHRONIZE=false).
+#
+#  Es idempotente a propósito: prod-up lo llama en cada despliegue, y sin esto
+#  un segundo despliegue moría con 'relation "config_dimensiones" already exists'.
+#  ON_ERROR_STOP queda desactivado y el guion inicial convierte cada error
+#  "ya existe" en un simple aviso.
 db-schema:
 	@if [ ! -s scripts/schema-db.sql ]; then echo "[!] scripts/schema-db.sql está vacío. Llénalo con el SQL del esquema."; exit 1; fi
-	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/schema-db.sql && echo "Esquema aplicado."
+	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/schema-db.sql 2>&1 \
+		| sed -e 's/^psql:[^ ]*:[0-9]*: //' \
+		| grep -viE 'already exists|is not empty|multiple primary keys' \
+		| sed -e 's/^/  /' || true
+	@echo "Esquema aplicado (lo que ya existía se omitió)."
 
 ## db-seed: Aplica scripts/seed.sql a la db (semilla inicial para PRODUCCIÓN)
 #  Opcional: el seeder del backend carga los datos iniciales en dev/docker.
@@ -281,11 +370,19 @@ prod-build: infra/compose/.env.prod
 	@$(PROD) build frontend backoffice
 
 ## prod-up: Levanta el entorno de producción (usa .env.prod)
+#  IMPORTANTE: antes de levantar, la base debe tener el esquema. Con
+#  DB_SYNCHRONIZE=false el backend NO crea las tablas, y el seeder revienta con
+#  'relation "config_stats" does not exist' si falta el esquema. Por eso
+#  prod-up aplica db-schema y las migraciones pendientes antes de arrancar.
 prod-up: infra/compose/.env.prod
+	@$(PROD) up -d db
+	@$(MAKE) --no-print-directory db-schema
+	@$(MAKE) --no-print-directory db-migrate
 	@$(PROD) up -d
 
-## prod-deploy: Construye y levanta producción en un solo paso (build + up)
-prod-deploy: prod-build prod-up
+## prod-deploy: Construye y levanta producción en un solo paso (dominio + build + up)
+#  Primero reescribe los routers de traefik al dominio de infra/compose/.env.prod.
+prod-deploy: traefik-host prod-build prod-up
 
 ## prod-down: Detiene producción (SIN borrar datos)
 prod-down: infra/compose/.env.prod
@@ -355,7 +452,7 @@ backup-list:
 
 ## backup-clean: Borra backups viejos dejando los N más recientes. Uso: make backup-clean N=14
 backup-clean:
-	@ls -1t backups/*.pg 2>/dev/null | tail -n +$$(($(N)+1)) | sed 's|^|backups/|' | xargs -r rm -v || echo "Nada que limpiar."
+	@ls -1t backups/*.pg 2>/dev/null | tail -n +$$(($(N)+1)) | xargs -r rm -v || echo "Nada que limpiar."
 
 ## restore: Restaura un dump a la db. Uso: make restore FILE=backups/XXX-back.pg (¡pide confirmación!)
 #  ⚠ SOBRESCRIBE los datos actuales de la db (con --clean: elimina lo que exista).
@@ -396,9 +493,9 @@ status:
 .PHONY: help doctor dev-status \
         install install-backend install-frontend install-backoffice \
         dev dev-backend dev-frontend dev-backoffice dev-stop \
-        lint lint-backend lint-frontend lint-backoffice test format \
-        up down down-v ps health logs build rebuild restart config \
-        db-shell db-logs db-reset db-schema db-seed shell \
+        lint lint-backend lint-frontend lint-backoffice test test-e2e smoke format \
+        up down down-v ps health logs build rebuild restart config traefik-host \
+        db-shell db-logs db-reset db-migrate db-migrations db-schema db-seed shell \
         env-prod prod-config prod-build prod-up prod-deploy prod-down \
         prod-down-v prod-ps prod-logs prod-restart prod-shell prod-smoke deploy \
         backup backup-list backup-clean restore \

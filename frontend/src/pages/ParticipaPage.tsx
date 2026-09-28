@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { ConsentCheckbox } from "@/components/consent-checkbox";
 import { PageHero } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { fetchConvocatorias, formatFecha, type ApiConvocatoria } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { MUNICIPIOS_QUINDIO } from "@/data/municipios";
 
 export function ParticipaPage() {
   const { WORKSHOPS } = useSite();
@@ -18,6 +20,7 @@ export function ParticipaPage() {
     perfil: "Ciudadanía",
     mensaje: "",
   });
+  const [consentimiento, setConsentimiento] = useState(false);
 
   useEffect(() => {
     fetchConvocatorias()
@@ -35,9 +38,11 @@ export function ParticipaPage() {
         nombre: form.nombre,
         email: form.correo,
         adicional: `Perfil: ${form.perfil} — Municipio: ${form.municipio}`,
+        consentimiento: true,
       });
       toast.success("Inscripción recibida. Te escribiremos con los próximos pasos.");
       setForm({ nombre: "", correo: "", municipio: "", perfil: "Ciudadanía", mensaje: "" });
+      setConsentimiento(false);
     } catch {
       toast.error("No pudimos registrar tu inscripción. Inténtalo de nuevo más tarde.");
     } finally {
@@ -128,6 +133,7 @@ export function ParticipaPage() {
             <div className="mt-6 flex flex-col gap-3">
               <input
                 required
+                aria-label="Nombre"
                 placeholder="Nombre"
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
@@ -136,19 +142,30 @@ export function ParticipaPage() {
               <input
                 required
                 type="email"
+                aria-label="Correo"
                 placeholder="Correo"
                 value={form.correo}
                 onChange={(e) => setForm({ ...form, correo: e.target.value })}
                 className="h-11 rounded-pill border border-mist bg-paper px-4 text-sm outline-none focus:ring-2 focus:ring-lime"
               />
-              <input
+              <select
                 required
-                placeholder="Municipio"
+                aria-label="Municipio"
                 value={form.municipio}
                 onChange={(e) => setForm({ ...form, municipio: e.target.value })}
                 className="h-11 rounded-pill border border-mist bg-paper px-4 text-sm outline-none focus:ring-2 focus:ring-lime"
-              />
+              >
+                <option value="" disabled>
+                  Municipio
+                </option>
+                {MUNICIPIOS_QUINDIO.map((municipio) => (
+                  <option key={municipio} value={municipio}>
+                    {municipio}
+                  </option>
+                ))}
+              </select>
               <select
+                aria-label="Perfil"
                 value={form.perfil}
                 onChange={(e) => setForm({ ...form, perfil: e.target.value })}
                 className="h-11 rounded-pill border border-mist bg-paper px-4 text-sm outline-none focus:ring-2 focus:ring-lime"
@@ -161,13 +178,19 @@ export function ParticipaPage() {
               </select>
               <textarea
                 required
+                aria-label="Taller o convocatoria de interés"
                 rows={4}
                 placeholder="¿En qué taller o convocatoria te interesa participar?"
                 value={form.mensaje}
                 onChange={(e) => setForm({ ...form, mensaje: e.target.value })}
                 className="rounded-xl border border-mist bg-paper px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-lime"
               />
-              <Button type="submit" variant="ink" disabled={sending}>
+              <ConsentCheckbox
+                id="inscripcion-consentimiento"
+                checked={consentimiento}
+                onChange={setConsentimiento}
+              />
+              <Button type="submit" variant="ink" disabled={sending || !consentimiento}>
                 {sending ? "Enviando…" : "Enviar inscripción"}
               </Button>
             </div>

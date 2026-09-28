@@ -6,6 +6,7 @@ import { DocCategoria } from '../entities/doc-categoria.entity';
 import { Documento } from '../entities/documento.entity';
 import { Entidad } from '../entities/entidad.entity';
 import { Mensaje } from '../entities/mensaje.entity';
+import { Municipio } from '../entities/municipio.entity';
 import { Noticia } from '../entities/noticia.entity';
 import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
 import { SiteConfig } from '../entities/site-config.entity';
@@ -34,6 +35,7 @@ import { SiteService } from './site.service';
       Convocatoria,
       Stat,
       Entidad,
+      Municipio,
       Taller,
       DocCategoria,
       PaginaProyecto,

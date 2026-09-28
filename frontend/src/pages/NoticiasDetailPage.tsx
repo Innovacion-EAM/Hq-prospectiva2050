@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/site-shell";
-import { fetchNoticia, fetchNoticias, toNewsItem, type NewsItem } from "@/lib/api";
+import { fetchNoticia, fetchNoticias, toNewsItem, ApiError, type NewsItem } from "@/lib/api";
+import { ShareRow } from "@/components/share-row";
 import { NotFoundPage } from "./NotFoundPage";
 
+/**
+ * Contenido de respaldo para cuando la API no responde. Solo se usa si el slug
+ * coincide exactamente: antes, un slug inexistente caía en `DEFAULT_NEWS_ITEMS[0]`
+ * y pintaba la primera noticia del listado bajo una URL equivocada.
+ */
 const DEFAULT_NEWS_ITEMS: NewsItem[] = [
   {
     slug: "lanzamiento-oficial-horizonte-quindio-2050",
@@ -12,10 +18,10 @@ const DEFAULT_NEWS_ITEMS: NewsItem[] = [
     date: "24 mar 2026",
     image: "/images/news-ciudad.jpg",
     excerpt:
-      "Once entidades públicas, privadas y académicas junto a la CEPAL presentaron en la Universidad del Quindío el ejercicio de prospectiva territorial.",
+      "Catorce entidades públicas, privadas y académicas junto a la CEPAL presentaron en la Universidad del Quindío el ejercicio de prospectiva territorial.",
     body: [
       "El 24 de marzo de 2026 se presentó oficialmente en el auditorio Euclides Jaramillo Arango de la Universidad del Quindío el ejercicio de prospectiva territorial Horizonte Quindío 2050.",
-      "El convenio específico 012 de 2026 une a las once principales instituciones del departamento para construir de forma participativa la hoja de ruta estratégica hacia el año 2050.",
+      "El convenio específico 012 de 2026 une a las catorce principales organizaciones del departamento para construir de forma participativa la hoja de ruta estratégica hacia el año 2050.",
       "El evento contó con la participación de autoridades gubernamentales, rectores universitarios, líderes gremiales y representantes de la CEPAL-ILPES.",
     ],
   },
@@ -77,26 +83,38 @@ export function NoticiasDetailPage() {
   const [item, setItem] = useState<NewsItem | null>(null);
   const [others, setOthers] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
     setLoading(true);
+    setNotFound(false);
+    setItem(null);
 
-    Promise.all([
-      fetchNoticia(slug),
-      fetchNoticias({ perPage: 20 }),
-    ])
-      .then(([itemData, listData]) => {
-        const current = toNewsItem(itemData);
-        const rest = listData.data.map(toNewsItem).filter((n) => n.slug !== current.slug);
-        setItem(current);
-        setOthers(rest);
+    // La noticia y el listado son dos peticiones independientes: si el listado
+    // "Más noticias" falla, el artículo principal se sigue mostrando.
+    fetchNoticia(slug)
+      .then((data) => {
+        setItem(toNewsItem(data));
+        return fetchNoticias({ perPage: 20 })
+          .then((list) => setOthers(list.data.map(toNewsItem).filter((n) => n.slug !== slug)))
+          .catch(() => setOthers([]));
       })
-      .catch(() => {
-        const fallbackCurrent = DEFAULT_NEWS_ITEMS.find((n) => n.slug === slug) || DEFAULT_NEWS_ITEMS[0];
-        const fallbackOthers = DEFAULT_NEWS_ITEMS.filter((n) => n.slug !== fallbackCurrent.slug);
-        setItem(fallbackCurrent);
-        setOthers(fallbackOthers);
+      .catch((error: unknown) => {
+        // 404 real: no existe una noticia con ese slug, así que 404 de la web.
+        // Cualquier otro fallo (API caída, red) sí recurre a los datos de
+        // respaldo, y solo con coincidencia exacta de slug.
+        if (error instanceof ApiError && error.status === 404) {
+          setNotFound(true);
+          return;
+        }
+        const respaldo = DEFAULT_NEWS_ITEMS.find((n) => n.slug === slug);
+        if (respaldo) {
+          setItem(respaldo);
+          setOthers(DEFAULT_NEWS_ITEMS.filter((n) => n.slug !== respaldo.slug));
+        } else {
+          setNotFound(true);
+        }
       })
       .finally(() => setLoading(false));
   }, [slug]);
@@ -109,7 +127,7 @@ export function NoticiasDetailPage() {
     );
   }
 
-  if (!item) {
+  if (notFound || !item) {
     return <NotFoundPage />;
   }
 
@@ -117,7 +135,18 @@ export function NoticiasDetailPage() {
     <>
       <PageHero kicker={item.category} title={item.title} intro={item.excerpt} />
       <article className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-        <p className="text-sm text-muted">{item.date}</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-muted">
+            {item.date}
+            {item.author ? (
+              <>
+                {" · "}
+                <span className="text-ink">{item.author}</span>
+              </>
+            ) : null}
+          </p>
+          <ShareRow titulo={item.title} />
+        </div>
         <img src={item.image} alt="" className="mt-6 h-80 w-full rounded-2xl object-cover" />
         {item.body.map((p) => (
           <p key={p.slice(0, 40)} className="mt-5 max-w-3xl text-base leading-relaxed text-body">

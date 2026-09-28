@@ -67,12 +67,12 @@ export const PROJECT_PAGES: ProjectPage[] = [
     image: "/images/card-que-es.jpg",
     excerpt:
       "Un ejercicio colectivo de prospectiva territorial para trazar la visión compartida del departamento.",
-    lead: "Horizonte Quindío es el proceso de prospectiva con el que once instituciones del departamento, junto a la CEPAL, construyen una visión de largo plazo para el territorio.",
+    lead: "Horizonte Quindío es el proceso de prospectiva con el que catorce organizaciones del departamento construyen una visión de largo plazo para el territorio.",
     body: [
       "El 24 de marzo de 2026 se presentó oficialmente en el auditorio Euclides Jaramillo Arango de la Universidad del Quindío. El ejercicio responde al convenio específico 012 del 30 de enero de 2026, firmado entre la Universidad del Quindío —en representación de las entidades aliadas— y la Comisión Económica para América Latina y el Caribe (CEPAL), a través del ILPES.",
       "No se trata de predecir el futuro. Se trata de anticiparlo: identificar tendencias, capacidades y riesgos para acordar el futuro deseado y las decisiones que hay que tomar hoy. Es el primer ejercicio de este tipo en el departamento en más de dos décadas.",
       "La marca visual —una Q construida como línea de tiempo— sintetiza el tránsito entre lo que el Quindío ha sido, lo que es y lo que puede llegar a ser. El horizonte de planeación es 2050, con una hoja de ruta que se construye de forma participativa entre 2026 y 2027.",
-      "El proceso está dirigido por Juan Esteban Gil Chavarría y cuenta con el acompañamiento técnico de Javier Medina Vásquez, secretario ejecutivo adjunto del ILPES-CEPAL. Once entidades públicas, privadas y académicas aportan recursos y conocimiento para que el resultado no se quede en un documento, sino que se institucionalice.",
+      "El proceso se desarrolla en el marco de una alianza multiinstitucional de catorce organizaciones, con una estructura de gobernanza que garantiza orientación estratégica, acompañamiento técnico, articulación institucional y participación ampliada.",
     ],
   },
   {
@@ -87,7 +87,7 @@ export const PROJECT_PAGES: ProjectPage[] = [
       "El departamento cumple seis décadas de vida y hereda aprendizajes de ejercicios como Quindío 2020, el Corpes de Occidente y los estudios de cooperación internacional. Muchos de esos documentos se formularon y no se ejecutaron. Horizonte Quindío nace para no repetir esa historia.",
       "El territorio enfrenta presiones simultáneas: transición del modelo cafetero, turismo en expansión, cambio climático, seguridad hídrica, envejecimiento poblacional, y una economía que necesita más valor agregado. Un plan de desarrollo de cuatro años no alcanza para transformar esas estructuras.",
       "La CEPAL acompaña experiencias similares en Quintana Roo (México), Córdoba (Argentina) y Ceará (Brasil). El Quindío se suma a esa red de territorios que apuestan por la gobernanza anticipatoria: pasar de reaccionar a los problemas a construir escenarios y acuerdos antes de que lleguen.",
-      "El presupuesto conjunto se acerca a los 220 millones de pesos, con aportes de las once entidades. El trabajo se extiende cerca de diez meses, de diagnóstico a institucionalización.",
+      "El proceso se extiende desde el diagnóstico hasta la institucionalización, con una hoja de ruta que se construye de forma participativa y se instala en el territorio.",
     ],
   },
   {
@@ -111,11 +111,11 @@ export const PROJECT_PAGES: ProjectPage[] = [
     kicker: "El proyecto",
     image: "/images/hero-city.jpg",
     excerpt:
-      "Once entidades y la CEPAL conforman el arreglo institucional que sostiene el ejercicio.",
+      "Catorce organizaciones aliadas conforman el arreglo institucional que sostiene el ejercicio.",
     lead: "La gobernanza de Horizonte Quindío combina un comité técnico interinstitucional, el acompañamiento del ILPES-CEPAL y un diseño pensado para sobrevivir a los cambios de gobierno.",
     body: [
       "La Universidad del Quindío representa a las entidades aliadas ante la CEPAL. El comité técnico reúne a gobierno departamental y municipal, academia, gremios, empresa de servicios y autoridades ambientales.",
-      "Las entidades participantes son: Gobernación del Quindío, Alcaldía de Armenia, Universidad del Quindío, Universidad La Gran Colombia, Cámara de Comercio de Armenia y del Quindío, Comité de Cafeteros del Quindío, Comité Intergremial del Quindío, CRQ, ProQuindío, Comfenalco Quindío, Facilísimo y la Empresa de Energía del Quindío.",
+      "La alianza está conformada por catorce organizaciones: Universidad del Quindío, Universidad Gran Colombia, Institución Universitaria EAM, SUEJE, Comité de Cafeteros, Comité Intergremial, ProQuindío, Cámara de Comercio del Quindío y Armenia, Facilísimo, Comfanalco, EDEQ, Corporación Autónoma Regional del Quindío, Alcaldía de Armenia y Gobernación del Quindío.",
       "El modelo de gobernanza anticipatoria que se formulará al final del proceso busca que la prospectiva no dependa de una administración. Incluye un observatorio de seguimiento de políticas derivadas y un protocolo de actualización de escenarios.",
       "La participación ciudadana no es un anexo: talleres, convocatorias y canales de recomendación alimentan el diagnóstico y la construcción de la visión.",
     ],
@@ -162,6 +162,12 @@ export type Dimension = {
   slug: string;
   title: string;
   short: string;
+  /**
+   * 'dimension' = una de las 4 dimensiones de análisis del proyecto.
+   * 'bloque'    = contenido de apoyo (misiones, retos, iniciativas, hallazgos).
+   * El backend lo manda; si no viene se asume 'dimension'.
+   */
+  tipo: "dimension" | "bloque";
   icon: "target" | "chart" | "leaf" | "users" | "trophy" | "alert" | "folder" | "file";
   summary: string;
   body: string[];
@@ -173,461 +179,212 @@ export type Dimension = {
 export const DIMENSIONS: Dimension[] = [
   {
     slug: "politico-institucional",
-    title: "Dimensión político - Institucional",
-    short: "Dimensión político Institucional",
+    title: "Dimensión político-institucional",
+    short: "Político-institucional",
+    tipo: "dimension",
     icon: "target",
-    summary:
-      "Capacidades de gobierno, articulación entre entidades y reglas que hacen posible una visión de largo plazo.",
-    body: [
-      "Esta dimensión observa la calidad de las instituciones públicas, la coordinación multinivel y la capacidad de sostener acuerdos más allá de un periodo de gobierno.",
-      "Incluye el diseño del observatorio de prospectiva, la formación de servidores y la incorporación de escenarios en los planes de desarrollo municipales y departamental.",
-    ],
-    charts: [
-      {
-        name: "Confianza institucional",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 42 },
-          { year: "2020", value: 48 },
-          { year: "2022", value: 44 },
-          { year: "2024", value: 51 },
-          { year: "2026", value: 57 },
-        ],
-      },
-      {
-        name: "Articulación interinstitucional",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 28 },
-          { year: "2020", value: 33 },
-          { year: "2022", value: 41 },
-          { year: "2024", value: 49 },
-          { year: "2026", value: 62 },
-        ],
-      },
-      {
-        name: "Capacidad de seguimiento",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 22 },
-          { year: "2020", value: 24 },
-          { year: "2022", value: 30 },
-          { year: "2024", value: 38 },
-          { year: "2026", value: 47 },
-        ],
-      },
-    ],
-    layers: ["Normas y competencias", "Arreglos de coordinación", "Cultura de lo público"],
+    summary: "Gobernanza territorial, institucionalidad pública y privada, planeación, participación ciudadana y seguridad pública.",
+    body: ["Este eje analiza la gobernanza territorial, la institucionalidad pública y privada, la planeación, la participación ciudadana, la seguridad pública y la capacidad de coordinación entre organizaciones.", "El proyecto busca fortalecer la articulación institucional entre niveles de gobierno y actores del territorio, mejorar la capacidad de planeación pública y seguimiento a largo plazo, promover una gobernanza más abierta, coordinada y participativa, e integrar la vigilancia tecnológica y el análisis de tendencias en la toma de decisiones."],
+    layers: ["Gobernanza territorial y ejercicio político", "Institucionalidad pública y gremial", "Planeación y gestión territorial", "Participación ciudadana y control social", "Seguridad pública y gobernabilidad"],
     steps: [
-      { n: "01", title: "Mapeo" },
-      { n: "02", title: "Diagnóstico" },
-      { n: "03", title: "Actores" },
-      { n: "04", title: "Escenarios" },
-      { n: "05", title: "Acuerdos" },
-      { n: "06", title: "Observatorio" },
-      { n: "07", title: "Seguimiento" },
-    ],
+  {
+    n: "01",
+    title: "Articular los niveles de gobierno"
+  },
+  {
+    n: "02",
+    title: "Mejorar la planeación pública"
+  },
+  {
+    n: "03",
+    title: "Abrir la gobernanza a la participación"
+  },
+  {
+    n: "04",
+    title: "Integrar vigilancia tecnológica"
+  }
+],
+    charts: []
   },
   {
     slug: "economica-productiva",
-    title: "Dimensión económica - Productiva",
-    short: "Dimensión económica Productiva",
+    title: "Dimensión económico-productiva",
+    short: "Económico-productiva",
+    tipo: "dimension",
     icon: "chart",
-    summary:
-      "Café, turismo, industria ligera y nuevas apuestas de valor: cómo se gana la vida el departamento hacia 2050.",
-    body: [
-      "El Quindío necesita un modelo productivo que no dependa de un solo cultivo ni de un turismo de temporada. Esta dimensión articula encadenamientos, empleo y sofisticación empresarial.",
-      "Se analizan la agroindustria, el Paisaje Cultural Cafetero como activo económico, la energía, los servicios y el talento joven.",
-    ],
-    charts: [
-      {
-        name: "Valor agregado no cafetero",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 31 },
-          { year: "2020", value: 29 },
-          { year: "2022", value: 36 },
-          { year: "2024", value: 44 },
-          { year: "2026", value: 53 },
-        ],
-      },
-      {
-        name: "Empleo formal",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 38 },
-          { year: "2020", value: 34 },
-          { year: "2022", value: 40 },
-          { year: "2024", value: 46 },
-          { year: "2026", value: 52 },
-        ],
-      },
-      {
-        name: "Inversión productiva",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 20 },
-          { year: "2020", value: 18 },
-          { year: "2022", value: 27 },
-          { year: "2024", value: 35 },
-          { year: "2026", value: 48 },
-        ],
-      },
-    ],
-    layers: ["Base cafetera", "Servicios y turismo", "Nueva industria"],
+    summary: "Caficultura, turismo, agroindustria, nuevas economías, emprendimiento, innovación y transición productiva.",
+    body: ["Este eje examina la estructura económica del Quindío, con énfasis en caficultura, turismo, agroindustria, nuevas economías, emprendimiento, innovación, transición productiva y transformación digital.", "Los retos principales son diversificar y fortalecer la base productiva del departamento, potenciar cadenas de valor con mayor innovación y competitividad, anticipar los efectos de la automatización, la inteligencia artificial y la transición energética, y consolidar apuestas productivas estratégicas con visión de largo plazo."],
+    layers: ["Caficultura y agroindustria", "Turismo y economía creativa", "Bioeconomía y economía del cuidado", "Inteligencia artificial y transformación digital productiva", "Emprendimiento, innovación y economía circular"],
     steps: [
-      { n: "01", title: "Cadenas" },
-      { n: "02", title: "Brechas" },
-      { n: "03", title: "Talento" },
-      { n: "04", title: "Escenarios" },
-      { n: "05", title: "Apuestas" },
-      { n: "06", title: "Inversión" },
-      { n: "07", title: "Empleo" },
-    ],
+  {
+    n: "01",
+    title: "Diversificar la base productiva"
+  },
+  {
+    n: "02",
+    title: "Potenciar cadenas de valor"
+  },
+  {
+    n: "03",
+    title: "Anticipar automatización y transición energética"
+  },
+  {
+    n: "04",
+    title: "Consolidar apuestas estratégicas"
+  }
+],
+    charts: []
   },
   {
     slug: "fisico-ambiental",
-    title: "Dimensión físico - Ambiental",
-    short: "Dimensión Físico - Ambiental",
+    title: "Dimensión físico-ambiental",
+    short: "Físico-ambiental",
+    tipo: "dimension",
     icon: "leaf",
-    summary:
-      "Agua, biodiversidad, paisaje cafetero y ocupación del suelo en un departamento de montaña.",
-    body: [
-      "El Quindío es un territorio pequeño y biodiverso. La presión urbana, el turismo y el cambio climático obligan a decidir cómo se ocupa el suelo y cómo se protege el agua.",
-      "Esta dimensión cruza la autoridad ambiental, el ordenamiento territorial y las infraestructuras que el departamento necesita sin romper el paisaje que lo sostiene.",
-    ],
-    charts: [
-      {
-        name: "Cobertura boscosa",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 58 },
-          { year: "2020", value: 57 },
-          { year: "2022", value: 59 },
-          { year: "2024", value: 61 },
-          { year: "2026", value: 63 },
-        ],
-      },
-      {
-        name: "Seguridad hídrica",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 64 },
-          { year: "2020", value: 61 },
-          { year: "2022", value: 58 },
-          { year: "2024", value: 60 },
-          { year: "2026", value: 66 },
-        ],
-      },
-      {
-        name: "Calidad del aire urbano",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 70 },
-          { year: "2020", value: 72 },
-          { year: "2022", value: 68 },
-          { year: "2024", value: 71 },
-          { year: "2026", value: 74 },
-        ],
-      },
-    ],
-    layers: ["Ecosistemas", "Ocupación del suelo", "Infraestructura verde"],
+    summary: "Sistema físico-biótico, cambio climático, recursos hídricos, biodiversidad, gestión del riesgo y sostenibilidad.",
+    body: ["Este eje aborda el sistema físico-biótico del departamento, el cambio climático, los recursos hídricos, la biodiversidad, la gestión del riesgo, el ordenamiento territorial, la movilidad, la infraestructura y la sostenibilidad ambiental.", "Los retos principales son proteger y regenerar los ecosistemas estratégicos, reducir vulnerabilidades frente al cambio climático y el riesgo, articular el desarrollo urbano, la infraestructura y el ordenamiento territorial, e integrar herramientas SIG y análisis espacial para mejorar la lectura territorial."],
+    layers: ["Cambio climático y adaptación territorial", "Biodiversidad y sostenibilidad ecosistémica", "Recursos hídricos y gestión ambiental", "Ordenamiento territorial y desarrollo urbano", "Infraestructura, vivienda, servicios públicos y gestión del riesgo"],
     steps: [
-      { n: "01", title: "Inventario" },
-      { n: "02", title: "Riesgos" },
-      { n: "03", title: "Agua" },
-      { n: "04", title: "Suelo" },
-      { n: "05", title: "Paisaje" },
-      { n: "06", title: "Norma" },
-      { n: "07", title: "Cuidado" },
-    ],
+  {
+    n: "01",
+    title: "Proteger los ecosistemas estratégicos"
+  },
+  {
+    n: "02",
+    title: "Reducir la vulnerabilidad al clima y al riesgo"
+  },
+  {
+    n: "03",
+    title: "Articular desarrollo urbano e infraestructura"
+  },
+  {
+    n: "04",
+    title: "Integrar SIG y análisis espacial"
+  }
+],
+    charts: []
   },
   {
     slug: "socio-cultural",
-    title: "Dimensión socio - Cultural",
-    short: "Dimensión Socio - Cultural",
+    title: "Dimensión socio-cultural",
+    short: "Socio-cultural",
+    tipo: "dimension",
     icon: "users",
-    summary:
-      "Gente, cultura cafetera, educación, salud y el derecho a permanecer en el territorio.",
-    body: [
-      "Sin talento local no hay horizonte. Esta dimensión pone en el centro la demografía, la educación, la cultura viva del café y las desigualdades urbano-rurales.",
-      "El ejercicio busca que la visión 2050 se construya con las comunidades, no sobre ellas.",
-    ],
-    charts: [
-      {
-        name: "Retención de talento joven",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 36 },
-          { year: "2020", value: 33 },
-          { year: "2022", value: 35 },
-          { year: "2024", value: 41 },
-          { year: "2026", value: 49 },
-        ],
-      },
-      {
-        name: "Cobertura educativa superior",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 44 },
-          { year: "2020", value: 46 },
-          { year: "2022", value: 50 },
-          { year: "2024", value: 55 },
-          { year: "2026", value: 61 },
-        ],
-      },
-      {
-        name: "Participación cultural",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 40 },
-          { year: "2020", value: 32 },
-          { year: "2022", value: 45 },
-          { year: "2024", value: 52 },
-          { year: "2026", value: 58 },
-        ],
-      },
-    ],
-    layers: ["Talento y educación", "Cultura viva", "Bienestar"],
+    summary: "Estructura social, calidad de vida, educación, salud, equidad, identidades territoriales, juventud y cohesión social.",
+    body: ["Este eje analiza la estructura social del Quindío, la calidad de vida, la educación, la salud, la equidad, las identidades territoriales, la juventud, la diversidad y la cohesión social.", "Los retos principales son mejorar el bienestar, la inclusión y la calidad de vida; reconocer la diversidad social, cultural y generacional del territorio; fortalecer la participación de comunidades y grupos poblacionales diversos; e incorporar las voces del territorio en la construcción de futuro."],
+    layers: ["Salud y calidad de vida", "Educación y comunidad educativa", "Demografía e inclusión social", "Género, diversidad e identidades", "Juventud, cultura, historia, artes, deporte y convivencia"],
     steps: [
-      { n: "01", title: "Gente" },
-      { n: "02", title: "Oficios" },
-      { n: "03", title: "Escuela" },
-      { n: "04", title: "Cultura" },
-      { n: "05", title: "Cuidado" },
-      { n: "06", title: "Voces" },
-      { n: "07", title: "Pertenencia" },
-    ],
+  {
+    n: "01",
+    title: "Mejorar el bienestar y la inclusión"
+  },
+  {
+    n: "02",
+    title: "Reconocer la diversidad del territorio"
+  },
+  {
+    n: "03",
+    title: "Fortalecer la participación de las comunidades"
+  },
+  {
+    n: "04",
+    title: "Incorporar las voces del territorio"
+  }
+],
+    charts: []
   },
   {
     slug: "misiones",
     title: "Misiones del proceso",
-    short: "Misiones del proceso",
+    short: "Misiones",
+    tipo: "bloque",
     icon: "trophy",
-    summary:
-      "Un puñado de misiones orientadoras que organizan el esfuerzo colectivo alrededor de resultados verificables.",
-    body: [
-      "Las misiones traducen la visión en apuestas concretas: agua segura, empleo de calidad, paisaje vivo, instituciones que anticipan.",
-      "Cada misión cruza dimensiones y obliga a coordinar entidades que normalmente trabajan por separado.",
-    ],
-    charts: [
-      {
-        name: "Avance misional",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 12 },
-          { year: "2020", value: 18 },
-          { year: "2022", value: 27 },
-          { year: "2024", value: 39 },
-          { year: "2026", value: 54 },
-        ],
-      },
-      {
-        name: "Alianzas activas",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 8 },
-          { year: "2020", value: 14 },
-          { year: "2022", value: 22 },
-          { year: "2024", value: 31 },
-          { year: "2026", value: 45 },
-        ],
-      },
-      {
-        name: "Hitos cumplidos",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 10 },
-          { year: "2020", value: 16 },
-          { year: "2022", value: 21 },
-          { year: "2024", value: 33 },
-          { year: "2026", value: 50 },
-        ],
-      },
-    ],
-    layers: ["Misión agua", "Misión talento", "Misión paisaje"],
+    summary: "Las cinco misiones que articulan el desarrollo del estudio prospectivo.",
+    body: ["Las misiones son los instrumentos de trabajo del proceso. Cada una agrupa un conjunto de actividades que se ejecutan de manera articulada y que, en conjunto, llevan desde el diagnóstico hasta la capacidad instalada en el territorio."],
+    layers: ["Misión de diagnóstico", "Misión de visión", "Misión de escenarios", "Misión estratégica", "Misión de institucionalización"],
     steps: [
-      { n: "01", title: "Definir" },
-      { n: "02", title: "Priorizar" },
-      { n: "03", title: "Aliados" },
-      { n: "04", title: "Metas" },
-      { n: "05", title: "Ruta" },
-      { n: "06", title: "Pilotos" },
-      { n: "07", title: "Escalar" },
-    ],
+  {
+    n: "01",
+    title: "Diagnóstico: comprender el presente con rigor técnico y territorial"
+  },
+  {
+    n: "02",
+    title: "Visión: construir una aspiración compartida de futuro al 2050"
+  },
+  {
+    n: "03",
+    title: "Escenarios: explorar futuros posibles y sus implicaciones"
+  },
+  {
+    n: "04",
+    title: "Estratégica: convertir la visión en prioridades, acciones y hoja de ruta"
+  },
+  {
+    n: "05",
+    title: "Institucionalización: dejar capacidad instalada para que el proceso continúe"
+  }
+],
+    charts: []
   },
   {
     slug: "retos",
-    title: "Retos priorizados",
-    short: "Retos priorizados",
+    title: "Retos transversales",
+    short: "Retos",
+    tipo: "bloque",
     icon: "alert",
-    summary:
-      "Los nudos que, si no se resuelven, impiden cualquier escenario de futuro deseable.",
-    body: [
-      "Los retos no son una lista infinita. Se priorizan con evidencia y con la voz de quienes viven el territorio: empleo juvenil, agua, ordenamiento, coordinación institucional y diversificación productiva.",
-      "Priorizar es también decir qué no se va a atender de primero. Esa conversación es parte del ejercicio.",
-    ],
-    charts: [
-      {
-        name: "Severidad percibida",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 72 },
-          { year: "2020", value: 80 },
-          { year: "2022", value: 76 },
-          { year: "2024", value: 70 },
-          { year: "2026", value: 64 },
-        ],
-      },
-      {
-        name: "Capacidad de respuesta",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 24 },
-          { year: "2020", value: 26 },
-          { year: "2022", value: 34 },
-          { year: "2024", value: 42 },
-          { year: "2026", value: 55 },
-        ],
-      },
-      {
-        name: "Brecha neta",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 48 },
-          { year: "2020", value: 54 },
-          { year: "2022", value: 42 },
-          { year: "2024", value: 28 },
-          { year: "2026", value: 18 },
-        ],
-      },
-    ],
-    layers: ["Estructura", "Coyuntura", "Emergentes"],
+    summary: "Condiciones comunes que el proceso debe atender en todas sus dimensiones.",
+    body: ["Los retos transversales atraviesan las cuatro dimensiones y condicionan el éxito de todo el estudio. No pertenecen a un eje en particular: son condiciones que el proceso debe resolver de manera transversal."],
+    layers: ["Participación amplia, representativa y continua", "Traducir el lenguaje técnico a mensajes claros", "Mantener memoria, trazabilidad y acceso a la información", "Asegurar continuidad institucional más allá del convenio", "Hacer del sitio una herramienta viva de comunicación"],
     steps: [
-      { n: "01", title: "Inventario" },
-      { n: "02", title: "Severidad" },
-      { n: "03", title: "Urgencia" },
-      { n: "04", title: "Viabilidad" },
-      { n: "05", title: "Prioridad" },
-      { n: "06", title: "Dueños" },
-      { n: "07", title: "Ruta" },
-    ],
+  {
+    n: "01",
+    title: "Garantizar participación amplia y representativa"
+  },
+  {
+    n: "02",
+    title: "Traducir el lenguaje técnico a la ciudadanía"
+  },
+  {
+    n: "03",
+    title: "Mantener memoria y trazabilidad"
+  },
+  {
+    n: "04",
+    title: "Asegurar continuidad institucional"
+  },
+  {
+    n: "05",
+    title: "Sostener el sitio como herramienta viva"
+  }
+],
+    charts: []
   },
   {
     slug: "iniciativas",
     title: "Iniciativas y fichas por dimensión",
-    short: "Iniciativas y fichas por Dimensión",
+    short: "Iniciativas",
+    tipo: "bloque",
     icon: "folder",
-    summary:
-      "El portafolio de iniciativas que convierte la visión en proyectos con responsable, costo y meta.",
-    body: [
-      "Cada iniciativa se documenta en una ficha: problema, población, entidad líder, aliados, presupuesto indicativo y contribución a la visión 2050.",
-      "El portafolio se alimenta de lo que ya existe en el departamento y de lo que el ejercicio prospectivo revela que falta.",
-    ],
-    charts: [
-      {
-        name: "Fichas formuladas",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 6 },
-          { year: "2020", value: 9 },
-          { year: "2022", value: 14 },
-          { year: "2024", value: 22 },
-          { year: "2026", value: 36 },
-        ],
-      },
-      {
-        name: "En ejecución",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 4 },
-          { year: "2020", value: 5 },
-          { year: "2022", value: 8 },
-          { year: "2024", value: 13 },
-          { year: "2026", value: 21 },
-        ],
-      },
-      {
-        name: "Con financiamiento",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 3 },
-          { year: "2020", value: 4 },
-          { year: "2022", value: 7 },
-          { year: "2024", value: 11 },
-          { year: "2026", value: 18 },
-        ],
-      },
-    ],
-    layers: ["Formulación", "Banco de proyectos", "Financiamiento"],
-    steps: [
-      { n: "01", title: "Ideas" },
-      { n: "02", title: "Filtro" },
-      { n: "03", title: "Ficha" },
-      { n: "04", title: "Costo" },
-      { n: "05", title: "Líder" },
-      { n: "06", title: "Banco" },
-      { n: "07", title: "Gestión" },
-    ],
+    summary: "Espacio para registrar las iniciativas y fichas que se construyan sobre cada eje del proyecto.",
+    body: ["Este bloque reúne las iniciativas y fichas que el equipo técnico elabore a partir del trabajo de cada dimensión. Se alimenta a medida que avancen los productos del estudio."],
+    layers: [],
+    steps: [],
+    charts: []
   },
   {
     slug: "hallazgos",
     title: "Hallazgos y tendencias",
-    short: "Hallazgos y tendencias",
+    short: "Hallazgos",
+    tipo: "bloque",
     icon: "file",
-    summary:
-      "Las señales del entorno global, nacional y local que condicionan cualquier escenario del Quindío.",
-    body: [
-      "Cambio climático, transición energética, envejecimiento, digitalización y nuevas geografías del turismo son tendencias que no caben en un plan de cuatro años.",
-      "El diagnóstico inicial lee esas tendencias a la luz de las capacidades reales del departamento para no construir una visión ingenua.",
-    ],
-    charts: [
-      {
-        name: "Exposición climática",
-        color: "#0b3336",
-        data: [
-          { year: "2018", value: 48 },
-          { year: "2020", value: 52 },
-          { year: "2022", value: 58 },
-          { year: "2024", value: 63 },
-          { year: "2026", value: 67 },
-        ],
-      },
-      {
-        name: "Digitalización de mipymes",
-        color: "#8fcb32",
-        data: [
-          { year: "2018", value: 18 },
-          { year: "2020", value: 29 },
-          { year: "2022", value: 38 },
-          { year: "2024", value: 47 },
-          { year: "2026", value: 58 },
-        ],
-      },
-      {
-        name: "Presión turística",
-        color: "#5c7072",
-        data: [
-          { year: "2018", value: 40 },
-          { year: "2020", value: 22 },
-          { year: "2022", value: 55 },
-          { year: "2024", value: 68 },
-          { year: "2026", value: 74 },
-        ],
-      },
-    ],
-    layers: ["Globales", "Nacionales", "Locales"],
-    steps: [
-      { n: "01", title: "Señales" },
-      { n: "02", title: "Drivers" },
-      { n: "03", title: "Impacto" },
-      { n: "04", title: "Incertidumbre" },
-      { n: "05", title: "Escenarios" },
-      { n: "06", title: "Implicaciones" },
-      { n: "07", title: "Alertas" },
-    ],
+    summary: "Espacio para consolidar los hallazgos, señales débiles y tendencias que surjan del diagnóstico.",
+    body: ["Este bloque consolida los hallazgos del diagnóstico: tendencias globales, nacionales y locales, señales débiles e incertidumbres críticas identificadas para el departamento."],
+    layers: [],
+    steps: [],
+    charts: []
   },
 ];
+
 
 export type DocCategory = {
   slug: string;
@@ -740,6 +497,13 @@ export const FOOTER_COLS = [
       { label: "Iniciativas y fichas", href: "/dimensiones/iniciativas" },
       { label: "Hallazgos y tendencias", href: "/dimensiones/hallazgos" },
     ],
+  },
+  {
+    // El Aviso de Privacidad es un enlace legal, no una página de contenido: va
+    // en una columna propia y con su propio rótulo, para que se lea como lo que
+    // es y no se confunda con el temario del ejercicio.
+    title: "Legal",
+    links: [{ label: "Aviso de privacidad", href: "/privacidad" }],
   },
 ];
 

@@ -26,7 +26,10 @@ import { UploadModule } from './upload/upload.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
+        // Solo se sincroniza si se pide explícitamente. Antes el default era
+        // `true` cuando la variable no existía, así que en producción una
+        // variable ausente hacía que TypeORM escribiera el esquema en caliente.
+        synchronize: config.get<string>('DB_SYNCHRONIZE') === 'true',
       }),
     }),
     DataModule,

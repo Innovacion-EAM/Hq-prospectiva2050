@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('documentos')
 export class Documento {
@@ -28,4 +28,8 @@ export class Documento {
 
   @Column({ type: 'text', nullable: true })
   archivo: string | null;
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

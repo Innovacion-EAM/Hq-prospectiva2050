@@ -89,7 +89,7 @@ export function DashboardPage() {
           <h2 className="font-display text-base font-bold text-ink">Noticias recientes</h2>
           <Link
             to="/noticias"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-lime-hot no-underline hover:text-ink"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-lime-ink no-underline hover:text-ink"
           >
             Administrar <ArrowRight className="size-3.5" />
           </Link>

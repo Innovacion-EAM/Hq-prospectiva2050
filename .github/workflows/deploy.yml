@@ -1,0 +1,94 @@
+# ════════════════════════════════════════════════════════════════════════════
+#  CI — HQ Prospectiva 2050
+# ════════════════════════════════════════════════════════════════════════════
+#  Corre en cada push y PR. No despliega: el despliegue al servidor lo hace
+#  `make deploy` desde una máquina con acceso al servidor. Aquí solo se verifica
+#  que el código está sano antes de llegar a producción.
+#
+#  Los tests e2e necesitan PostgreSQL, así que el job levanta uno como servicio.
+#  El resto (lint, typecheck, build) no necesita nada externo.
+# ════════════════════════════════════════════════════════════════════════════
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Cancela ejecuciones anteriores del mismo ref: no aporta nada y gasta minutos.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  comprobar:
+    name: Lint, typecheck y build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            backoffice/package-lock.json
+
+      - name: Instalar dependencias
+        run: |
+          npm ci --prefix backend
+          npm ci --prefix frontend
+          npm ci --prefix backoffice
+
+      - name: Lint
+        run: make lint
+        continue-on-error: true # hoy solo hay warnings; no bloquea el PR
+
+      - name: Typecheck y build del backend
+        run: npm run build --prefix backend
+
+      - name: Typecheck y build del frontend
+        run: npm run build --prefix frontend
+
+      - name: Typecheck y build del backoffice
+        run: npm run build --prefix backoffice
+
+  e2e:
+    name: Tests e2e de la API
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hq_prospectiva2050
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci --prefix backend
+
+      - name: Tests e2e
+        # El usuario admin que siembran los tests lo crea el propio arranque
+        # de la app (synchronize + seeder), no hace falta pasos previos.
+        run: make test-e2e
+        env:
+          APP_ENV: e2e

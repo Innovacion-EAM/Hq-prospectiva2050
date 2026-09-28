@@ -1,8 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import type { DeepPartial } from 'typeorm';
-import { Convocatoria } from '../entities/convocatoria.entity';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { ConvocatoriasService } from './convocatorias.service';
-import { Public } from '../auth/public.decorator';
+import { Public, Roles } from '../auth/public.decorator';
+import { ConvocatoriaDto, ConvocatoriaPatchDto } from '../common/dto';
 
 @Controller('convocatorias')
 export class ConvocatoriasController {
@@ -14,18 +13,30 @@ export class ConvocatoriasController {
     return this.convocatorias.listActiveFirst();
   }
 
+  @Roles('admin')
+  @Get('papelera')
+  papelera() {
+    return this.convocatorias.findTrashed();
+  }
+
+  @Roles('admin')
+  @Post(':id/restaurar')
+  restaurar(@Param('id', ParseIntPipe) id: number) {
+    return this.convocatorias.restore(id);
+  }
+
   @Post()
-  create(@Body() data: DeepPartial<Convocatoria>) {
+  create(@Body() data: ConvocatoriaDto) {
     return this.convocatorias.create(data);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() data: DeepPartial<Convocatoria>) {
-    return this.convocatorias.update(Number(id), data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() data: ConvocatoriaPatchDto) {
+    return this.convocatorias.update(id, data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.convocatorias.remove(Number(id));
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.convocatorias.remove(id);
   }
 }

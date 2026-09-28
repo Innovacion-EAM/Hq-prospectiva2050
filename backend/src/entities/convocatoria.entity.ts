@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('convocatorias')
 export class Convocatoria {
@@ -19,4 +19,8 @@ export class Convocatoria {
 
   @Column({ type: 'boolean', default: true })
   activa: boolean;
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

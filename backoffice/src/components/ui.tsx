@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { resolveUrl } from "@/lib/data";
 
 export function Button({
   children,
@@ -240,6 +241,10 @@ export function SearchInput({
     <div className="relative">
       <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
       <input
+        // El `placeholder` no es un nombre accesible: desaparece al escribir y
+        // los lectores de pantalla lo omiten. El texto visible del `SearchInput`
+        // vive en el `PageHeader` de cada página, así que aquí va el nombre real.
+        aria-label="Buscar"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -357,6 +362,11 @@ export function ConfirmButton({
 }
 
 export function Thumb({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  // `src` puede venir como ruta relativa (`/uploads/...`) desde la base de datos,
+  // así que se resuelve contra `API_BASE` antes de ponerlo en el `src`. Sin esto
+  // el panel pediría la imagen al nginx del backoffice en vez de al API y salía
+  // el hueco gris.
+  const url = resolveUrl(src);
   return (
     <div
       className={cn(
@@ -364,8 +374,8 @@ export function Thumb({ src, alt, className }: { src: string; alt: string; class
         className,
       )}
     >
-      {src ? (
-        <img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" />
+      {url ? (
+        <img src={url} alt={alt} className="h-full w-full object-cover" loading="lazy" />
       ) : null}
     </div>
   );
@@ -463,6 +473,9 @@ export function ParagraphEditor({
                 <Trash2 className="size-3" />
               </button>
               <textarea
+                // Hay varios párrafos y el `label` del editor no se puede
+                // reutilizar tal cual: se numera para que se sepa cuál es cuál.
+                aria-label={`${label}, párrafo ${i + 1} de ${value.length}`}
                 rows={3}
                 value={paragraph}
                 onChange={(e) => setAt(i, e.target.value)}

@@ -114,7 +114,17 @@ export function ProyectoFormPage() {
     setForm(item ? { ...item, body: [...item.body] } : emptyPagina());
   }, [loading, item, form, isEdit]);
 
-  if (loading || (!form && isEdit && !item)) {
+  // OJO: el orden de estas tres guardas importa.
+  // 1) Si está cargando, spinner.
+  // 2) Si edita y no existe, "no encontrado" — antes de mirar `form`, porque
+  //    cuando no hay item el useEffect nunca inicializa `form` (se queda null)
+  //    y, si esta guarda exigiera `form`, el spinner giraría para siempre.
+  // 3) Si `form` sigue null, spinner. El useEffect que lo inicializa no corre
+  //    hasta después del primer render, así que hay siempre un frame con
+  //    form === null. La guarda antigua (`!form && isEdit && !item`) no cortaba
+  //    ese frame en `/nuevo` (donde isEdit es false) y la página reventaba con
+  //    "Cannot read properties of null (reading 'slug')".
+  if (loading) {
     return (
       <div className="p-14">
         <Spinner />
@@ -124,6 +134,14 @@ export function ProyectoFormPage() {
 
   if (isEdit && !item) {
     return <EmptyState title="Página no encontrada" action={<LinkBtn to="/proyecto">Volver</LinkBtn>} />;
+  }
+
+  if (!form) {
+    return (
+      <div className="p-14">
+        <Spinner />
+      </div>
+    );
   }
 
   const guardar = form!;

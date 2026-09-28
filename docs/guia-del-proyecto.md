@@ -293,7 +293,17 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 ### Login y roles
 
 - El backoffice exige sesión: se entra por `/login`. La primera cuenta se **siembra** automáticamente: `admin@prospectiva.com` / `Admin123*` (cámbiala tras el primer uso, o edítala en `backend/src/seed-data.ts` → `SEED_USERS`).
-- Roles: **admin** (todos los módulos: contenido, usuarios, galería, mensajes) y **editor** (CRUD de contenido; no gestiona usuarios, ni la galería, ni elimina mensajes).
+| | **admin** | **editor** |
+|---|---|---|
+| Noticias, documentos, convocatorias, mensajes | ✅ | ✅ |
+| Configuración editorial (dimensiones, stats, entidades, talleres, categorías, páginas del proyecto) | ✅ | ✅ |
+| Galería: listar y subir | ✅ | ✅ |
+| Galería: **eliminar** | ✅ | ❌ |
+| Usuarios | ✅ | ❌ |
+| Ajustes del sitio (`/api/config/site`) | ✅ | ❌ |
+
+El botón de eliminar de la galería se oculta a quien no puede usarlo, para no
+dejar un 403 a la vista.
 - El backend firma JWTs con `JWT_SECRET` (expira en 12 h). El guard global exige `Bearer` salvo en rutas `@Public()` (`/api/site`, `/api/health`, GET públicos de noticias/documentos/convocatorias, `/api/uploads/*`).
 
 ### Sitio público dinámico
@@ -304,13 +314,31 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 
 ### Galería (media)
 
-- `POST /api/media/uploads` (multipart, máx. 20 MB; imágenes JPG/PNG/WEBP/GIF/SVG y PDF/DOC/XLS/PPT) + `GET /api/media`, `DELETE /api/media/:id` — **solo admin**.
+- `POST /api/media/uploads` (multipart, máx. 20 MB, un archivo) + `GET /api/media` — **admin y editor**. `DELETE /api/media/:id` — **solo admin**.
+- Formatos: **JPG, PNG, WEBP, GIF** y **PDF, DOC(X), XLS(X), PPT(X)**. **SVG está rechazado a propósito**: es XML que puede llevar `<script>` y, al servirse desde el mismo origen que la API, sería XSS almacenado. La extensión final la decide el servidor (el nombre enviado no se confía) y la lista de formatos vive en `backend/src/upload/upload.service.ts`.
+- Tamaño máximo 20 MB. El `accept` del `<input>` del panel es solo una ayuda visual; quien manda es el backend.
 - Se sirven estáticamente desde `/api/uploads/*`. En docker, la carpeta persiste en el volumen **`hq-uploads`** montado en `/app/uploads`.
 - En backoffice, el componente **MediaPicker** permite subir o escoger un archivo de la biblioteca desde las fichas de noticias y documentos. Los documentos pueden ofrecer **archivo subido** (en vez de enlace externo).
+
+### Municipios: la cobertura territorial
+
+- Los 12 municipios del Quindío son **datos, no texto del código**: tabla `config_municipios`, expuesta en el bundle del sitio como `GET /api/site → municipios` (migración `0005`).
+- Se editan en el backoffice en **Configuración → Municipios** (`/configuracion/municipios`), con la misma collection genérica que el resto de la configuración editorial. Es la décima entrada de la papelera: el borrado es lógico y se puede deshacer.
+- En el sitio se ven en dos sitios: la portada y `/proyecto`. `frontend/src/data/municipios.ts` queda como **fallback** y es la fuente del `<select>` de inscripción a talleres, que no necesita ir al servidor para listar doce nombres.
+- El smoke comprueba que son 12, que ninguno viene sin nombre ni sin ficha, y que no hay nombres repetidos.
+
+### Aviso de Privacidad (Ley 1581)
+
+- Los cuatro formularios públicos piden nombre y correo, o un texto libre que puede contener datos personales, así que **los cuatro** exigen la autorización: casilla obligatoria en el sitio y `400` en el backend si no llega.
+- El campo es `mensajes.consentimiento` (migración `0006`), `boolean NOT NULL DEFAULT false`. Las filas anteriores quedan en `false` a propósito: se recogieron antes de que existiera el aviso, y no hay que inventarles una autorización. El backoffice las marca como «Sin constancia».
+- La validación es `@Equals(true)` y no `@IsBoolean() + @IsIn([true])`: con los dos, omitir el campo devolvía los dos mensajes a la vez y la respuesta era un ruido.
+- La casilla se desmarca sola tras cada envío. El consentimiento es para **ese** envío; dejarla marcada haría que el siguiente saliera con una autorización que nadie volvió a dar.
+- ⚠️ **`frontend/src/pages/PrivacidadPage.tsx` tiene dos `[PENDIENTE]` visibles**: el nombre o razón social del responsable y el canal para ejercer los derechos. Bloqueantes para publicar.
 
 ### Nota de URLs en docker
 
 Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta: el navegador llama `http://localhost/api/api/media`, traefik quita **un** `/api` y el backend (con prefix global `api`) recibe `/api/media`. En desarrollo npm local la URL es directa: `http://localhost:3006/api/...`.
+- Las imágenes se guardan con **URL relativa** (`/uploads/archivo.jpg`), no absoluta. Una URL absoluta se quedaba apuntando al `localhost:3006` del equipo que la subió y se rompía en cuanto el sitio se publicaba en otro dominio. `resolveUrl()` (en `frontend/src/lib/api.ts` y en `backoffice/src/lib/data.ts`) la convierte en absoluta en el cliente según el entorno; si ya viene en `http(s)://` la deja intacta.
 
 ---
 
@@ -322,13 +350,45 @@ Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta:
 | Algo no responde en docker | `make doctor` → `make ps` → `make logs SERVICE=<servicio>` |
 | Backend no conecta a la db | Verificar que la db está healthy (`make health`) y credenciales coincidentes |
 | `make prod-*` falla | ¿Existen los `.env.prod`? → `make env-prod` y edítalos |
+| El backend en producción muere al arrancar con `relation "config_stats" does not exist` | La base no tiene el esquema. En prod `DB_SYNCHRONIZE=false` y nadie lo crea solo → `make db-schema` (y `make db-migrate`). `make prod-up` ya lo hace antes de levantar |
+| Levanté el backend a mano en prod y revienta | Tiene que ser `db` → `db-schema` → `db-migrate` → backend. `make prod-deploy` respeta ese orden |
 | No recuerdo un comando | `make help` |
 
 ---
 
-## 13. Pendientes
+## 13. Esquema, migraciones y pruebas
+
+### Esquema y datos
+
+- Dev/docker: el esquema y los datos iniciales se crean solos (`DB_SYNCHRONIZE=true` + seeder).
+- Producción: `DB_SYNCHRONIZE=false`, así que el esquema se aplica a mano:
+  ```bash
+  make db-schema     # aplica scripts/schema-db.sql (15 tablas, generadas con pg_dump)
+  make db-migrate    # aplica scripts/migrations/*.sql pendientes y las registra
+  ```
+- `scripts/schema-db.sql` está generado desde la base ya sincronizada. Para regenerarlo tras tocar las entidades, ver la cabecera del propio archivo.
+- Cada cambio de esquema a partir de ahí va como migración numerada en `scripts/migrations/`; no se edita el dump.
+
+### Pruebas
+
+```bash
+make test        # tests unitarios del backend
+make test-e2e    # 33 tests e2e de la API (levanta la app contra la db)
+make smoke       # recorrido http contra el entorno que esté corriendo
+```
+
+- Los e2e necesitan PostgreSQL levantado. Usan `APP_ENV=e2e` → `backend/.env.e2e`, que apunta a la base Docker local por `127.0.0.1:5432` (publicada solo en loopback).
+- Arrancan el `AppModule` real, así que crean el esquema y siembran el admin ellos solos: funcionan también contra una base vacía. Dejan la base como estaba.
+
+### CI
+
+`.github/workflows/deploy.yml` corre en cada push y PR: lint, typecheck y build de los tres servicios, más los e2e con PostgreSQL como servicio. **No despliega** — el despliegue es `make deploy` desde una máquina con acceso al servidor.
+
+## 14. Pendientes
 
 - **SSL/TLS** en Traefik (decidir automática vs manual).
-- **Migraciones del esquema** (hoy dev/docker usan `DB_SYNCHRONIZE=true` + seeder; para producción estricta se pueden generar migraciones/scripts SQL con `make db-schema` y `make db-seed`).
-- **CI/CD** (GitHub Actions: carpeta `.github/workflows/` preparada).
-- **Tests e2e de auth** (`backend/test/auth.e2e-spec.ts`) requieren una base PostgreSQL accesible desde el runner (usan el `AppModule` real y el seeder).
+- **Despliegue automatizado**: la CI valida, pero el `make deploy` sigue siendo manual.
+- **Los e2e comparten la base de desarrollo y borran lo que crean.** `make test-e2e` fija `APP_ENV=e2e` a propósito; invocar `npm run test:e2e` a mano con otro `APP_ENV` haría que los tests apuntaran a esa base y borraran datos reales.
+- **⚠️ Los dos `[PENDIENTE]` del Aviso de Privacidad** (nombre del responsable y canal de peticiones). Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
+- **⚠️ `noticias.slug` y `users.email` son UNIQUE sin mirar la columna de borrado lógico.** Un slug de una noticia borrada queda ocupado para siempre, y la siguiente noticia con ese slug se come un 500 en vez de un «ese slug ya existe». Salió al intentar hacer repetible la suite e2e. Lo mismo con el correo de un usuario dado de baja. El arreglo es un índice parcial `WHERE eliminado_at IS NULL`; no se hizo por estar fuera del alcance acordado.
+- **12 fotos de municipios por subir.** El sistema ya está listo (URL relativa, botón de quitar imagen, asignación en lote); faltan las fotos.

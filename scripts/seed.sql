@@ -1,10 +1,22 @@
--- Semilla inicial de la base de datos (OPCIONAL en dev/docker)
+-- ════════════════════════════════════════════════════════════════════════════
+--  Semilla inicial de la base de datos — HQ Prospectiva 2050
+-- ════════════════════════════════════════════════════════════════════════════
 --
--- Los datos de arranque (noticias, documentos, dimensiones, stats, entidades,
--- talleres, categorías, páginas del proyecto, configuración del sitio, etc.)
--- ya los carga el seeder del backend al arrancar si la db está vacía
--- (backend/src/seed-data.ts + backend/src/data/seeder.service.ts).
+--  En dev y docker local NO hace falta: el backend arranca con el seeder
+--  (backend/src/seed-data.ts + backend/src/data/seeder.service.ts), que carga
+--  los datos iniciales si la base está vacía.
 --
--- Este archivo queda disponible para el flujo estricto de PRODUCCIÓN
--- (DB_SYNCHRONIZE=false), donde se puede aplicar la semilla con:
---     make db-seed
+--  Para PRODUCCIÓN (DB_SYNCHRONIZE=false) hay dos caminos, y conviene el
+--  primero en la práctica:
+--
+--    1. Arrancar el backend una vez con DB_SYNCHRONIZE=true. TypeORM crea el
+--       esquema y el seeder lo llena. Luego se vuelve a false y se aplica
+--       `make db-migrate` para las migraciones pendientes. Es lo que hace
+--       `make up` en desarrollo, así que el resultado es idéntico al de este
+--       archivo y no puede quedar desactualizado respecto al código.
+--
+--    2. `make db-schema` (esquema) + este archivo (datos), sin levantar nunca
+--       el backend con sincronización.
+--
+--  Regenerar los datos iniciales: backend/src/seed-data.ts
+--  ════════════════════════════════════════════════════════════════════════════

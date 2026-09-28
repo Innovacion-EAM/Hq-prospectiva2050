@@ -15,6 +15,7 @@ import type { DocCategory } from "@/data/site";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { ConsentCheckbox } from "./consent-checkbox";
 import { Button } from "./ui/button";
 
 export function HomeStats() {
@@ -27,7 +28,7 @@ export function HomeStats() {
             key={stat.label}
             className="flex flex-col items-center rounded-2xl border border-stone/70 bg-fog/70 p-6 text-center shadow-xs transition-transform hover:-translate-y-0.5"
           >
-            <span className="font-display text-3xl font-extrabold text-lime-hot sm:text-4xl">
+            <span className="font-display text-3xl font-extrabold text-lime-ink sm:text-4xl">
               {stat.value}
             </span>
             <span className="mt-2 font-display text-sm font-bold text-ink">
@@ -188,6 +189,7 @@ export function HomeContact() {
     asunto: "",
     mensaje: "",
   });
+  const [consentimiento, setConsentimiento] = useState(false);
 
   async function send(e: FormEvent) {
     e.preventDefault();
@@ -199,9 +201,14 @@ export function HomeContact() {
         email: form.correo,
         asunto: form.asunto || undefined,
         mensaje: form.mensaje,
+        consentimiento: true,
       });
       toast.success("Mensaje enviado. Te contactaremos pronto.");
       setForm({ nombre: "", correo: "", asunto: "", mensaje: "" });
+      // Se desmarca sola: el consentimiento es para ESTE envío. Dejarla marcada
+      // haría que el siguiente mensaje saliera con una autorización que nadie
+      // volvió a dar.
+      setConsentimiento(false);
     } catch {
       toast.error("No pudimos enviar tu mensaje. Inténtalo de nuevo más tarde.");
     } finally {
@@ -221,7 +228,7 @@ export function HomeContact() {
           <ul className="mt-6 flex flex-col gap-3 text-xs text-muted sm:text-sm">
             <li className="flex items-center gap-3">
               <IconBubble>
-                <Mail className="size-4 text-lime-hot" />
+                <Mail className="size-4 text-lime-ink" />
               </IconBubble>
               <a href={`mailto:${SITE.email}`} className="text-muted no-underline hover:text-ink">
                 {SITE.email}
@@ -229,7 +236,7 @@ export function HomeContact() {
             </li>
             <li className="flex items-center gap-3">
               <IconBubble>
-                <MapPin className="size-4 text-lime-hot" />
+                <MapPin className="size-4 text-lime-ink" />
               </IconBubble>
               <span>
                 {SITE.address} — {SITE.city}
@@ -279,13 +286,21 @@ export function HomeContact() {
               className="w-full resize-y rounded-2xl border border-stone bg-paper px-4 py-3 text-xs text-ink outline-none placeholder:text-muted focus:border-lime focus:ring-1 focus:ring-lime"
             />
           </label>
+          <ConsentCheckbox
+            id="contacto-consentimiento"
+            checked={consentimiento}
+            onChange={setConsentimiento}
+          />
           <div className="flex justify-end">
             <Button
               type="submit"
               variant="ink"
               size="sm"
               className="bg-[#0c272e] px-6 text-paper"
-              disabled={sending}
+              // Sin la casilla no se envía. Deshabilitarlo explica el motivo en
+              // la propia pantalla; dejarlo activo convertiría cada intento en
+              // un 400 del servidor.
+              disabled={sending || !consentimiento}
             >
               {sending ? "Enviando…" : "Enviar"}
             </Button>

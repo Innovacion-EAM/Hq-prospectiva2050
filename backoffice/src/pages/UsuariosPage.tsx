@@ -25,7 +25,10 @@ const EMPTY: UserForm = { id: null, email: "", password: "", role: "editor" };
 
 export function UsuariosPage() {
   const usersCrud = collections.users();
-  const { items, loading } = useCollection(usersCrud as unknown as Crud<User>);
+  // Las mutaciones de usuarios pasan por `usersCrud` porque tienen su propia
+  // firma, así que la lista hay que recargarla a mano: si no, tras crear o
+  // borrar una cuenta el panel seguía mostrando el listado anterior.
+  const { items, loading, reload } = useCollection(usersCrud as unknown as Crud<User>);
   const { create, update, remove } = usersCrud;
   const { user: current } = useAuth();
   const [form, setForm] = useState<UserForm | null>(null);
@@ -58,8 +61,9 @@ export function UsuariosPage() {
         toast.success("Usuario actualizado");
       }
       setForm(null);
-    } catch {
-      toast.error("No se pudo guardar el usuario");
+      reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el usuario");
     }
   }
 
@@ -71,8 +75,9 @@ export function UsuariosPage() {
     try {
       await remove(u.id);
       toast.success("Usuario eliminado");
-    } catch {
-      toast.error("No se pudo eliminar el usuario");
+      reload();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el usuario");
     }
   }
 
@@ -80,7 +85,7 @@ export function UsuariosPage() {
     <div className="space-y-6">
       <PageHeader
         title="Usuarios"
-        description="Cuentas con acceso al backoffice. El rol editor administra contenido; admin además gestiona usuarios y la galería."
+        description="Cuentas con acceso al backoffice. El rol editor administra contenido y usa la galería; el admin además gestiona usuarios y puede borrar archivos."
         actions={
           <Button variant="lime" onClick={() => setForm({ ...EMPTY })}>
             <UserPlus className="size-4" /> Nuevo usuario

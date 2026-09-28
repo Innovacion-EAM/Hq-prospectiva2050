@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('config_proyecto_paginas')
 export class PaginaProyecto {
@@ -25,4 +25,8 @@ export class PaginaProyecto {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   body: string[];
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

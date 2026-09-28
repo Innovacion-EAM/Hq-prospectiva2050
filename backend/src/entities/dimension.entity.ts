@@ -1,4 +1,4 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('config_dimensiones')
 export class Dimension {
@@ -11,6 +11,15 @@ export class Dimension {
   @Column()
   title: string;
 
+  /**
+   * Distingue las 4 dimensiones de análisis del documento de arquitectura de
+   * los bloques de apoyo (misiones, retos, iniciativas, hallazgos). Antes estas
+   * filas se mostraban todas igual y el visitante no podía saber cuáles eran
+   * las dimensiones reales.
+   */
+  @Column({ type: 'text', default: 'dimension' })
+  tipo: 'dimension' | 'bloque';
+
   @Column({ type: 'text', nullable: true })
   short: string | null;
 
@@ -20,8 +29,8 @@ export class Dimension {
   @Column({ type: 'text' })
   summary: string;
 
-  @Column({ type: 'text' })
-  body: string;
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  body: string[];
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   layers: unknown[];
@@ -31,4 +40,8 @@ export class Dimension {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   charts: unknown[];
+
+  /** Borrado lógico: el documento pide no perder el contenido, solo esconderlo. */
+  @DeleteDateColumn({ name: 'eliminado_at', type: 'timestamptz', nullable: true })
+  eliminadoAt: Date | null;
 }

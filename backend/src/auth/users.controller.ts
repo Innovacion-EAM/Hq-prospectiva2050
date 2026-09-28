@@ -1,11 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req } from '@nestjs/common';
-import { Roles } from './public.decorator';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { CurrentUser, Roles } from './public.decorator';
 import { UsersService } from './users.service';
-import type { CreateUserInput, UpdateUserInput } from './users.service';
-
-interface AuthedRequest extends Request {
-  user?: { sub: number; email: string; role: string };
-}
+import { CreateUserDto, UpdateUserDto } from '../common/dto';
 
 @Roles('admin')
 @Controller('users')
@@ -18,17 +14,17 @@ export class UsersController {
   }
 
   @Post()
-  create(@Body() body: CreateUserInput) {
+  create(@Body() body: CreateUserDto) {
     return this.users.create(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateUserInput) {
-    return this.users.update(Number(id), body);
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateUserDto) {
+    return this.users.update(id, body);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.users.remove(Number(id), req.user?.sub ?? 0);
+  remove(@Param('id', ParseIntPipe) id: number, @CurrentUser('sub') currentId: number) {
+    return this.users.remove(id, currentId);
   }
 }
