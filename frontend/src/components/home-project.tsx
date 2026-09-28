@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSite } from "@/data/site-context";
 import { cn } from "@/lib/utils";
-import { DimensionDetail, DimensionGrid, TopPillTabs } from "./dimension-panel";
+import { DimensionDetail, DimensionGrid } from "./dimension-panel";
 import { LimeCta } from "./site-shell";
 
 const CAROUSEL_CARDS = [
@@ -47,13 +47,16 @@ const CAROUSEL_CARDS = [
 export function HomeProject() {
   const { DIMENSIONS } = useSite();
   const [slide, setSlide] = useState(0);
-  const [expanded, setExpanded] = useState(false);
   // El documento de arquitectura define 4 dimensiones de análisis; el resto de
   // entradas son bloques de apoyo (misiones, retos, iniciativas, hallazgos).
   const analisis = DIMENSIONS.filter((d) => d.tipo === "dimension");
   const bloques = DIMENSIONS.filter((d) => d.tipo === "bloque");
   const visibles = analisis.length > 0 ? analisis : DIMENSIONS;
-  const [dim, setDim] = useState(visibles[0].slug);
+  // Arranca en `null` y no en la primera dimensión: al cargar, la sección se ve
+  // cerrada y con «Dimensión político-institucional» ya resaltada aunque no había
+  // nada debajo. Con `null` ninguna tarjeta parece seleccionada hasta que se toca
+  // una, que es lo que la gente espera de un desplegable.
+  const [dim, setDim] = useState<string | null>(null);
   const active = visibles.find((d) => d.slug === dim) ?? visibles[0];
   const max = CAROUSEL_CARDS.length;
 
@@ -169,29 +172,31 @@ export function HomeProject() {
 
           {/* SECTION 2: DIMENSIONES, MISIONES, RETOS */}
           <div id="dimensiones" className="mt-14 border-t border-stone/60 pt-10">
-            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-start">
-              <div>
-                <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
-                  Las cuatro dimensiones
-                </h2>
-                <p className="mt-2 text-xs text-muted sm:text-sm">
-                  Cuatro lecturas del territorio que estructuran la lectura del Quindío.
-                </p>
-              </div>
-
-              <TopPillTabs active={dim} onSelect={(slug) => setDim(slug)} />
+            <div>
+              <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
+                Las cuatro dimensiones
+              </h2>
+              <p className="mt-2 text-xs text-muted sm:text-sm">
+                Cuatro lecturas del territorio que estructuran la lectura del Quindío.{" "}
+                Toca una para desplegar su resumen.
+              </p>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-6">
+              {/* Los cuatro botones de abajo son los únicos que hay: antes había
+                  además un `TopPillTabs` con dos de ellos repetido, lo que dejaba
+                  fuera a las otras dos dimensiones. */}
               <DimensionGrid
                 items={visibles}
                 active={dim}
-                onSelect={(slug) => {
-                  setDim(slug);
-                  setExpanded((v) => (dim === slug ? !v : true));
-                }}
+                expanded={dim !== null}
+                onSelect={(slug) =>
+                  // Tocar la misma tarjeta otra vez la repliega. `dim === null`
+                  // significa «cerrado», así que no hace falta un segundo estado.
+                  setDim((actual) => (actual === slug ? null : slug))
+                }
               />
-              {expanded ? <DimensionDetail dim={active} /> : null}
+              {dim !== null ? <DimensionDetail dim={active} /> : null}
 
               {bloques.length > 0 ? (
                 <div className="mt-8 rounded-2xl border border-stone/70 bg-fog/30 p-5 sm:p-6">

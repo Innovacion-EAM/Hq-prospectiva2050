@@ -44,93 +44,23 @@ export function iconoDe(slug: string): LucideIcon {
   return ICONOS[slug] ?? ICONO_POR_DEFECTO;
 }
 
-export function TopPillTabs({
-  active,
-  onSelect,
-}: {
-  active: string;
-  onSelect: (slug: string) => void;
-}) {
-  const isPol = active === "politico-institucional";
-  const isEco = active === "economica-productiva";
-
-  return (
-    // Es un patrón de pestañas: un conjunto de botones que cambian qué contenido
-    // se muestra debajo. Con `role="tablist"` y `aria-selected`, un lector de
-    // pantalla anuncia «pestaña 1 de 2, seleccionada». Antes eran botones sueltos
-    // y la relación entre el botón y el contenido solo se entendía mirando la
-    // página.
-    <div
-      role="tablist"
-      aria-label="Dimensiones del ejercicio"
-      className="flex flex-wrap items-center gap-3"
-    >
-      {/* Tab 1: Dimensión político-institucional */}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={isPol}
-        onClick={() => onSelect("politico-institucional")}
-        className={cn(
-          "flex items-center gap-3 rounded-pill px-4 py-2 font-display text-xs font-semibold transition-all duration-200",
-          isPol
-            ? "bg-[#cfd6d4] text-ink shadow-xs"
-            : "border border-stone bg-paper text-muted hover:bg-fog",
-        )}
-      >
-        <span>Dimensión político-institucional</span>
-        {/* Los iconos repiten lo que ya dice el texto de al lado, así que se
-            ocultan: si no, el lector de pantalla lo lee dos veces. */}
-        <span
-          aria-hidden="true"
-          className={cn(
-            "grid size-7 place-items-center rounded-full transition-colors",
-            isPol ? "bg-paper text-ink" : "border border-stone bg-paper text-lime-ink",
-          )}
-        >
-          <Target className="size-4" />
-        </span>
-      </button>
-
-      {/* Tab 2: Dimensión económico-productiva */}
-      <button
-        type="button"
-        role="tab"
-        aria-selected={isEco}
-        onClick={() => onSelect("economica-productiva")}
-        className={cn(
-          "flex items-center gap-3 rounded-pill px-4 py-2 font-display text-xs font-semibold transition-all duration-200",
-          isEco
-            ? "bg-[#cfd6d4] text-ink shadow-xs"
-            : "border border-stone bg-paper text-lime-ink hover:bg-fog",
-        )}
-      >
-        <span>Dimensión económico-productiva</span>
-        <span
-          aria-hidden="true"
-          className={cn(
-            "grid size-7 place-items-center rounded-full transition-colors",
-            isEco ? "bg-paper text-ink" : "border border-lime-hot/40 bg-paper text-lime-ink",
-          )}
-        >
-          <TrendingUp className="size-4" />
-        </span>
-      </button>
-    </div>
-  );
-}
-
 export function DimensionGrid({
   active,
   onSelect,
   items,
+  expanded = false,
 }: {
-  active: string;
+  active: string | null;
   onSelect: (slug: string) => void;
   items: Dimension[];
+  expanded?: boolean;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    // 2x2 fijo. Antes era `sm:grid-cols-2 lg:grid-cols-3`: con cuatro
+    // dimensiones la última se quedaba sola en una fila de tres, y encima había
+    // otros dos botones arriba que solo cubrían dos de las cuatro. Ahora la
+    // grilla cuadra con el número de dimensiones y es la única que hay.
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {items.map((item) => {
         const Icon = iconoDe(item.slug);
         const on = item.slug === active;
@@ -139,8 +69,16 @@ export function DimensionGrid({
             key={item.slug}
             type="button"
             onClick={() => onSelect(item.slug)}
+            // Semántica según de dónde se use la grilla: en el home el botón
+            // despliega y repliega la ficha (`expanded`), así que se anuncia
+            // como disparador de contenido. En /dimensiones la ficha está siempre
+            // abierta y el botón solo cambia cuál es, así que se anuncia como
+            // selección. Antes esto era un `tablist` de dos elementos que no
+            // cubría las cuatro dimensiones; ya no hay pestañas que exponer.
+            aria-pressed={expanded === undefined ? on : undefined}
+            aria-expanded={expanded === undefined ? undefined : on && expanded}
             className={cn(
-              "flex items-center justify-between rounded-xl border p-4 text-left transition-all duration-200 min-h-[4.5rem]",
+              "flex items-center justify-between gap-3 rounded-xl border p-4 text-left transition-all duration-200 min-h-[4.5rem]",
               on
                 ? "border-lime bg-fog shadow-xs"
                 : "border-stone/80 bg-paper text-ink hover:border-lime-hot/50 hover:bg-fog/50",
@@ -150,6 +88,7 @@ export function DimensionGrid({
               {item.title}
             </span>
             <span
+              aria-hidden="true"
               className={cn(
                 "grid size-9 shrink-0 place-items-center rounded-full border transition-colors",
                 on
