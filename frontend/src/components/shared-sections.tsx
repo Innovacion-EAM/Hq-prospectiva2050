@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import type { DocCategory } from "@/data/site";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
-import { cn } from "@/lib/utils";
 import { ConsentCheckbox } from "./consent-checkbox";
 import { Button } from "./ui/button";
 
@@ -64,22 +63,26 @@ export function HomeDocuments() {
           Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y
           piezas de socialización. Explora cada categoría del repositorio.
         </p>
-        <div className="mt-10 overflow-hidden rounded-3xl bg-[#0c272e] text-paper shadow-lg">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-6">
-            {DOC_CATEGORIES.map((cat, i) => {
+        {/* La barra por fin tiene aire por dentro. Antes las 6 celdas iban de
+            borde a borde del contenedor oscuro con px-4: el texto de la primera
+            y de la última quedaba pegado a la orilla redondeada, y en pantallas
+            grandes 6 columnas dejaban cada tarjeta angostísima (títulos como
+            «publicaciones y artículos» se rompían a dos líneas). Ahora el
+            contenedor padea y las tarjetas son baldosas con borde suave, en
+            2 filas de 3. */}
+        <div className="mt-10 rounded-3xl bg-[#0c272e] p-3 text-paper shadow-lg sm:p-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {DOC_CATEGORIES.map((cat) => {
               const Icon = DOC_ICONS[cat.icon];
               return (
                 <article
                   key={cat.slug}
-                  className={cn(
-                    "flex flex-col items-start gap-3 px-4 py-6",
-                    i !== 0 && "border-t border-paper/10 sm:border-t-0 lg:border-l",
-                  )}
+                  className="flex flex-col items-start gap-3 rounded-2xl border border-paper/10 bg-paper/5 px-5 py-6"
                 >
                   <span className="grid size-10 place-items-center rounded-full bg-lime text-ink">
                     <Icon className="size-4" />
                   </span>
-                  <h3 className="font-display text-xs leading-snug font-bold">{cat.title}</h3>
+                  <h3 className="font-display text-xs font-bold leading-snug">{cat.title}</h3>
                   <p className="flex-1 text-[0.72rem] leading-relaxed text-mist">
                     {cat.description}
                   </p>
