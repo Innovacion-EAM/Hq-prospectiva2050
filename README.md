@@ -16,6 +16,7 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 - **Sitio público** (dinámico, sin rebuild para cambiar textos): portada, las 8 dimensiones del proyecto, noticias, documentos por categoría, convocatorias, entidades, talleres, estadísticas, páginas del proyecto y la cobertura territorial —los 12 municipios del Quindío—.
 - **Formularios públicos** que llegan a la misma bandeja de mensajes: contacto, inscripciones a talleres, boletín y sugerencias (esta última admite correo opcional para quien quiera que le contesten).
 - **Ciclo de atención de los mensajes**: cada mensaje se puede mover por los estados *nuevo → en revisión → respondido / archivado* y lleva una nota interna de a quién se le respondió y por qué canal. El sistema **no envía correos** (requiere SMTP/hosting); el registro es interno.
+- **Bandeja que se refresca sola** y con **contador de sin leer** en el menú, como el globito de WhatsApp: la lista se vuelve a pedir cada 30 segundos y el número baja cuando el mensaje se marca como leído, no al archivarlo.
 - **Backoffice** con sesión y dos roles para todo el contenido: noticias, documentos, convocatorias, mensajes, configuración editorial (incluida la de municipios), usuarios y galería de archivos.
 
 ### Datos personales
