@@ -77,17 +77,22 @@ export function HomeHero() {
                 `-bottom-6` tapaba casi dos tercios del alto de la imagen (que en lg
                 mide 26rem = 416px) y le caía encima de la cara a alguien.
 
-                Ahora cuelga bastante más abajo —96px bajo la foto en lg— y se
-                aprovecha el espacio que el hero deja abajo (`lg:pb-24`), que
-                estaba desaprovechado. Sigue dentro de la sección: de la base de la
-                foto al borde del hero hay 176px en lg, 144px en sm y 112px en
-                móvil, contra los 96/80/64px que sobresale, así que el
-                `overflow-hidden` de la sección no la recorta ni invade la
-                siguiente.
+                Ahora cuelga 128px bajo la foto en lg y se aprovecha el espacio que
+                el hero deja abajo (`lg:pb-24`), que estaba desaprovechado. El
+                borde superior de la tarjeta queda a 272px de los 416px de la
+                imagen: ya no toca la altura de la cara.
 
-                Si alguna vez vuelve a tapar, la palanca es bajar más el
-                `-bottom-`, no encoger el formulario: ya se probó y se ve peor. */}
-            <div className="absolute -bottom-16 right-0 z-30 w-64 sm:-bottom-20 sm:right-2 sm:w-72 lg:-bottom-24">
+                Sigue dentro de la sección: de la base de la foto al borde del hero
+                hay 176px en lg, 144px en sm y 112px en móvil, contra los
+                128/96/80px que sobresale (el `rotate-2` suma ~10px de caja
+                envolvente), así que el `overflow-hidden` de la sección no la
+                recorta ni invade la siguiente.
+
+                Ese 176px es el tope: si hay que bajar más, la tarjeta se saldría de
+                la sección y saldría recortada. La salida entonces es sacar la foto
+                de la ecuación —más alto o más padding abajo en la sección—, no un
+                `-bottom-` mayor. */}
+            <div className="absolute -bottom-20 right-0 z-30 w-64 sm:-bottom-24 sm:right-2 sm:w-72 lg:-bottom-32">
               <SuggestForm rotated inputId="sugerencia-hero" />
             </div>
           </div>
