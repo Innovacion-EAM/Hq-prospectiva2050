@@ -50,9 +50,23 @@ export type NewsItem = {
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
+/**
+ * Formatea una fecha de la base para mostrarla en el sitio.
+ *
+ * Lo que importa es cómo se arma el `Date`. Una cadena de solo día
+ * (`"2026-09-29"`, que es lo que devuelve una columna `date`) la interpreta
+ * `new Date()` como **medianoche UTC**, y al leerla con `getDate()` en la zona
+ * del navegador —en Colombia, UTC-5— esa medianoche ya es el día anterior: todo
+ * el contenido salía fechado un día antes del que le tocaba. La columna es un
+ * día del calendario, no un instante, así que se arma en hora local.
+ *
+ * Las cadenas con hora (ISO completo) se dejan como están: ahí sí importa el
+ * instante.
+ */
 export function formatFecha(iso: string | Date | null): string {
   if (!iso) return "";
-  const d = new Date(iso);
+  const soloDia = typeof iso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(iso);
+  const d = soloDia ? new Date(`${iso}T00:00:00`) : new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return `${d.getDate()} ${MESES[d.getMonth()]} ${d.getFullYear()}`;
 }
