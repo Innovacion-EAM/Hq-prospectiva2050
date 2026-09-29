@@ -30,6 +30,26 @@ let app: INestApplication<App>;
 let mensajes: Repository<Mensaje>;
 let noticiasRepo: Repository<Noticia>;
 
+/**
+ * Id más alto de `mensajes` antes de que empezara la corrida. La red de
+ * seguridad del `afterAll` borra **solo lo que se creó durante la corrida**, o
+ * sea `id > idAlEmpezar`.
+ *
+ * No se puede limpiar por nombre ni por asunto. El e2e reproduce los payloads
+ * reales a propósito —`nombre: 'Ciudadanía'` es lo que manda la caja del hero y
+ * `asunto: 'Solicitud de suscripción al boletín'` lo pone el backend al
+ * suscribirse—, y un borrado por contenido no distingue un mensaje de prueba de
+ * uno que mandó una persona: se llevó la suscripción al boletín y la sugerencia
+ * que había llegado de verdad. La suite corre contra la base de desarrollo, que
+ * es la misma que usa el backoffice, así que el filtro no era un descuido
+ * menor: borraba los mensajes de la ciudadanía.
+ *
+ * El valor inicial es `MAX_SAFE_INTEGER` y no `0` a propósito: si el `beforeAll`
+ * llegara a fallar antes de anotarlo, el `afterAll` no borraría nada en vez de
+ * vaciar la tabla entera. Ante la duda, no borrar.
+ */
+let idAlEmpezar = Number.MAX_SAFE_INTEGER;
+
 describe('API pública y validación (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -45,14 +65,18 @@ describe('API pública y validación (e2e)', () => {
 
     mensajes = app.get<Repository<Mensaje>>(getRepositoryToken(Mensaje));
     noticiasRepo = app.get<Repository<Noticia>>(getRepositoryToken(Noticia));
-
+    // Se anota el punto de partida antes de crear nada: a partir de aquí, todo
+    // lo que aparezca en `mensajes` es de esta corrida y se puede borrar.
+    const [elMasAlto] = await mensajes.find({ order: { id: 'DESC' }, take: 1 });
+    idAlEmpezar = elMasAlto?.id ?? 0;
   });
 
   afterAll(async () => {
+    // Red de seguridad: si un test murió a mitad, su mensaje quedó en la base.
+    // Se borra por id —todo lo de esta corrida— y nunca por contenido, para no
+    // llevarse lo que haya mandado la gente (ver `idAlEmpezar`).
     await mensajes.createQueryBuilder().delete().from(Mensaje)
-      .where('nombre = :n', { n: 'E2E' })
-      .orWhere('nombre = :c', { c: 'Ciudadanía' })
-      .orWhere('asunto = :b', { b: 'Solicitud de suscripción al boletín' })
+      .where('id > :id', { id: idAlEmpezar })
       .execute();
     // Red de seguridad: si una ejecución previa murió a mitad del test de
     // noticias, el slug quedó tomado y esta suite no podría ni arrancar.
