@@ -1,9 +1,20 @@
-import { useState } from "react";
-import { CheckCheck, ChevronDown, Inbox, Mail, MailX, RefreshCw, Trash2 } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { CheckCheck, ChevronRight, Copy, Inbox, Mail, MailX, RefreshCw, Trash2 } from "lucide-react";
 import { collections, useCollection } from "@/lib/data";
 import { refrescarNoLeidos } from "@/lib/no-leidos";
 import { useAuth } from "@/lib/auth";
-import { Badge, Card, ConfirmButton, EmptyState, PageHeader, SearchInput, Spinner, Toggle } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ConfirmButton,
+  EmptyState,
+  Modal,
+  PageHeader,
+  SearchInput,
+  Spinner,
+  Toggle,
+} from "@/components/ui";
 import { cn, formatFechaLocal } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -71,6 +82,15 @@ export function MensajesPage() {
     const e = m.estado ?? "nuevo";
     return e !== "respondido" && e !== "archivado";
   }).length;
+
+  /**
+   * El mensaje del diálogo. Se busca siempre en `items` y no en un estado
+   * aparte: así el diálogo muestra el valor más fresco aunque el sondeo de 30
+   * segundos lo haya actualizado mientras estaba abierto, y si el mensaje
+   * desaparece (se eliminó) el diálogo se cierra solo en vez de quedarse con una
+   * copia fantasma.
+   */
+  const abierto = openId === null ? null : (items.find((m) => m.id === openId) ?? null);
 
   /**
    * Marcar como leído (o desmarcarlo) baja el contador del menú, así que después
@@ -183,21 +203,17 @@ export function MensajesPage() {
             <li key={m.id}>
               <Card
                 className={cn(
-                  "overflow-hidden transition-colors",
+                  "transition-colors",
                   // Franja lateral en lo que está sin leer. Con solo el puntito
                   // y la fecha, un mensaje recién llegado se perdía en una lista
                   // larga; la franja lo delata a un vistazo sin leer nada.
                   !m.leido && "border-ink/30 border-l-[3px] border-l-lime-hot",
-                  // Y el contorno marca cuál de los que se ven es el abierto,
-                  // para que al desplegar no quede la duda de si el clic entró.
-                  openId === m.id && "ring-2 ring-ink/20",
                 )}
               >
                 <button
                   type="button"
-                  onClick={() => setOpenId((v) => (v === m.id ? null : m.id))}
-                  aria-expanded={openId === m.id}
-                  aria-controls={`mensaje-detalle-${m.id}`}
+                  onClick={() => setOpenId(m.id)}
+                  aria-haspopup="dialog"
                   className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-fog/40"
                 >
                   <span
@@ -249,37 +265,44 @@ export function MensajesPage() {
                       </span>
                     ) : null}
                     <span className="hidden text-xs text-muted sm:inline">{formatFechaLocal(m.fecha)}</span>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className={cn(
-                        "size-4 shrink-0 text-mist transition-transform duration-200",
-                        openId === m.id && "rotate-180",
-                      )}
-                    />
+                    {/* La flecha dice «esto se abre», que es justo lo que no se
+                        veía cuando el detalle crecía debajo de la fila. */}
+                    <ChevronRight className="size-4 shrink-0 text-mist" aria-hidden="true" />
                   </span>
                 </button>
-                {openId === m.id ? (
-                  <div id={`mensaje-detalle-${m.id}`}>
-                    <MensajeDetalle
-                      mensaje={m}
-                      onToggleLeido={() => toggleLeido(m)}
-                      onUpdate={(cambios) => update(m.id, cambios)}
-                      onRemove={
-                        user?.role === "admin"
-                          ? () => {
-                              refrescarNoLeidos();
-                              void remove(m.id);
-                            }
-                          : undefined
-                      }
-                    />
-                  </div>
-                ) : null}
               </Card>
             </li>
           ))}
         </ul>
       )}
+
+      {/* El detalle va en un diálogo y no debajo de la fila. Desplegaba el
+          contenido justo donde estaba la lista, así que había que desplazar la
+          vista para leerlo y no se distinguía de un hueco en blanco. */}
+      <Modal
+        open={abierto !== null}
+        onClose={() => setOpenId(null)}
+        title={abierto ? abierto.nombre : ""}
+        subtitle={abierto ? subtituloDe(abierto) : undefined}
+        footer={abierto ? pieDe(abierto, () => void toggleLeido(abierto)) : undefined}
+        width="lg"
+      >
+        {abierto ? (
+          <MensajeDetalle
+            mensaje={abierto}
+            onUpdate={(cambios) => update(abierto.id, cambios)}
+            onRemove={
+              user?.role === "admin"
+                ? () => {
+                    refrescarNoLeidos();
+                    void remove(abierto.id);
+                    setOpenId(null);
+                  }
+                : undefined
+            }
+          />
+        ) : null}
+      </Modal>
 
       <Card className="flex items-start gap-3 p-4 text-xs text-muted">
         <Inbox className="mt-0.5 size-4 shrink-0" />
@@ -298,17 +321,50 @@ export function MensajesPage() {
 }
 
 /**
- * Cuerpo desplegado de un mensaje: el texto recibido, el selector de estado y la
- * nota de seguimiento.
+ * Subtítulo del diálogo: de dónde vino el mensaje y en qué estado está, que es
+ * lo que hay que saber de un vistazo antes de leerlo entero.
+ */
+function subtituloDe(m: Mensaje): string {
+  const partes = [
+    ETIQUETAS_TIPO[m.tipo as TipoMensaje] ?? m.tipo,
+    ETIQUETAS_ESTADO[m.estado ?? "nuevo"],
+    formatFechaLocal(m.fecha),
+  ];
+  if (m.consentimiento === false) partes.push("sin constancia de autorización");
+  return partes.join(" · ");
+}
+
+/**
+ * Pie del diálogo: leer y el contador del menú. Eliminar no va aquí porque es la
+ * única acción irreversible y se queda en el cuerpo, donde se pulse a
+ * propósito.
+ */
+function pieDe(m: Mensaje, onToggleLeido: () => void): ReactNode {
+  return (
+    <>
+      <Toggle checked={m.leido} onChange={onToggleLeido} label={m.leido ? "Leído" : "Marcar como leído"} />
+      <span className="text-[0.7rem] text-muted">
+        {m.leido
+          ? "Este mensaje ya no cuenta en el aviso del menú."
+          : "Mientras esté sin leer, cuenta en el aviso del menú."}
+      </span>
+    </>
+  );
+}
+
+/**
+ * Cuerpo del diálogo: el texto recibido tal cual, la acción para responderle y
+ * el estado interno de la atención.
+ *
+ * Marcar como leído no está aquí sino en el pie del diálogo, y por eso no
+ * recibe el callback: es el pie quien lo tiene.
  */
 function MensajeDetalle({
   mensaje: m,
-  onToggleLeido,
   onUpdate,
   onRemove,
 }: {
   mensaje: Mensaje;
-  onToggleLeido: () => void;
   // El `update` del backoffice devuelve el mensaje guardado, no `void`. Se
   // tipa como `Promise<unknown>` porque a esta vista solo le importa que la
   // llamada se haya resuelto.
@@ -317,8 +373,9 @@ function MensajeDetalle({
 }) {
   const [seguimiento, setSeguimiento] = useState(m.seguimiento ?? "");
   const [guardando, setGuardando] = useState(false);
+  const [copiado, setCopiado] = useState(false);
   // Si el mensaje se actualiza desde afuera (otra pestaña, otro usuario) mientras
-  // esta tarjeta está abierta, la nota se realinea con el valor guardado. Se hace
+  // el diálogo está abierto, la nota se realinea con el valor guardado. Se hace
   // durante el render y no en un `useEffect` a propósito: el efecto pinta el
   // cambio en un segundo render, en el que el textarea muestra brevemente un
   // valor viejo y el botón de guardar se enciende o apaga solo.
@@ -342,11 +399,57 @@ function MensajeDetalle({
     }
   }
 
-  return (
-    <div className="border-t border-stone bg-fog/60 px-5 py-4">
-      <p className="whitespace-pre-wrap text-sm text-body">{m.mensaje}</p>
+  async function copiarMensaje() {
+    try {
+      await navigator.clipboard.writeText(m.mensaje ?? "");
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar. Selecciona el texto a mano.");
+    }
+  }
 
-      <div className="mt-4">
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
+          Texto recibido
+        </p>
+        <blockquote className="mt-2 rounded-xl border-l-[3px] border-l-lime-hot bg-fog/60 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap text-body">
+          {m.mensaje}
+        </blockquote>
+      </div>
+
+      <div>
+        <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
+          Responder
+        </p>
+        {m.email ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/* El sistema no manda correos: lo que puede hacer es abrir el
+                programa de correo con el texto preparado. El `mailto` lleva el
+                mensaje original citado y el asunto, pero **nunca** la nota de
+                seguimiento: esa es interna y no puede salir hacia afuera. */}
+            <a
+              href={enlaceDeRespuesta(m)}
+              className="inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-2 font-display text-xs font-semibold text-paper transition-colors hover:bg-ink-mid"
+            >
+              <Mail className="size-4" /> Responder por correo
+            </a>
+            <Button variant="outline" size="sm" onClick={() => void copiarMensaje()}>
+              <Copy className="size-3.5" /> {copiado ? "Copiado" : "Copiar texto"}
+            </Button>
+            <span className="text-xs text-muted">A {m.email}</span>
+          </div>
+        ) : (
+          <p className="mt-2 rounded-xl bg-fog/60 px-4 py-3 text-xs text-muted">
+            Esta persona no dejó canal, así que no hay a dónde responderle desde aquí. Si la alcanzas por
+            teléfono o en persona, cuéntalo en el seguimiento de abajo: es el registro de que se atendió.
+          </p>
+        )}
+      </div>
+
+      <div>
         <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
           Estado de atención
         </p>
@@ -370,7 +473,7 @@ function MensajeDetalle({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div>
         <label
           htmlFor={`seguimiento-${m.id}`}
           className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase"
@@ -381,7 +484,7 @@ function MensajeDetalle({
           id={`seguimiento-${m.id}`}
           value={seguimiento}
           onChange={(e) => setSeguimiento(e.target.value)}
-          rows={2}
+          rows={3}
           placeholder="A quién se le respondió, por qué canal y cuándo. Esto no se envía a la ciudadanía: es el registro del equipo."
           className="mt-2 w-full resize-y rounded-xl border border-mist bg-paper px-3 py-2 text-sm text-ink outline-none placeholder:text-muted focus:border-lime-ink"
         />
@@ -400,8 +503,16 @@ function MensajeDetalle({
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-2 border-t border-stone/70 pt-4">
-        <Toggle checked={m.leido} onChange={onToggleLeido} label={m.leido ? "Leído" : "Marcar como leído"} />
+      <div className="flex items-center gap-2 border-t border-stone pt-4">
+        <span className="text-[0.7rem] text-muted">
+          {m.email ? (
+            <>
+              Canal: <strong className="text-ink">{m.email}</strong>
+            </>
+          ) : (
+            "Sin canal de respuesta"
+          )}
+        </span>
         <div className="flex-1" />
         {onRemove ? (
           <ConfirmButton label="Eliminar mensaje" onConfirm={onRemove} confirmText="¿Eliminar mensaje?" variant="outline">
@@ -412,3 +523,28 @@ function MensajeDetalle({
     </div>
   );
 }
+
+/**
+ * Enlace `mailto` con el mensaje ya citado.
+ *
+ * Deliberadamente **no** incluye el `seguimiento`: es la nota interna del
+ * equipo, y un `mailto:` abre el correo del administrador a la vista de quien
+ * vaya a leerlo antes de enviarlo. Que la respuesta se escriba por fuera del
+ * sistema es lo pactado; que el registro interno se salga con ella, no.
+ */
+function enlaceDeRespuesta(m: Mensaje): string {
+  const asunto = encodeURIComponent(m.asunto ? `Re: ${m.asunto}` : "Mensaje del sitio");
+  const cuerpo = encodeURIComponent(
+    [
+      "",
+      "",
+      "—",
+      `${m.nombre} escribió el ${formatFechaLocal(m.fecha)}:`,
+      "",
+      m.mensaje ?? "",
+      "",
+    ].join("\n"),
+  );
+  return `mailto:${m.email}?subject=${asunto}&body=${cuerpo}`;
+}
+

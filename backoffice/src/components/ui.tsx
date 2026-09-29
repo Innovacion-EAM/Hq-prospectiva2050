@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ChevronDown, Plus, Search, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -492,4 +493,105 @@ export function ParagraphEditor({
 
 export function Snippet({ children }: { children: ReactNode }) {
   return <pre className="rounded-lg bg-fog p-2 text-[0.7rem] text-body whitespace-pre-wrap break-words">{children}</pre>;
+}
+/**
+ * Diálogo modal. Se monta en un `portal` sobre `document.body` para que el
+ * `z-index` no compita con el de la página y para que el foco entre aquí aunque
+ * el contenido esté anidado en algo con su propio contexto de apilamiento.
+ *
+ * Cierra con `Escape`, con un clic en el fondo y con el botón de la esquina, que
+ * son las tres formas que la gente ya tiene automatizadas en la cabeza. Mientras
+ * está abierto el fondo no hace scroll, porque sin eso el documento se desplaza
+ * un poco al abrir y otro poco al cerrar y parece que la página parpadeó.
+ */
+export function Modal({
+  open,
+  onClose,
+  title,
+  subtitle,
+  children,
+  footer,
+  width = "md",
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  footer?: ReactNode;
+  width?: "md" | "lg";
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  /**
+   * El cierre se guarda en una ref y no en las dependencias del efecto. La
+   * función que se pasa suele ser una flecha creada en el render del padre, así
+   * que su identidad cambia en cada render: si fuera dependencia, el efecto se
+   * re-ejecutaría sin parar y volvería a robarle el foco al panel mientras la
+   * persona está escribiendo en un campo. Con la ref, lo único que reinicia el
+   * efecto es que el diálogo se abra o se cierre.
+   */
+  const alCerrar = useRef(onClose);
+  useEffect(() => {
+    alCerrar.current = onClose;
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === "Escape") alCerrar.current();
+    };
+    document.addEventListener("keydown", alPulsar);
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // El foco entra al diálogo al abrirlo. Sin esto se queda en el botón de la
+    // fila que lo abrió, y al tabular se seguiría moviendo por la lista de
+    // detrás, que es justo lo que un modal debe impedir.
+    panel.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", alPulsar);
+      document.body.style.overflow = overflowPrevio;
+    };
+  }, [open]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/55 px-4 py-8 backdrop-blur-sm"
+      onClick={(e) => {
+        // Solo cierra si el clic fue en el fondo, no si venía de dentro del
+        // panel: `e.target` es el nodo exacto donde se presionó.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className={cn(
+          "my-auto w-full overflow-hidden rounded-2xl bg-paper shadow-[var(--shadow-float)] outline-none",
+          width === "md" ? "max-w-2xl" : "max-w-4xl",
+        )}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-stone px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-base font-bold text-ink">{title}</h2>
+            {subtitle ? <p className="mt-0.5 text-xs text-muted">{subtitle}</p> : null}
+          </div>
+          <IconBtn label="Cerrar" onClick={onClose}>
+            <X className="size-4" />
+          </IconBtn>
+        </div>
+        <div className="max-h-[70vh] overflow-y-auto px-5 py-5">{children}</div>
+        {footer ? (
+          <div className="flex flex-wrap items-center gap-2 border-t border-stone bg-fog/50 px-5 py-3">
+            {footer}
+          </div>
+        ) : null}
+      </div>
+    </div>,
+    document.body,
+  );
 }
