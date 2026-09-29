@@ -71,8 +71,16 @@ export function HomeHero() {
               />
             </div>
 
-            {/* Suggestion box floating over bottom-right of hero image */}
-            <div className="absolute -bottom-6 right-0 sm:right-2 z-30 w-64 sm:w-72">
+            {/* La caja de sugerencias flota sobre la esquina inferior derecha de
+                la foto de las personas. Como está anclada por abajo, bajarla es la
+                única forma de que tape menos: con `-bottom-6` tapaba casi dos
+                tercios del alto de la imagen (que en lg mide 26rem = 416px) y le
+                caía encima de la cara a alguien. Ahora cuelga más abajo —48px bajo
+                la imagen en lg— y se aprovecha el espacio que el hero deja abajo
+                (`lg:pb-24`), así que sigue dentro de la sección y no invade la de
+                estadísticas. Si alguna vez vuelve a tapar, la palanca es bajar más
+                el `-bottom-`, no encoger el formulario. */}
+            <div className="absolute -bottom-12 right-0 z-30 w-64 sm:-bottom-14 sm:right-2 sm:w-72 lg:-bottom-16">
               <SuggestForm rotated inputId="sugerencia-hero" />
             </div>
           </div>
