@@ -81,6 +81,28 @@ section "3. API — salud y datos"
 code "health de base de datos"          "$BASE/api/health/db"           200
 code "bundle del sitio"                 "$API/site"                     200
 
+# Las 4 comprobaciones siguientes verifican que el sitio viene con el contenido
+# del documento de arquitectura: las 8 dimensiones, los 14 aliados, los 12
+# municipios. Con la base vacía a propósito (`make db-vacia`) ese contenido no
+# existe, así que no pueden pasar. Omitirlas con un aviso es más honesto que
+# dejar cuatro X rojas que parecen un error del sitio y son solo que está vacío.
+n_contenido=$(curl -sk "$API/site" | python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin)
+except Exception:
+    print(0); raise SystemExit
+print(len(d.get('dimensiones',[]))+len(d.get('entidades',[]))+len(d.get('municipios',[])))
+" 2>/dev/null)
+SIN_CONTENIDO=0
+if [ "${n_contenido:-0}" = "0" ]; then
+  SIN_CONTENIDO=1
+  printf "\n  ${VERDE}!${FIN} La base está SIN contenido de muestra (SEED_CONTENIDO=false).\n"
+  printf "  ${GRIS}Las 4 comprobaciones de contenido se omiten: no fallan, es que no hay\n"
+  printf "  nada que comprobar. Todo lo demás (formularios, bandeja, auth, roles) sí se\n"
+  printf "  verifica igual. Para comprobar el contenido también: make db-reset${FIN}\n"
+fi
+
 dims=$(curl -sk "$API/site" | python3 -c "
 import json,sys
 try:
@@ -90,7 +112,9 @@ except Exception:
 mal=[x['slug'] for x in d if not isinstance(x.get('body'),list) or not x['body']]
 print(f'{len(d)-len(mal)}/{len(d)}')
 " 2>/dev/null)
-if [ "${dims%%/*}" = "${dims##*/}" ] && [ "$dims" != "0/0" ]; then
+if [ "$SIN_CONTENIDO" = "1" ]; then
+  info "entradas con body como lista — omitida (base sin contenido)"
+elif [ "${dims%%/*}" = "${dims##*/}" ] && [ "$dims" != "0/0" ]; then
   ok "las $dims entradas traen body como lista de párrafos"
 else
   fail "entradas con body como lista" "todas" "$dims"
@@ -110,7 +134,9 @@ sin=[x['slug'] for x in d if x.get('tipo') not in ('dimension','bloque')]
 print(f'{len(dims)}|{len(bloq)}|{len(sin)}')
 " 2>/dev/null)
 n_dims=${tipos%%|*}; resto=${tipos#*|}; n_bloq=${resto%%|*}; sin_tipo=${resto##*|}
-if [ "$n_dims" = "4" ] && [ "$sin_tipo" = "0" ]; then
+if [ "$SIN_CONTENIDO" = "1" ]; then
+  info "dimensiones de análisis — omitida (base sin contenido)"
+elif [ "$n_dims" = "4" ] && [ "$sin_tipo" = "0" ]; then
   ok "hay exactamente 4 dimensiones de análisis (+$n_bloq bloques de apoyo)"
 else
   fail "dimensiones de análisis" "4" "$n_dims (bloques: $n_bloq, sin tipo: $sin_tipo)"
@@ -124,7 +150,9 @@ try:
 except Exception:
     print(0)
 " 2>/dev/null)
-if [ "$aliados" = "14" ]; then
+if [ "$SIN_CONTENIDO" = "1" ]; then
+  info "aliados — omitida (base sin contenido)"
+elif [ "$aliados" = "14" ]; then
   ok "los 14 aliados del documento están cargados"
 else
   fail "aliados" "14" "$aliados"
@@ -144,7 +172,9 @@ vacios=[m for m in ms if not (m.get('nombre') or '').strip() or not (m.get('dato
 print('%d|%d|%d' % (len(ms), len(vacios), len(set(nombres))))
 " 2>/dev/null)
 n_mun=${municipios%%|*}; resto=${municipios#*|}; mun_vacios=${resto%%|*}; mun_unicos=${resto##*|}
-if [ "$n_mun" = "12" ] && [ "$mun_vacios" = "0" ] && [ "$mun_unicos" = "12" ]; then
+if [ "$SIN_CONTENIDO" = "1" ]; then
+  info "municipios — omitida (base sin contenido)"
+elif [ "$n_mun" = "12" ] && [ "$mun_vacios" = "0" ] && [ "$mun_unicos" = "12" ]; then
   ok "los 12 municipios del Quindío, con nombre y dato, sin repetir"
 else
   fail "municipios" "12 con nombre y dato, sin repetir" \

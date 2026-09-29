@@ -8,6 +8,7 @@ import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/app.setup';
 import { Mensaje } from './../src/entities/mensaje.entity';
 import { Noticia } from './../src/entities/noticia.entity';
+import { Dimension } from './../src/entities/dimension.entity';
 
 /**
  * Todos los correos que usan los tests de formularios. Se borran al terminar
@@ -88,20 +89,46 @@ describe('API pública y validación (e2e)', () => {
 
   // ── Dimensiones: la pantalla en blanco ────────────────────────────────────
   describe('dimensiones', () => {
-    it('las 8 dimensiones traen body como lista de párrafos, no como texto', async () => {
-      const res = await request(app.getHttpServer()).get('/api/site').expect(200);
+    /**
+     * La forma de `body` es lo que se está vigilando aquí, no cuántas hay: el
+     * frontend hace `body.map(...)` y, si esto volviera a ser un texto suelto,
+     * la página `/dimensiones/:slug` se caía con un TypeError y se quedaba en
+     * blanco.
+     *
+     * La dimensión la crea el propio test en vez de confiar en la semilla. La
+     * suite corre contra la base de desarrollo, que puede estar vacía a
+     * propósito (`make db-vacia` la deja sin contenido), y un test que exige
+     * que haya contenido de muestra obliga a que la base nunca pueda estar
+     * vacía.
+     */
+    it('cada dimensión trae el body como lista de párrafos, no como texto', async () => {
+      const repo = app.get<Repository<Dimension>>(getRepositoryToken(Dimension));
+      const slug = 'e2e-dimension';
+      const creada = await repo.save(
+        repo.create({
+          slug,
+          title: 'Dimensión de prueba',
+          tipo: 'dimension',
+          icon: 'target',
+          short: 'De prueba',
+          summary: 'Dimensión que crea el e2e.',
+          body: ['Primer párrafo.', 'Segundo párrafo.'],
+        }),
+      );
 
-      const dimensiones = res.body.dimensiones as Array<{ slug: string; body: unknown }>;
-      expect(dimensiones.length).toBe(8);
+      try {
+        const res = await request(app.getHttpServer()).get('/api/site').expect(200);
+        const dimensiones = (res.body.dimensiones as Array<{ slug: string; body: unknown }>).filter(
+          (d) => d.slug === slug,
+        );
+        expect(dimensiones).toHaveLength(1);
 
-      for (const dim of dimensiones) {
-        // El frontend hace body.map(...): si esto no es un array, la página
-        // /dimensiones/:slug se caía con TypeError.
-        expect(Array.isArray(dim.body)).toBe(true);
-        expect((dim.body as unknown[]).length).toBeGreaterThan(0);
-        for (const parrafo of dim.body as unknown[]) {
+        for (const parrafo of dimensiones[0].body as string[]) {
           expect(typeof parrafo).toBe('string');
         }
+        expect(dimensiones[0].body as string[]).toEqual(['Primer párrafo.', 'Segundo párrafo.']);
+      } finally {
+        await repo.delete(creada.id);
       }
     });
   });

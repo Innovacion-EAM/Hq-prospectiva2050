@@ -34,20 +34,39 @@ import {
 export class SeederService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeederService.name);
 
+  /**
+   * Si vale `false`, no se siembra contenido: la base arranca vacía para poder
+   * probar el sitio de verdad, con lo que se escriba a mano en lugar de con lo
+   * que el seedy de desarrollo inventó.
+   *
+   * Las dos cosas que sí se siembran siempre son las **cuentas** y la
+   * **configuración del sitio**, y no por descuido: sin una cuenta no hay forma
+   * de entrar al backoffice a llenar la base, y sin la fila de configuración el
+   * sitio no tiene con qué arrancar. Lo que se puede quitar es el contenido de
+   * muestra, y eso es justo lo que estorba al probar desde cero.
+   */
+  private readonly sembrarContenido = process.env.SEED_CONTENIDO !== 'false';
+
   constructor(private readonly dataSource: DataSource) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.seed(Stat, SEED_STATS);
-    await this.seed(Entidad, SEED_ENTIDADES);
-    await this.seed(Municipio, SEED_MUNICIPIOS);
-    await this.seed(Taller, SEED_TALLERES);
-    await this.seed(DocCategoria, SEED_CATEGORIAS);
-    await this.seed(PaginaProyecto, SEED_PROYECTO_PAGINAS);
-    await this.seed(Dimension, SEED_DIMENSIONES);
-    await this.seed(Noticia, SEED_NOTICIAS);
-    await this.seed(Documento, SEED_DOCUMENTOS);
-    await this.seed(Convocatoria, SEED_CONVOCATORIAS);
-    await this.seed(Mensaje, SEED_MENSAJES);
+    if (this.sembrarContenido) {
+      await this.seed(Stat, SEED_STATS);
+      await this.seed(Entidad, SEED_ENTIDADES);
+      await this.seed(Municipio, SEED_MUNICIPIOS);
+      await this.seed(Taller, SEED_TALLERES);
+      await this.seed(DocCategoria, SEED_CATEGORIAS);
+      await this.seed(PaginaProyecto, SEED_PROYECTO_PAGINAS);
+      await this.seed(Dimension, SEED_DIMENSIONES);
+      await this.seed(Noticia, SEED_NOTICIAS);
+      await this.seed(Documento, SEED_DOCUMENTOS);
+      await this.seed(Convocatoria, SEED_CONVOCATORIAS);
+      await this.seed(Mensaje, SEED_MENSAJES);
+    } else {
+      this.logger.warn(
+        'SEED_CONTENIDO=false: la base queda sin contenido de muestra. Cuentas y configuración del sitio sí se siembran.',
+      );
+    }
     await this.seedSite();
     await this.seedUsers();
   }

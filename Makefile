@@ -160,8 +160,15 @@ test:
 
 ## test-e2e: Tests e2e de la API (jest + supertest contra la db de docker)
 #  Requiere el stack levantado (la db se toma de 127.0.0.1:5432).
+#
+#  SEED_CONTENIDO=false va aquí y no solo en backend/.env.e2e a propósito: la suite
+#  monta la app contra la MISMA base de desarrollo que usa el backoffice, y esa
+#  app se siembra al arrancar. Sin esto, cada `make test-e2e` volvía a llenar la
+#  base con los datos de muestra, rompiendo cualquier `make db-vacia` previo.
+#  Se pasa por el entorno porque dotenv no pisa lo que ya viene definido, así que
+#  manda esto aunque el .env.e2e local tenga otra cosa.
 test-e2e:
-	@cd backend && APP_ENV=e2e npm run test:e2e
+	@cd backend && APP_ENV=e2e SEED_CONTENIDO=false npm run test:e2e
 
 ## smoke: Smoke test de extremo a extremo contra el stack levantado
 #  Verifica de verdad lo que el usuario ve: rutas públicas, las 8 dimensiones,
@@ -259,11 +266,49 @@ db-logs:
 	@$(DOCKER) logs -f --tail=100 postgres
 
 ## db-reset: Destruye y recrea la base de datos desde cero (¡pide confirmación!)
-#  ⚠ Destructivo: borra el volumen pgdata y levanta de nuevo la db en limpio.
+#  ⚠ Destructivo: borra el volumen pgdata y levanta de nuevo la db en limpio,
+#  con el contenido de muestra de siempre.
 db-reset:
 	@read -p "[!] Esto BORRARÁ y recreará la base de datos (datos perdidos). Escribe 'si' para continuar: " ans; \
 		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
+		$(call sembrar_contenido,true); \
 		$(DOCKER) down -v && $(DOCKER) up -d postgres --wait && echo "Base de datos recreada."
+
+## db-vacia: Borra todo y deja la base SIN contenido, para probar el sitio desde cero
+#  ⚠ Destructivo: borra el volumen pgdata y vuelve a levantar todo.
+#
+#  A diferencia de `db-reset`, aquí no queda ningún dato de muestra: no hay
+#  noticias, documentos, municipios, dimensiones ni mensajes. Lo único que se
+#  siembra es la cuenta de admin (admin@prospectiva.com / Admin123*) y la fila de
+#  configuración del sitio, porque sin una cuenta no hay forma de entrar al
+#  backoffice a llenarla y sin esa fila el sitio no arranca. La segunda cuenta,
+#  de rol editor, se crea desde el propio backoffice.
+#
+#  El interruptor es SEED_CONTENIDO en backend/.env.docker, que queda puesto a
+#  `false` **de forma permanente**: el seeder siembra las tablas que encuentra
+#  vacías en cada arranque, así que si solo se pasara por el entorno, el
+#  siguiente `make up` volvería a llenar todo. Por eso hay que devolverlo a
+#  `true` con `make db-reset` para recuperar los datos de muestra.
+db-vacia:
+	@read -p "[!] Esto BORRARÁ todos los datos y dejará la base vacía. Escribe 'si' para continuar: " ans; \
+		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
+		$(call sembrar_contenido,false); \
+		$(DOCKER) down -v && $(DOCKER) up -d --build && \
+		echo "" && echo "Base vacía. Entra con admin@prospectiva.com / Admin123* y escríbelo todo a mano." && \
+		echo "Para recuperar los datos de muestra: make db-reset"
+
+# Fija SEED_CONTENIDO en backend/.env.docker. $(1) = true|false.
+# Se edita el archivo y no se pasa por el entorno a propósito: el valor tiene que
+# sobrevivir a los `make up` siguientes, o el contenido vuelve a sembrarse.
+define sembrar_contenido
+	if [ ! -f backend/.env.docker ]; then touch backend/.env.docker; fi; \
+	if grep -q '^SEED_CONTENIDO=' backend/.env.docker 2>/dev/null; then \
+		sed -i 's/^SEED_CONTENIDO=.*/SEED_CONTENIDO=$(1)/' backend/.env.docker; \
+	else \
+		printf '\n# Puesto a false por db-vacia: la base se lleva sin contenido de muestra.\nSEED_CONTENIDO=$(1)\n' >> backend/.env.docker; \
+	fi; \
+	echo "SEED_CONTENIDO=$(1) en backend/.env.docker"
+endef
 
 ## db-migrate: Aplica en orden TODAS las migraciones de scripts/migrations/
 #  Pensado para producción (DB_SYNCHRONIZE=false). Cada archivo se guarda en
@@ -495,7 +540,7 @@ status:
         dev dev-backend dev-frontend dev-backoffice dev-stop \
         lint lint-backend lint-frontend lint-backoffice test test-e2e smoke format \
         up down down-v ps health logs build rebuild restart config traefik-host \
-        db-shell db-logs db-reset db-migrate db-migrations db-schema db-seed shell \
+        db-shell db-logs db-reset db-vacia db-migrate db-migrations db-schema db-seed shell \
         env-prod prod-config prod-build prod-up prod-deploy prod-down \
         prod-down-v prod-ps prod-logs prod-restart prod-shell prod-smoke deploy \
         backup backup-list backup-clean restore \
@@ -510,6 +555,9 @@ status:
 #  Cambiaste VITE_API_URL / .env.docker:  make rebuild   (el build re-incrusta la URL)
 #  Todo limpio:  make down          (preserva datos)
 #  Reiniciar db desde cero:  make db-reset
+#  Probar el sitio desde cero, sin datos de muestra:  make db-vacia
+#      (deja la base sin noticias ni documentos, conservando la cuenta de admin
+#       para poder escribirlo todo a mano; make db-reset recupera la semilla)
 #
 #  Primera vez en el SERVIDOR:
 #      git clone <repo> && cd <raíz>
