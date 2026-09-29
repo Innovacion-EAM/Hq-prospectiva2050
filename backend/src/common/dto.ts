@@ -35,6 +35,19 @@ export const ROLES = ['admin', 'editor'] as const;
 export const VacioOpcional = () =>
   Transform(({ value }) => (value === '' || value === null ? undefined : value));
 
+/**
+ * Recorta los espacios de los bordes antes de validar.
+ *
+ * Sin esto, pegar un correo con un espacio al final —cosa que pasa siempre que
+ * se copia de otro correo o de un formulario del navegador— lo hace fallar
+ * `@IsEmail`, que es estricto. Los controladores ya guardaban el valor
+ * recortado, pero la validación ocurre **antes** que ellos, así que la petición
+ * moría con un 400 de «Escribe un correo válido» aunque la dirección fuera
+ * buena. Se aplica en la entrada, no en la salida, para que lo que se valida y lo
+ * que se guarda sean la misma cosa.
+ */
+const Recortado = () => Transform(({ value }) => (typeof value === 'string' ? value.trim() : value));
+
 const urlOpcional = () =>
   IsUrl(
     { require_protocol: true, protocols: ['http', 'https'] },
@@ -111,6 +124,7 @@ export class ContactoDto {
   @MaxLength(120)
   nombre!: string;
 
+  @Recortado()
   @IsEmail({}, { message: 'Escribe un correo válido' })
   @MaxLength(180)
   email!: string;
@@ -141,6 +155,7 @@ export class InscripcionDto {
   @MaxLength(120)
   nombre!: string;
 
+  @Recortado()
   @IsEmail({}, { message: 'Escribe un correo válido' })
   @MaxLength(180)
   email!: string;
@@ -156,6 +171,7 @@ export class InscripcionDto {
 }
 
 export class BoletinDto {
+  @Recortado()
   @IsEmail({}, { message: 'Escribe un correo válido' })
   @MaxLength(180)
   email!: string;
@@ -176,10 +192,12 @@ export class SugerenciaDto {
   @MaxLength(120)
   nombre!: string;
 
-  // La caja «Pregunta o recomendación» del hero es anónima: el campo llega
-  // vacío o ausente, así que el correo no puede ser obligatorio.
+  // La caja «Pregunta o recomendación» del hero es anónima, pero admite correo
+  // para quien quiera que le contesten. Vacío o ausente significa «sin canal», y
+  // el controlador lo guarda como `null` en vez de inventar una dirección.
   @IsOptional()
   @VacioOpcional()
+  @Recortado()
   @IsEmail({}, { message: 'Escribe un correo válido' })
   @MaxLength(180)
   email?: string;
@@ -334,9 +352,40 @@ export class ConvocatoriaDto {
   activa?: boolean;
 }
 
+/**
+ * Ciclo de atención de un mensaje. No es un estado de la ciudadanía sino del
+ * equipo: sirve para filtrar la bandeja y dejar claro qué está pendiente de mirar.
+ *
+ * `nuevo`        — acaba de llegar, nadie lo ha abierto.
+ * `en_revision`  — alguien lo está leyendo o se ocupa de lo que cuenta.
+ * `respondido`   — se le contestó por el canal que dejó y quedó anotado en `seguimiento`.
+ * `archivado`    — cerrado sin respuesta (no dejó contacto, o no procedía).
+ */
+export const ESTADO_MENSAJE = ['nuevo', 'en_revision', 'respondido', 'archivado'] as const;
+
+export type EstadoMensaje = (typeof ESTADO_MENSAJE)[number];
+
+/**
+ * PATCH de un mensaje. Antes solo aceptaba `leido` y el servicio se llamaba
+ * `setLeido`; ahora el backoffice actualiza estado y seguimiento en la misma
+ * llamada, así que los tres campos son opcionales y se ignora lo que no llegue.
+ */
 export class MensajePatchDto {
+  @IsOptional()
   @IsBoolean()
-  leido!: boolean;
+  leido?: boolean;
+
+  @IsOptional()
+  @IsIn(ESTADO_MENSAJE, {
+    message: `El estado debe ser uno de: ${ESTADO_MENSAJE.join(', ')}`,
+  })
+  estado?: EstadoMensaje;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(4000)
+  seguimiento?: string;
 }
 
 export class SiteConfigDto {

@@ -312,6 +312,180 @@ describe('API pública y validación (e2e)', () => {
         .set('authorization', `Bearer ${await tokenAdmin()}`)
         .expect(404);
     });
+
+    // El ciclo de atención (estado + seguimiento) existe porque la caja del hero
+    // es anónima y el sistema no manda correos: sin un registro de a quién se le
+    // contestó y por qué canal, el mensaje se perdía. Estos tests fijan que el
+    // estado se mueve, que la nota se guarda, y que el texto que envió la
+    // ciudadanía no se puede reescribir desde el backoffice.
+    describe('ciclo de atención', () => {
+      async function crearMensaje(email: string | null): Promise<{ id: number }> {
+        const creado = await mensajes.save(
+          mensajes.create({
+            nombre: 'E2E atención',
+            email,
+            asunto: 'Pregunta o recomendación',
+            mensaje: 'Mensaje para probar el ciclo de atención.',
+            tipo: 'sugerencias',
+            fecha: new Date().toISOString().slice(0, 10),
+            leido: false,
+            consentimiento: true,
+            estado: 'nuevo',
+            seguimiento: null,
+          }),
+        );
+        return creado;
+      }
+
+      it('mueve el estado y guarda el seguimiento sin tocar lo que envió la ciudadanía', async () => {
+        const creado = await crearMensaje('e2e-atencion@example.com');
+
+        try {
+          const token = await tokenAdmin();
+
+          const enRevision = await request(app.getHttpServer())
+            .patch(`/api/mensajes/${creado.id}`)
+            .set('authorization', `Bearer ${token}`)
+            .send({ estado: 'en_revision' })
+            .expect(200);
+          expect(enRevision.body.estado).toBe('en_revision');
+
+          const respondido = await request(app.getHttpServer())
+            .patch(`/api/mensajes/${creado.id}`)
+            .set('authorization', `Bearer ${token}`)
+            .send({
+              estado: 'respondido',
+              leido: true,
+              seguimiento: 'Respondido por correo el 29/09/2026.',
+            })
+            .expect(200);
+
+          expect(respondido.body.estado).toBe('respondido');
+          expect(respondido.body.leido).toBe(true);
+          expect(respondido.body.seguimiento).toBe('Respondido por correo el 29/09/2026.');
+
+          // Lo que la ciudadanía escribió es evidencia: no puede cambiar desde el
+          // backoffice, solo se le puede anotar al lado.
+          expect(respondido.body.mensaje).toBe('Mensaje para probar el ciclo de atención.');
+          expect(respondido.body.consentimiento).toBe(true);
+          expect(respondido.body.email).toBe('e2e-atencion@example.com');
+        } finally {
+          await mensajes.delete(creado.id);
+        }
+      });
+
+      it('rechaza un estado fuera de la lista y no lo guarda a medias', async () => {
+        const creado = await crearMensaje(null);
+
+        try {
+          const token = await tokenAdmin();
+
+          const error = await request(app.getHttpServer())
+            .patch(`/api/mensajes/${creado.id}`)
+            .set('authorization', `Bearer ${token}`)
+            .send({ estado: 'inventado' })
+            .expect(400);
+          expect(error.body.message).toEqual([
+            'El estado debe ser uno de: nuevo, en_revision, respondido, archivado',
+          ]);
+
+          const fila = await mensajes.findOne({ where: { id: creado.id } });
+          expect(fila?.estado).toBe('nuevo');
+        } finally {
+          await mensajes.delete(creado.id);
+        }
+      });
+
+      // El `whitelist` del ValidationPipe es lo que impide que un PATCH
+      // reescriba el texto original del mensaje. Si algún día se afloja, alguien
+      // podría hacer pasar por suyo un mensaje que nunca llegó así.
+      it('no deja reescribir el mensaje original ni la autorización', async () => {
+        const creado = await crearMensaje(null);
+
+        try {
+          await request(app.getHttpServer())
+            .patch(`/api/mensajes/${creado.id}`)
+            .set('authorization', `Bearer ${await tokenAdmin()}`)
+            .send({ mensaje: 'Texto inventado', consentimiento: false, nombre: 'Otro' })
+            .expect(400);
+
+          const fila = await mensajes.findOne({ where: { id: creado.id } });
+          expect(fila?.mensaje).toBe('Mensaje para probar el ciclo de atención.');
+          expect(fila?.consentimiento).toBe(true);
+          expect(fila?.nombre).toBe('E2E atención');
+        } finally {
+          await mensajes.delete(creado.id);
+        }
+      });
+    });
+  });
+
+  // ── Sugerencias: la caja del hero ──────────────────────────────────────
+  describe('sugerencias del hero', () => {
+    /**
+     * La caja del hero es anónima pero admite correo para quien quiera que le
+     * contesten. Estos tests fijan las tres formas en que puede llegar el campo:
+     * ausente, vacío y con valor.
+     */
+    // Devuelve el `Test` de supertest tal cual, para poder encadenar `.expect()`
+    // en cada test, que es donde se lee el código de respuesta.
+    function enviarSugerencia(cuerpo: Record<string, unknown>) {
+      return request(app.getHttpServer())
+        .post('/api/forms/sugerencias')
+        .send({
+          nombre: 'Ciudadanía',
+          sugerencia: 'Pregunta válida de prueba.',
+          consentimiento: true,
+          ...cuerpo,
+        });
+    }
+
+    async function ultimaSugerencia() {
+      return (
+        await mensajes.findOne({ where: { tipo: 'sugerencias' }, order: { id: 'DESC' } })
+      ) as unknown as { id: number; email: string | null; estado: string; seguimiento: string | null } | null;
+    }
+
+    it('sin correo guarda null, no una dirección inventada', async () => {
+      await enviarSugerencia({}).expect(201);
+      const fila = await ultimaSugerencia();
+      try {
+        // Antes se guardaba `anonimo@prospectiva.local`: una dirección que parecía
+        // real en la bandeja y contra la que nadie podía escribir.
+        expect(fila?.email).toBeNull();
+        expect(fila?.estado).toBe('nuevo');
+        expect(fila?.seguimiento).toBeNull();
+      } finally {
+        if (fila) await mensajes.delete(fila.id);
+      }
+    });
+
+    it('un correo vacío es la misma cosa que no dejarlo', async () => {
+      await enviarSugerencia({ email: '' }).expect(201);
+      const fila = await ultimaSugerencia();
+      try {
+        expect(fila?.email).toBeNull();
+      } finally {
+        if (fila) await mensajes.delete(fila.id);
+      }
+    });
+
+    // Pegar un correo con espacio al final es lo más normal del mundo, y
+    // `@IsEmail` es estricto: sin recortar antes de validar, la petición moría
+    // con un 400 aunque la dirección fuera buena.
+    it('acepta un correo con espacios y lo guarda recortado y en minúsculas', async () => {
+      await enviarSugerencia({ email: '  E2E.Sugerencia@Correo.COM  ' }).expect(201);
+      const fila = await ultimaSugerencia();
+      try {
+        expect(fila?.email).toBe('e2e.sugerencia@correo.com');
+      } finally {
+        if (fila) await mensajes.delete(fila.id);
+      }
+    });
+
+    it('rechaza un correo que no es una dirección', async () => {
+      await enviarSugerencia({ email: 'esto-no-es-un-correo' }).expect(400);
+    });
   });
 
   // ── Noticias ────────────────────────────────────────────────────────────

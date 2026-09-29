@@ -335,6 +335,18 @@ dejar un 403 a la vista.
 - La casilla se desmarca sola tras cada envío. El consentimiento es para **ese** envío; dejarla marcada haría que el siguiente saliera con una autorización que nadie volvió a dar.
 - ⚠️ **`frontend/src/pages/PrivacidadPage.tsx` tiene dos `[PENDIENTE]` visibles**: el nombre o razón social del responsable y el canal para ejercer los derechos. Bloqueantes para publicar.
 
+### Ciclo de atención de los mensajes
+
+La caja «¿Tienes alguna pregunta o quieres darnos una recomendación?» del hero es anónima, y sin un canal no hay manera de devolverle nada a quien escribió. El sistema **no envía correos** (eso necesita SMTP/hosting, diferido), así que la respuesta se registra por dentro:
+
+- **Correo opcional en el formulario.** Quien quiera que le contesten lo deja; quien no, escribe igual. Antes el backend rellenaba `anonimo@prospectiva.local`, una dirección inventada que el backoffice mostraba como real y contra la que no se podía escribir. Ahora la columna `mensajes.email` es **nullable** y la ausencia se guarda como ausencia: el backoffice dice «Sin contacto» (migración `0007`).
+- **Estados**: `nuevo` → `en_revision` → `respondido` / `archivado`. Los mueve el backoffice. `PATCH /api/mensajes/:id` acepta `leido`, `estado` y `seguimiento`; un estado fuera de la lista es `400` y **no** se guarda a medias.
+- **`seguimiento`**: anotación interna de a quién se le respondió, por qué canal y cuándo. No es una respuesta enviada, es el registro del equipo. El texto que envió la ciudadanía **no** se puede reescribir desde el backoffice (el `whitelist` del `ValidationPipe` lo rechaza con `400`): es evidencia.
+- El filtro «Sin responder» agrupa lo que no está ni en `respondido` ni en `archivado`, o sea lo que sigue abierto.
+- **Los correos se recortan antes de validarse** (`@Recortado()`). Pegar una dirección con un espacio al final es lo más normal, y `@IsEmail` es estricto: sin recortar, la petición moría con un `400` de «Escribe un correo válido» aunque la dirección fuera buena. Afectaba a los cuatro formularios.
+
+> Nota: el Aviso de Privacidad sigue teniendo dos `[PENDIENTE]` (datos del responsable y canal de derechos). Son de la organización, no de este flujo.
+
 ### Nota de URLs en docker
 
 Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta: el navegador llama `http://localhost/api/api/media`, traefik quita **un** `/api` y el backend (con prefix global `api`) recibe `/api/media`. En desarrollo npm local la URL es directa: `http://localhost:3006/api/...`.
@@ -373,7 +385,7 @@ Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta:
 
 ```bash
 make test        # tests unitarios del backend
-make test-e2e    # 33 tests e2e de la API (levanta la app contra la db)
+make test-e2e    # 40 tests e2e de la API (levanta la app contra la db)
 make smoke       # recorrido http contra el entorno que esté corriendo
 ```
 

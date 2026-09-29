@@ -156,7 +156,13 @@ export const ETIQUETAS_TIPO: Record<TipoMensaje | "todos", string> = {
 export type Mensaje = {
   id: number;
   nombre: string;
-  email: string;
+  /**
+   * Canal para devolver una respuesta. Es `null` cuando la persona no lo dejó:
+   * la caja del hero es anónima, así que es lo más común en las sugerencias.
+   * Antes venía siempre relleno con `anonimo@prospectiva.local`, una dirección
+   * inventada que se veía en la bandeja como si fuera real.
+   */
+  email: string | null;
   asunto: string;
   mensaje: string;
   tipo: string;
@@ -168,7 +174,49 @@ export type Mensaje = {
    * cuando todavía no existía el aviso, y no hay que fingir una autorización.
    */
   consentimiento?: boolean;
+  /** En qué punto del ciclo de atención está. Ver `ESTADO_MENSAJE`. */
+  estado?: EstadoMensaje;
+  /** Anotación interna de qué se hizo con el mensaje. No es una respuesta enviada. */
+  seguimiento?: string | null;
 };
+
+/**
+ * Ciclo de atención de un mensaje, en el orden en que se avanza. Es el mismo
+ * listado que valida el backend (`ESTADO_MENSAJE` en `backend/src/common/dto.ts`):
+ * si se agrega un valor aquí, hay que agregarlo allá también.
+ */
+export const ESTADO_MENSAJE = ["nuevo", "en_revision", "respondido", "archivado"] as const;
+
+export type EstadoMensaje = (typeof ESTADO_MENSAJE)[number];
+
+export const ETIQUETAS_ESTADO: Record<EstadoMensaje, string> = {
+  nuevo: "Nuevo",
+  en_revision: "En revisión",
+  respondido: "Respondido",
+  archivado: "Archivado",
+};
+
+/** Filtros de la barra de estados. `sin_responder` agrupa lo que sigue abierto. */
+export const FILTROS_ESTADO = [
+  { value: "todos", label: "Todos" },
+  { value: "sin_responder", label: "Sin responder" },
+  { value: "nuevo", label: "Nuevos" },
+  { value: "en_revision", label: "En revisión" },
+  { value: "respondido", label: "Respondidos" },
+  { value: "archivado", label: "Archivados" },
+] as const;
+
+export type FiltroEstado = (typeof FILTROS_ESTADO)[number]["value"];
+
+/**
+ * `sin_responder` no es un estado guardado sino una consulta: es todo lo que
+ * todavía no está en `respondido` ni en `archivado`, o sea lo que sigue abierto.
+ */
+export function pasaFiltroEstado(estado: EstadoMensaje, filtro: FiltroEstado): boolean {
+  if (filtro === "todos") return true;
+  if (filtro === "sin_responder") return estado !== "respondido" && estado !== "archivado";
+  return estado === filtro;
+}
 
 export const TIPOS_DOCUMENTO = [
   "proyecto",

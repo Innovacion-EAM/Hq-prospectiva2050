@@ -12,8 +12,8 @@ export class MensajesController {
   }
 
   @Patch(':id')
-  setLeido(@Param('id', ParseIntPipe) id: number, @Body() body: MensajePatchDto) {
-    return this.mensajes.setLeido(id, body.leido);
+  actualizar(@Param('id', ParseIntPipe) id: number, @Body() body: MensajePatchDto) {
+    return this.mensajes.patch(id, body);
   }
 
   @Delete(':id')

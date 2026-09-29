@@ -45,6 +45,7 @@ export class FormsController {
       tipo: 'contacto',
       fecha: todayISO(),
       leido: false,
+      estado: 'nuevo',
       // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
       consentimiento: true,
     });
@@ -62,6 +63,7 @@ export class FormsController {
       tipo: 'inscripciones',
       fecha: todayISO(),
       leido: false,
+      estado: 'nuevo',
       // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
       consentimiento: true,
     });
@@ -80,24 +82,34 @@ export class FormsController {
       tipo: 'boletin',
       fecha: todayISO(),
       leido: false,
+      estado: 'nuevo',
       // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
       consentimiento: true,
     });
     return recibido();
   }
 
-  /** Caja «Pregunta o recomendación» del hero. Es anónima: el correo es opcional. */
+  /**
+   * Caja «Pregunta o recomendación» del hero.
+   *
+   * Es anónima, pero admite un correo opcional para quien quiera que le
+   * contesten. Si no lo deja, se guarda `null`: antes se ponía
+   * `anonimo@prospectiva.local`, una dirección inventada que el backoffice
+   * mostraba como si fuera real y contra la que no se podía escribir nada.
+   */
   @HttpCode(HttpStatus.CREATED)
   @Post('sugerencias')
   async sugerencias(@Body() body: SugerenciaDto) {
+    const correo = body.email?.trim().toLowerCase() ?? '';
     await this.mensajes.create({
       nombre: body.nombre.trim(),
-      email: body.email?.trim().toLowerCase() || 'anonimo@prospectiva.local',
+      email: correo || null,
       asunto: 'Pregunta o recomendación',
       mensaje: body.sugerencia.trim(),
       tipo: 'sugerencias',
       fecha: todayISO(),
       leido: false,
+      estado: 'nuevo',
       // El DTO ya exigio la autorizacion: si llego aqui, el titular la dio.
       consentimiento: true,
     });

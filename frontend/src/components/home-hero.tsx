@@ -82,34 +82,63 @@ export function HomeHero() {
   );
 }
 
+/**
+ * Caja «¿Tienes alguna pregunta o quieres darnos una recomendación?» del hero.
+ *
+ * Es anónima: no pide nombre. Lo único que cambia frente a como estaba es que
+ * ahora admite un **correo opcional**, porque sin un canal no hay manera de
+ * devolverle una respuesta a quien escribió, y eso convertía la caja en un
+ * buzón de un solo sentido. Quien no deje correo sigue pudiendo escribir igual;
+ * el backend guarda `null` y el backoffice lo muestra como «Sin contacto», sin
+ * inventarse una dirección.
+ *
+ * El sistema no envía correos (eso requiere SMTP/hosting). Quien administer
+ * responde por el canal que dejó la persona y anota qué hizo en el campo de
+ * seguimiento del mensaje.
+ */
 export function SuggestForm({
   rotated,
   inputId = "sugerencia",
+  emailId = "sugerencia-email",
 }: {
   rotated: boolean;
   inputId?: string;
+  emailId?: string;
 }) {
   const [text, setText] = useState("");
+  const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
-  // La caja del hero es anónima —no pide nombre ni correo— pero el backend exige
-  // la autorización igual, porque el texto libre puede contener datos personales
-  // que quien escribe no repara en poner. Se le pide lo mismo que en los demás
-  // formularios, en una sola línea para no romper la caja.
+  // Aunque el formulario sea anónimo, el backend exige la autorización igual:
+  // el texto libre puede contener datos personales que quien escribe no repara en
+  // poner. Se le pide lo mismo que en los demás formularios, en una sola línea para
+  // no romper la caja.
   const [consentimiento, setConsentimiento] = useState(false);
+
+  // Se valida en el cliente para no gastar un viaje de ida y vuelta en un correo
+  // mal escrito, pero el backend también lo valida (@IsEmail): esta comprobación
+  // es por cortesía, no la barrera real.
+  const correoMalFormateado = email.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const puedeEnviar = text.trim().length >= 5 && consentimiento && !correoMalFormateado && !sending;
 
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim() || sending) return;
+    if (!puedeEnviar) return;
     setSending(true);
     try {
       await postForm("sugerencias", {
         nombre: "Ciudadanía",
-        email: undefined,
+        // Vacío y no `undefined`: se manda explícitamente la ausencia de canal.
+        email: email.trim() || undefined,
         sugerencia: text.trim(),
         consentimiento: true,
       });
-      toast.success("Gracias. Recibimos tu pregunta o recomendación.");
+      toast.success(
+        email.trim()
+          ? "Gracias. Te responderemos a ese correo."
+          : "Gracias. Recibimos tu pregunta o recomendación.",
+      );
       setText("");
+      setEmail("");
       setConsentimiento(false);
     } catch {
       toast.error("No pudimos recibir tu mensaje. Inténtalo de nuevo más tarde.");
@@ -126,23 +155,43 @@ export function SuggestForm({
         rotated && "origin-bottom-right rotate-2 hover:rotate-0 transition-transform duration-200",
       )}
     >
-      <p className="font-display text-xs leading-snug font-extrabold sm:text-sm">
-        ¿Tienes alguna Pregunta O quieres darnos Alguna recomendación?
-      </p>
-      <label htmlFor={inputId} className="sr-only">
-        Escribe tu respuesta
+      <label htmlFor={inputId} className="font-display text-xs leading-snug font-extrabold sm:text-sm">
+        ¿Tienes alguna pregunta o quieres darnos una recomendación?
       </label>
-      <input
+      {/* Antes era un `<input>` de una línea con el placeholder "escribe tu res...",
+          que además estaba cortado a la mitad. Una recomendación no cabe en una
+          línea, así que ahora es un área de texto de tres renglones. */}
+      <textarea
         id={inputId}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="escribe tu res..."
-        aria-label="Tu pregunta o recomendación"
-        className="mt-2.5 h-8.5 w-full rounded-pill bg-paper px-3 text-xs text-ink outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
+        rows={3}
+        placeholder="Escribe tu pregunta o recomendación…"
+        className="mt-2.5 w-full resize-y rounded-2xl bg-paper px-3 py-2 text-xs leading-relaxed text-ink outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
       />
+      <label htmlFor={emailId} className="mt-2.5 block text-[0.6rem] font-semibold leading-tight text-ink-mid">
+        ¿Quieres que te respondamos? Deja aquí tu correo (opcional)
+      </label>
+      <input
+        id={emailId}
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="tu@correo.com"
+        autoComplete="email"
+        aria-invalid={correoMalFormateado || undefined}
+        aria-describedby={correoMalFormateado ? `${emailId}-error` : undefined}
+        className="mt-1 h-7 w-full rounded-pill bg-paper px-3 text-xs text-ink outline-none placeholder:text-muted focus:ring-2 focus:ring-ink/20"
+      />
+      {correoMalFormateado ? (
+        <p id={`${emailId}-error`} role="alert" className="mt-1 text-[0.6rem] leading-tight text-ink">
+          Revisa el correo: no parece una dirección válida.
+        </p>
+      ) : null}
       <label className="mt-2.5 flex items-start gap-1.5 text-[0.6rem] leading-tight text-ink-mid">
         <input
           type="checkbox"
+          required
           checked={consentimiento}
           onChange={(e) => setConsentimiento(e.target.checked)}
           className="mt-px size-3 shrink-0 accent-[var(--color-lime-btn)]"
@@ -160,7 +209,7 @@ export function SuggestForm({
         variant="hot"
         size="sm"
         className="mt-2 w-full text-xs py-1.5 font-bold uppercase tracking-wider"
-        disabled={sending || !consentimiento}
+        disabled={!puedeEnviar}
       >
         {sending ? "Enviando…" : "Enviar"}
       </Button>

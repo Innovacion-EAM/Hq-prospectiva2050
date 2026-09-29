@@ -14,16 +14,18 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 ## Qué hace
 
 - **Sitio público** (dinámico, sin rebuild para cambiar textos): portada, las 8 dimensiones del proyecto, noticias, documentos por categoría, convocatorias, entidades, talleres, estadísticas, páginas del proyecto y la cobertura territorial —los 12 municipios del Quindío—.
-- **Formularios públicos** que llegan a la misma bandeja de mensajes: contacto, inscripciones a talleres, boletín y sugerencias (esta última admite correo opcional).
+- **Formularios públicos** que llegan a la misma bandeja de mensajes: contacto, inscripciones a talleres, boletín y sugerencias (esta última admite correo opcional para quien quiera que le contesten).
+- **Ciclo de atención de los mensajes**: cada mensaje se puede mover por los estados *nuevo → en revisión → respondido / archivado* y lleva una nota interna de a quién se le respondió y por qué canal. El sistema **no envía correos** (requiere SMTP/hosting); el registro es interno.
 - **Backoffice** con sesión y dos roles para todo el contenido: noticias, documentos, convocatorias, mensajes, configuración editorial (incluida la de municipios), usuarios y galería de archivos.
 
 ### Datos personales
 
-Los cuatro formularios públicos piden nombre y correo, así que tratan datos personales. Por eso:
+Los cuatro formularios públicos piden nombre y correo (o un texto libre que puede contenerlos), así que tratan datos personales. Por eso:
 
 - Cada uno tiene una **casilla de autorización obligatoria** que enlaza al Aviso de Privacidad (`/privacidad`). Sin marcar, el botón no se envía.
 - El backend **también la exige**: `POST /api/forms/*` responde `400` si el campo no llega o llega en `false`. Una casilla que solo vive en el navegador se puede saltar con una petición hecha a mano, y entonces no sería prueba de nada. La fila guardada lleva `consentimiento`, que es lo que el backoffice muestra como «Sin constancia» en los mensajes anteriores al aviso.
 - ⚠️ **El aviso tiene dos `[PENDIENTE]` visibles** que hay que completar antes de publicar: el nombre o razón social del responsable y el canal para ejercer los derechos. Son datos de la organización, no se deducen. Está en `frontend/src/pages/PrivacidadPage.tsx`.
+- La caja del hero guarda el correo **solo si lo dejan**: la columna es nullable y el backoffice muestra «Sin contacto» en lugar de una dirección inventada.
 
 ### Roles
 

@@ -161,8 +161,18 @@ code "inscripciones (válido)" "$API/forms/inscripciones" 201 POST \
   '{"nombre":"Smoke Test","email":"smoke@example.com","taller":"Mesa técnica","consentimiento":true}'
 code "boletín (válido)"       "$API/forms/boletin"      201 POST \
   '{"email":"smoke@example.com","consentimiento":true}'
+# La caja del hero admite correo opcional. Se manda con él y con espacios al
+# alrededor a propósito: pegar un correo con un espacio sobrante es lo más
+# normal, y antes el backend lo rechazaba con un 400 aunque la dirección fuera
+# buena, porque validaba antes de recortar.
 code "sugerencias (válido)"   "$API/forms/sugerencias"  201 POST \
-  '{"nombre":"Smoke Test","sugerencia":"Sugerencia de prueba del smoke test.","consentimiento":true}'
+  '{"nombre":"Smoke Test","email":"  smoke@example.com  ","sugerencia":"Sugerencia de prueba del smoke test.","consentimiento":true}'
+# Y sin correo, que es el caso normal de una caja anónima: no debe inventar una
+# dirección, la guarda vacía.
+code "sugerencias sin correo" "$API/forms/sugerencias"  201 POST \
+  '{"nombre":"Smoke Test","sugerencia":"Sugerencia anónima de prueba del smoke.","consentimiento":true}'
+code "sugerencias con correo inválido" "$API/forms/sugerencias" 400 POST \
+  '{"nombre":"Smoke Test","email":"esto-no-es-correo","sugerencia":"Correo inválido a propósito.","consentimiento":true}'
 
 # La casilla del sitio deshabilita el botón, pero eso es solo interfaz. Lo que
 # obliga es el servidor: un `curl` con el cuerpo completo pero sin la
@@ -232,6 +242,42 @@ if [ -n "$ADMIN_TOKEN" ]; then
   # podría reescribir la cobertura territorial del sitio.
   got=$(curl -sk -o /dev/null -w '%{http_code}' "$API/config/municipios")
   [ "$got" = "401" ] && ok "sin token /config/municipios → 401" || fail "sin token /config/municipios" 401 "$got"
+
+  # ── Ciclo de atención de los mensajes ───────────────────────────────────
+  # Lo que se escribe en el hero tiene que poder seguir un ciclo de atención:
+  # sin esto, el mensaje llega y se queda, porque no hay a quién responderle ni
+  # dónde anotar que ya se respondió.
+  smoke_id=$(curl -sk -H "authorization: Bearer $ADMIN_TOKEN" "$API/mensajes" 2>/dev/null \
+    | python3 -c 'import json,sys
+d=json.load(sys.stdin); d=d.get("data",d) if isinstance(d,dict) else d
+print(next((str(m["id"]) for m in d if m.get("nombre")=="Smoke Test" and m.get("tipo")=="sugerencias"), ""))' 2>/dev/null)
+  if [ -n "$smoke_id" ]; then
+    ok "la sugerencia del smoke llegó a la bandeja"
+  else
+    fail "la sugerencia del smoke llegó a la bandeja" "1 mensaje" "0"
+  fi
+
+  # El estado solo puede ser uno de los cuatro del ciclo. Inventar otro tiene que
+  # ser rechazado, no guardado medio tonto: el filtro de la bandeja depende de que
+  # el valor sea uno de los conocidos.
+  got=$(curl -sk -o /dev/null -w '%{http_code}' -X PATCH "${auth[@]}" \
+    -H 'content-type: application/json' -d '{"estado":"inventado"}' "$API/mensajes/$smoke_id")
+  [ "$got" = "400" ] && ok "estado inventado → 400" || fail "estado inventado" 400 "$got"
+
+  if [ -n "$smoke_id" ]; then
+    got=$(curl -sk -o /dev/null -w '%{http_code}' -X PATCH "${auth[@]}" \
+      -H 'content-type: application/json' \
+      -d '{"estado":"respondido","seguimiento":"Respondido durante el smoke test."}' "$API/mensajes/$smoke_id")
+    [ "$got" = "200" ] && ok "estado y seguimiento se guardan" || fail "estado y seguimiento" 200 "$got"
+
+    # El texto que envió la ciudadanía es evidencia: no puede reescribirse desde
+    # el backoffice. Si se pudiera, alguien podría hacer pasar por suyo un mensaje
+    # que nunca llegó así.
+    got=$(curl -sk -o /dev/null -w '%{http_code}' -X PATCH "${auth[@]}" \
+      -H 'content-type: application/json' \
+      -d '{"mensaje":"Texto reescrito a mano","consentimiento":false}' "$API/mensajes/$smoke_id")
+    [ "$got" = "400" ] && ok "el mensaje original no se puede reescribir" || fail "re-escritura del original" 400 "$got"
+  fi
 else
   fail "login de admin" "200" "credenciales rechazadas"
 fi
@@ -281,6 +327,38 @@ print(sum(1 for m in mios if m.get("consentimiento") is not True))' 2>/dev/null 
     ok "los mensajes del smoke guardan la autorización"
   else
     fail "mensajes sin autorización guardada" 0 "$sin_consent"
+  fi
+
+  # Todo mensaje nuevo entra en `nuevo`. Si alguno llegara con otro estado, el
+  # filtro de la bandeja mentiría: mostraría como ya atendido algo que nadie tocó.
+  mal_estado=$(curl -sk -H "authorization: Bearer $ADMIN_TOKEN" "$API/mensajes?perPage=100" 2>/dev/null \
+    | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin); d=d.get("data",d) if isinstance(d,dict) else d
+except Exception:
+    print(-1); raise SystemExit
+mios=[m for m in d if m.get("nombre")=="Smoke Test" or m.get("email")=="smoke@example.com"]
+print(sum(1 for m in mios if m.get("tipo")=="sugerencias" and m.get("estado") not in ("nuevo","respondido")))' 2>/dev/null || echo -1)
+  if [ "$mal_estado" = "0" ]; then
+    ok "las sugerencias del smoke nacen en estado nuevo"
+  else
+    fail "sugerencias con estado inesperado" 0 "$mal_estado"
+  fi
+
+  # La sugerencia sin correo tiene que quedar sin correo, no con una dirección
+  # inventada: la bandeja muestra «Sin contacto» y no muestra un correo falso.
+  anonimos=$(curl -sk -H "authorization: Bearer $ADMIN_TOKEN" "$API/mensajes?perPage=100" 2>/dev/null \
+    | python3 -c 'import json,sys
+try:
+    d=json.load(sys.stdin); d=d.get("data",d) if isinstance(d,dict) else d
+except Exception:
+    print(-1); raise SystemExit
+mios=[m for m in d if m.get("nombre")=="Smoke Test" and m.get("tipo")=="sugerencias"]
+print(sum(1 for m in mios if m.get("email")))' 2>/dev/null || echo -1)
+  if [ "$anonimos" = "1" ]; then
+    ok "la sugerencia sin correo se guardó sin correo"
+  else
+    fail "sugerencias con correo inesperado" 1 "$anonimos"
   fi
 
   for id in $(curl -sk -H "authorization: Bearer $ADMIN_TOKEN" "$API/mensajes" 2>/dev/null \

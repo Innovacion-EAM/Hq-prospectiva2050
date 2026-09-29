@@ -437,13 +437,15 @@ ALTER SEQUENCE public.media_id_seq OWNED BY public.media.id;
 CREATE TABLE public.mensajes (
     id integer NOT NULL,
     nombre character varying NOT NULL,
-    email character varying NOT NULL,
+    email character varying,
     asunto character varying NOT NULL,
     mensaje text,
     tipo character varying NOT NULL,
     fecha date NOT NULL,
     leido boolean DEFAULT false NOT NULL,
-    consentimiento boolean DEFAULT false NOT NULL
+    consentimiento boolean DEFAULT false NOT NULL,
+    estado character varying(20) DEFAULT 'nuevo'::character varying NOT NULL,
+    seguimiento text
 );
 
 
