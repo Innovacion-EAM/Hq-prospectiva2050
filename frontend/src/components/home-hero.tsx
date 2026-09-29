@@ -72,15 +72,22 @@ export function HomeHero() {
             </div>
 
             {/* La caja de sugerencias flota sobre la esquina inferior derecha de
-                la foto de las personas. Como está anclada por abajo, bajarla es la
-                única forma de que tape menos: con `-bottom-6` tapaba casi dos
-                tercios del alto de la imagen (que en lg mide 26rem = 416px) y le
-                caía encima de la cara a alguien. Ahora cuelga más abajo —48px bajo
-                la imagen en lg— y se aprovecha el espacio que el hero deja abajo
-                (`lg:pb-24`), así que sigue dentro de la sección y no invade la de
-                estadísticas. Si alguna vez vuelve a tapar, la palanca es bajar más
-                el `-bottom-`, no encoger el formulario. */}
-            <div className="absolute -bottom-12 right-0 z-30 w-64 sm:-bottom-14 sm:right-2 sm:w-72 lg:-bottom-16">
+                la foto de las personas. Como está anclada por abajo (`absolute
+                -bottom-*`), bajarla es la única forma de que tape menos: con
+                `-bottom-6` tapaba casi dos tercios del alto de la imagen (que en lg
+                mide 26rem = 416px) y le caía encima de la cara a alguien.
+
+                Ahora cuelga bastante más abajo —96px bajo la foto en lg— y se
+                aprovecha el espacio que el hero deja abajo (`lg:pb-24`), que
+                estaba desaprovechado. Sigue dentro de la sección: de la base de la
+                foto al borde del hero hay 176px en lg, 144px en sm y 112px en
+                móvil, contra los 96/80/64px que sobresale, así que el
+                `overflow-hidden` de la sección no la recorta ni invade la
+                siguiente.
+
+                Si alguna vez vuelve a tapar, la palanca es bajar más el
+                `-bottom-`, no encoger el formulario: ya se probó y se ve peor. */}
+            <div className="absolute -bottom-16 right-0 z-30 w-64 sm:-bottom-20 sm:right-2 sm:w-72 lg:-bottom-24">
               <SuggestForm rotated inputId="sugerencia-hero" />
             </div>
           </div>
