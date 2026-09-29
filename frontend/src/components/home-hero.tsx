@@ -9,7 +9,7 @@ import { Button } from "./ui/button";
 export function HomeHero() {
   const { SITE } = useSite();
   return (
-    <section className="relative isolate overflow-hidden bg-ink text-paper pb-16 sm:pb-20 lg:pb-24">
+    <section className="relative isolate overflow-hidden bg-ink text-paper pb-24 sm:pb-32 lg:pb-40">
       {/* Background aerial city image */}
       <img
         src="/images/hero-city.jpg"
@@ -77,22 +77,25 @@ export function HomeHero() {
                 `-bottom-6` tapaba casi dos tercios del alto de la imagen (que en lg
                 mide 26rem = 416px) y le caía encima de la cara a alguien.
 
-                Ahora cuelga 128px bajo la foto en lg y se aprovecha el espacio que
-                el hero deja abajo (`lg:pb-24`), que estaba desaprovechado. El
-                borde superior de la tarjeta queda a 272px de los 416px de la
-                imagen: ya no toca la altura de la cara.
+                Ahora cuelga 160px bajo la foto en lg y solo tapa el 27% de abajo:
+                el borde superior de la tarjeta queda a 304px de los 416px, muy
+                por debajo de la altura de la cara.
 
-                Sigue dentro de la sección: de la base de la foto al borde del hero
-                hay 176px en lg, 144px en sm y 112px en móvil, contra los
-                128/96/80px que sobresale (el `rotate-2` suma ~10px de caja
-                envolvente), así que el `overflow-hidden` de la sección no la
-                recorta ni invade la siguiente.
+                Para llegar aquí hubo que agrandar la sección, no solo estirar el
+                `-bottom-`: el `lg:pb-24` original se quedó sin margen y con el
+                `overflow-hidden` de la sección la tarjeta se recortaba. Ese
+                padding creció con el `-bottom-` a la par, y es lo que sostiene el
+                hueco. Hoy de la base de la foto al borde del hero hay 240px en lg
+                (192 en sm, 144 en móvil) contra los 160/128/112px que sobresale, así
+                que la caja sigue entera dentro de la sección —el `rotate-2` suma
+                ~10px de envolvente—.
 
-                Ese 176px es el tope: si hay que bajar más, la tarjeta se saldría de
-                la sección y saldría recortada. La salida entonces es sacar la foto
-                de la ecuación —más alto o más padding abajo en la sección—, no un
+                Bajar más ya no es posible sin romper algo: la tarjeta no puede
+                pasar del borde inferior de la sección o aparecería recortada. Si
+                hay que bajarla otro tramo, el siguiente paso es moverla fuera de
+                la foto (por ejemplo al lado del titular en escritorio), no un
                 `-bottom-` mayor. */}
-            <div className="absolute -bottom-20 right-0 z-30 w-64 sm:-bottom-24 sm:right-2 sm:w-72 lg:-bottom-32">
+            <div className="absolute -bottom-28 right-0 z-30 w-64 sm:-bottom-32 sm:right-2 sm:w-72 lg:-bottom-40">
               <SuggestForm rotated inputId="sugerencia-hero" />
             </div>
           </div>
