@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Convocatoria,
   Dimension,
@@ -388,36 +388,92 @@ export const configs = {
   site: () => configBackend<SiteSettings>("/api/config/site"),
 };
 
-export function useCollection<T extends { id: number }>(crud: Crud<T>, deps: unknown[] = []) {
+export function useCollection<T extends { id: number }>(
+  crud: Crud<T>,
+  deps: unknown[] = [],
+  /**
+   * Si es mayor que cero, vuelve a pedir la lista cada tantos milisegundos.
+   *
+   * Sin esto la lista se pide **una sola vez, al montar**: un mensaje enviado
+   * desde el sitio con el backoffice ya abierto no aparecía hasta recargar el
+   * navegador, y la bandeja parecía no recibir nada. El sondeo es silencioso (no
+   * enciende el `loading`, que vaciaría la lista y mostraría un girador cada
+   * medio minuto) y se salta los ticks con la pestaña en segundo plano, donde no
+   * hay nadie mirando y el navegador lo estrangula igual.
+   */
+  pollMs = 0,
+) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [actualizando, setActualizando] = useState(false);
+
+  // `crud` es un objeto nuevo en cada render (`collections.x()` lo construye),
+  // así que se lee por referencia: si entrara en las dependencias del sondeo,
+  // el intervalo se recrearía en cada pintado y no llegaría a dispararse.
+  const crudRef = useRef(crud);
+  crudRef.current = crud;
+
+  // Cada carga lleva un número y solo la última puede escribir el estado, para
+  // que una respuesta que llega tarde —porque los `deps` cambiaron mientras
+  // estaba en vuelo— no pise a la que vino después. Al desmontar, `vivo` corta
+  // cualquier escritura pendiente.
+  const generacion = useRef(0);
+  const vivo = useRef(true);
+  useEffect(() => {
+    vivo.current = true;
+    return () => {
+      vivo.current = false;
+    };
+  }, []);
+
+  const cargar = useCallback(async (silencioso: boolean) => {
+    const mia = ++generacion.current;
+    const vigente = () => vivo.current && mia === generacion.current;
+    if (silencioso) setActualizando(true);
+    else setLoading(true);
+    try {
+      const list = await crudRef.current.list();
+      if (vigente()) setItems(list);
+    } catch {
+      // En el sondeo se conserva lo que ya había: un fallo de red pasajero no
+      // debe vaciar la bandeja. En la carga inicial sí se limpia, para que el
+      // `EmptyState` diga la verdad en vez de mostrar filas viejas.
+      if (vigente() && !silencioso) setItems([]);
+    } finally {
+      if (vigente()) {
+        setLoading(false);
+        setActualizando(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    crud
-      .list()
-      .then((list) => {
-        if (alive) setItems(list);
-      })
-      .catch(() => {
-        if (alive) setItems([]);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
+    void cargar(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, reloadKey]);
+  }, [...deps, cargar]);
 
-  /** Vuelve a pedir la lista al servidor. Necesario cuando la mutación la hace
-   *  una función distinta de las de este hook (p. ej. `collections.users()`),
-   *  porque entonces el estado local no se actualiza solo. */
+  useEffect(() => {
+    if (pollMs <= 0) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") void cargar(true);
+    }, pollMs);
+    return () => window.clearInterval(id);
+  }, [pollMs, cargar]);
+
+  /**
+   * Vuelve a pedir la lista al servidor. Necesario cuando la mutación la hace
+   * una función distinta de las de este hook (p. ej. `collections.users()`),
+   * porque entonces el estado local no se actualiza solo. Es silencioso: quien
+   * llama ya sabe que hay un cambio en camino, y un girador de pantalla completa
+   * por encima de la tabla que acaba de moverse se ve peor, no mejor.
+   */
   function reload() {
-    setReloadKey((k) => k + 1);
+    return cargar(true);
+  }
+
+  /** Refresco pedido a mano desde la interfaz. */
+  function refrescar() {
+    return cargar(true);
   }
 
   async function create(item: Omit<T, "id">) {
@@ -437,7 +493,7 @@ export function useCollection<T extends { id: number }>(crud: Crud<T>, deps: unk
     setItems((prev) => prev.filter((it) => it.id !== id));
   }
 
-  return { items, loading, create, update, remove, reload };
+  return { items, loading, actualizando, create, update, remove, reload, refrescar };
 }
 
 export function useConfig<C>(backend: ConfigBackend<C>) {

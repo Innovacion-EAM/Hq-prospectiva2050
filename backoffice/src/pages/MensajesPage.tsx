@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { CheckCheck, Inbox, Mail, MailX, Trash2 } from "lucide-react";
+import { CheckCheck, ChevronDown, Inbox, Mail, MailX, RefreshCw, Trash2 } from "lucide-react";
 import { collections, useCollection } from "@/lib/data";
+import { refrescarNoLeidos } from "@/lib/no-leidos";
 import { useAuth } from "@/lib/auth";
 import { Badge, Card, ConfirmButton, EmptyState, PageHeader, SearchInput, Spinner, Toggle } from "@/components/ui";
 import { cn, formatFechaLocal } from "@/lib/utils";
@@ -36,7 +37,13 @@ const TONE_POR_ESTADO: Record<EstadoMensaje, "neutral" | "lime" | "ink"> = {
 };
 
 export function MensajesPage() {
-  const { items, loading, update, remove } = useCollection(collections.mensajes());
+  // `pollMs` de 30s: la lista se refresca sola, que es lo que hacía que un
+  // mensaje recién enviado desde el sitio no apareciera hasta recargar.
+  const { items, loading, actualizando, update, remove, refrescar } = useCollection(
+    collections.mensajes(),
+    [],
+    30_000,
+  );
   const { user } = useAuth();
   const [q, setQ] = useState("");
   const [tipo, setTipo] = useState<TipoMensaje | "todos">("todos");
@@ -65,14 +72,22 @@ export function MensajesPage() {
     return e !== "respondido" && e !== "archivado";
   }).length;
 
+  /**
+   * Marcar como leído (o desmarcarlo) baja el contador del menú, así que después
+   * de la mutación se fuerza el recuento: sin esto el número se quedaría
+   * congelado hasta el siguiente sondeo, medio minuto después de que la fila ya
+   * hubiera dejado de estar resaltada.
+   */
   async function toggleLeido(m: Mensaje) {
     await update(m.id, { leido: !m.leido });
+    refrescarNoLeidos();
   }
 
   async function marcarTodos() {
     for (const m of items.filter((x) => !x.leido)) {
       await update(m.id, { leido: true });
     }
+    refrescarNoLeidos();
   }
 
   return (
@@ -81,15 +96,29 @@ export function MensajesPage() {
         title="Mensajes"
         description={`Contactos, inscripciones a talleres, suscripciones al boletín y sugerencias recibidas desde el sitio.${noLeidos ? ` ${noLeidos} sin leer.` : ""}${sinResponder ? ` ${sinResponder} sin responder.` : ""}`}
         actions={
-          noLeidos > 0 ? (
+          <>
+            {/* La lista ya se refresca sola, pero un botón a mano sirve para no
+                esperar los 30 segundos justo cuando uno está mirando la bandeja
+                esperando lo que acaba de enviar. */}
             <button
               type="button"
-              onClick={marcarTodos}
-              className="inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-2 font-display text-xs font-semibold text-paper hover:bg-ink-mid"
+              onClick={() => void refrescar()}
+              disabled={actualizando}
+              className="inline-flex items-center gap-2 rounded-pill border border-mist bg-paper px-4 py-2 font-display text-xs font-semibold text-muted transition-colors hover:text-ink disabled:opacity-60"
             >
-              <CheckCheck className="size-4" /> Marcar todos como leídos
+              <RefreshCw className={cn("size-4", actualizando && "animate-spin")} aria-hidden="true" />
+              {actualizando ? "Actualizando..." : "Actualizar"}
             </button>
-          ) : undefined
+            {noLeidos > 0 ? (
+              <button
+                type="button"
+                onClick={marcarTodos}
+                className="inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-2 font-display text-xs font-semibold text-paper hover:bg-ink-mid"
+              >
+                <CheckCheck className="size-4" /> Marcar todos como leídos
+              </button>
+            ) : null}
+          </>
         }
       />
 
@@ -152,11 +181,24 @@ export function MensajesPage() {
         <ul className="space-y-3">
           {filtered.map((m) => (
             <li key={m.id}>
-              <Card className={cn("overflow-hidden transition-colors", !m.leido && "border-ink/30")}>
+              <Card
+                className={cn(
+                  "overflow-hidden transition-colors",
+                  // Franja lateral en lo que está sin leer. Con solo el puntito
+                  // y la fecha, un mensaje recién llegado se perdía en una lista
+                  // larga; la franja lo delata a un vistazo sin leer nada.
+                  !m.leido && "border-ink/30 border-l-[3px] border-l-lime-hot",
+                  // Y el contorno marca cuál de los que se ven es el abierto,
+                  // para que al desplegar no quede la duda de si el clic entró.
+                  openId === m.id && "ring-2 ring-ink/20",
+                )}
+              >
                 <button
                   type="button"
                   onClick={() => setOpenId((v) => (v === m.id ? null : m.id))}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-left"
+                  aria-expanded={openId === m.id}
+                  aria-controls={`mensaje-detalle-${m.id}`}
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-fog/40"
                 >
                   <span
                     className={cn(
@@ -207,15 +249,31 @@ export function MensajesPage() {
                       </span>
                     ) : null}
                     <span className="hidden text-xs text-muted sm:inline">{formatFechaLocal(m.fecha)}</span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className={cn(
+                        "size-4 shrink-0 text-mist transition-transform duration-200",
+                        openId === m.id && "rotate-180",
+                      )}
+                    />
                   </span>
                 </button>
                 {openId === m.id ? (
-                  <MensajeDetalle
-                    mensaje={m}
-                    onToggleLeido={() => toggleLeido(m)}
-                    onUpdate={(cambios) => update(m.id, cambios)}
-                    onRemove={user?.role === "admin" ? () => remove(m.id) : undefined}
-                  />
+                  <div id={`mensaje-detalle-${m.id}`}>
+                    <MensajeDetalle
+                      mensaje={m}
+                      onToggleLeido={() => toggleLeido(m)}
+                      onUpdate={(cambios) => update(m.id, cambios)}
+                      onRemove={
+                        user?.role === "admin"
+                          ? () => {
+                              refrescarNoLeidos();
+                              void remove(m.id);
+                            }
+                          : undefined
+                      }
+                    />
+                  </div>
                 ) : null}
               </Card>
             </li>

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { useNoLeidos } from "@/lib/no-leidos";
 import type { Role } from "@/lib/types";
 
 type NavItem = {
@@ -102,9 +103,11 @@ function Brand() {
 function SidebarNav({
   onNavigate,
   sections,
+  noLeidos,
 }: {
   onNavigate: () => void;
   sections: { title: string; items: NavItem[] }[];
+  noLeidos: number;
 }) {
   return (
     <nav className="min-h-0 flex-1 space-y-6 overflow-y-auto px-3 py-2 scrollbar-thin">
@@ -131,8 +134,27 @@ function SidebarNav({
                       )
                     }
                   >
-                    <Icon className="size-4 shrink-0" />
-                    {item.label}
+                    {({ isActive }) => (
+                      <>
+                        <Icon className="size-4 shrink-0" />
+                        <span className="flex-1">{item.label}</span>
+                        {/* El globito de WhatsApp: solo aparece cuando hay algo
+                            sin leer, y baja al marcarlo como leído. Sobre el
+                            fondo lima del ítem activo un globito lima no se
+                            vería, así que ahí invierte los colores. */}
+                        {item.to === "/mensajes" && noLeidos > 0 ? (
+                          <span
+                            className={cn(
+                              "grid min-w-5 shrink-0 place-items-center rounded-full px-1.5 py-0.5 font-display text-[0.65rem] font-bold",
+                              isActive ? "bg-ink text-lime" : "bg-lime-hot text-lime-fg",
+                            )}
+                          >
+                            {noLeidos > 99 ? "99+" : noLeidos}
+                            <span className="sr-only"> mensajes sin leer</span>
+                          </span>
+                        ) : null}
+                      </>
+                    )}
                   </NavLink>
                 </li>
               );
@@ -161,6 +183,10 @@ export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const sections = getSections(user?.role ?? "editor");
+  // Una sola suscripción al contador para las dos formas del menú (expandido y
+  // colapsado); el sondeo de fondo es único de todos modos, esto evita el
+  // suscriptor de más.
+  const noLeidos = useNoLeidos();
 
   function salir() {
     logout();
@@ -194,26 +220,40 @@ export function Layout() {
           </button>
         </div>
         <div className="flex min-h-0 flex-1 flex-col">
-          {!collapsed && <SidebarNav onNavigate={() => {}} sections={sections} />}
+          {!collapsed && <SidebarNav onNavigate={() => {}} sections={sections} noLeidos={noLeidos} />}
           {collapsed && (
             <nav className="flex flex-1 flex-col items-center gap-1 overflow-y-auto px-2 pt-4">
               {sections.flatMap((s) =>
                 s.items.map((item) => {
                   const Icon = item.icon;
+                  const esMensajes = item.to === "/mensajes";
                   return (
                     <NavLink
                       key={item.to}
                       to={item.to}
                       end={item.end}
-                      title={item.label}
+                      title={
+                        esMensajes && noLeidos > 0
+                          ? `${item.label} — ${noLeidos} sin leer`
+                          : item.label
+                      }
                       className={({ isActive }) =>
                         cn(
-                          "grid size-10 place-items-center rounded-xl transition-colors",
+                          "relative grid size-10 place-items-center rounded-xl transition-colors",
                           isActive ? "bg-lime text-lime-fg" : "text-mist hover:bg-ink-mid hover:text-paper",
                         )
                       }
                     >
                       <Icon className="size-4" />
+                      {/* Colapsado no hay sitio para el número junto al texto,
+                          así que va encima del icono. Sin el globito, en este
+                          modo un mensaje nuevo no se notaría de ninguna manera. */}
+                      {esMensajes && noLeidos > 0 ? (
+                        <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-lime-hot px-1 py-0.5 font-display text-[0.6rem] font-bold text-lime-fg">
+                          {noLeidos > 9 ? "9+" : noLeidos}
+                          <span className="sr-only"> mensajes sin leer</span>
+                        </span>
+                      ) : null}
                     </NavLink>
                   );
                 }),
@@ -245,7 +285,11 @@ export function Layout() {
           />
           <aside className="absolute inset-y-0 left-0 flex w-72 flex-col bg-ink-deep shadow-xl">
             <Brand />
-            <SidebarNav onNavigate={() => setMobileOpen(false)} sections={sections} />
+            <SidebarNav
+              onNavigate={() => setMobileOpen(false)}
+              sections={sections}
+              noLeidos={noLeidos}
+            />
           </aside>
         </div>
       ) : null}
