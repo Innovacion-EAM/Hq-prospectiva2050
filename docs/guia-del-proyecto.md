@@ -90,6 +90,7 @@ Variables principales:
 | `POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB` | Credenciales del contenedor de la db (compose) |
 | `APP_ENV` | Entorno del backend (`dev` / `docker` / `prod`) |
 | `DB_SYNCHRONIZE` | Esquema automático de TypeORM (`true` en dev/docker, `false` en prod) |
+| `SEED_CONTENIDO` | `false` = el seeder no siembra contenido de muestra (noticias, documentos, municipios, dimensiones, mensajes). Las cuentas y la configuración del sitio se siembran igual. Lo pone `make db-vacia` |
 | `JWT_SECRET` | Clave para firmar los tokens de sesión del backoffice (obligatorio) |
 | `UPLOAD_DIR` | Carpeta (relativa al backend o absoluta) donde se guardan los archivos de la biblioteca |
 
@@ -277,7 +278,7 @@ El Makefile centraliza todo. Resumen por sección (menú completo: `make help`):
 | Dev | `install` · `dev` · `dev-backend|frontend|backoffice` · `dev-stop` |
 | Calidad | `lint` · `test` · `format` |
 | Docker | `up` · `down` · `down-v` · `ps` · `health` · `logs SERVICE=` · `build` · `rebuild` · `restart` · `config` |
-| Base de datos | `db-shell` · `db-logs` · `db-reset` · `db-schema` · `db-seed` |
+| Base de datos | `db-shell` · `db-logs` · `db-reset` · `db-vacia` · `db-schema` · `db-seed` |
 | Contenedores | `shell SERVICE=` (terminal dentro de un servicio) |
 | Producción | `env-prod` · `prod-build` · `prod-up` · `prod-deploy` · `prod-smoke` · `prod-ps|logs|restart|down|down-v` · `prod-shell` · `deploy` |
 | Backups | `backup` · `backup-list` · `backup-clean` · `restore FILE=` |
@@ -343,12 +344,22 @@ La caja «¿Tienes alguna pregunta o quieres darnos una recomendación?» del he
 - **Estados**: `nuevo` → `en_revision` → `respondido` / `archivado`. Los mueve el backoffice. `PATCH /api/mensajes/:id` acepta `leido`, `estado` y `seguimiento`; un estado fuera de la lista es `400` y **no** se guarda a medias.
 - **`seguimiento`**: anotación interna de a quién se le respondió, por qué canal y cuándo. No es una respuesta enviada, es el registro del equipo. El texto que envió la ciudadanía **no** se puede reescribir desde el backoffice (el `whitelist` del `ValidationPipe` lo rechaza con `400`): es evidencia.
 - **La bandeja se refresca sola** (cada 30 s, en silencio y solo con la pestaña a la vista) y trae un botón «Actualizar». Antes pedía los datos una sola vez al montar, así que un mensaje enviado desde el sitio no aparecía hasta recargar el navegador a mano. `useCollection` acepta un tercer argumento `pollMs`; el sondeo no enciende el `loading` para no vaciar la tabla, y una respuesta que llega tarde no pisa a la nueva.
+- **El clic en un mensaje abre un diálogo**, no lo despliega debajo de la fila. Antes crecía dentro de la tarjeta, en el mismo sitio donde estaba la lista: había que desplazar la vista para leerlo y, del mismo tono que el papel, se leía como un hueco en blanco. El `Modal` de `backoffice/src/components/ui.tsx` va en un portal sobre `document.body`, cierra con `Escape`, con clic en el fondo y con el botón de la esquina, y bloquea el scroll del fondo. Dentro van el texto recibido, el estado, el seguimiento, eliminar, y la acción de responder.
+- **Responder es un `mailto`, no un envío.** El sistema no manda correos, así que el botón «Responder por correo» abre el programa de correo con el mensaje original citado y el asunto ya puesto. El enlace **nunca** lleva la nota de seguimiento: esa es interna y el `mailto` se abre a la vista de quien va a leerlo antes de enviarlo. Si la persona no dejó correo, el diálogo lo dice y recuerda que la atención se anote en el seguimiento, que es el registro de que se atendió.
 - **Contador de sin leer en el menú**, como el globito de WhatsApp: cuenta los mensajes con `leido === false` y baja solo al marcarlos como leídos (no al archivarlos: uno archivado que nadie leyó sigue pendiente de leer). Vive en `backoffice/src/lib/no-leidos.ts`, a nivel de módulo, para que el menú y la bandeja compartan un solo sondeo; la bandeja fuerza el recuento tras cada mutación para que el número no tarde medio minuto en ajustarse.
 - **Las fechas se arman en hora local.** Una columna `date` vuelve como `"2026-09-29"` y `new Date()` la lee como medianoche UTC, que en Colombia (UTC-5) ya es el día anterior: todo salía fechado un día antes. `formatFechaLocal` (backoffice) y `formatFecha` (sitio) le pegan `T00:00:00` antes de formatear; las cadenas con hora completa se dejan como están.
 - El filtro «Sin responder» agrupa lo que no está ni en `respondido` ni en `archivado`, o sea lo que sigue abierto.
 - **Los correos se recortan antes de validarse** (`@Recortado()`). Pegar una dirección con un espacio al final es lo más normal, y `@IsEmail` es estricto: sin recortar, la petición moría con un `400` de «Escribe un correo válido» aunque la dirección fuera buena. Afectaba a los cuatro formularios.
 
-> Nota: `make test-e2e` corre contra la **base de desarrollo**, la misma que ve el backoffice. Por eso su limpieza es por id (borra `id > idAlEmpezar`, lo que creó la corrida) y nunca por nombre o asunto: el e2e reproduce los payloads reales —`nombre: 'Ciudadanía'` lo manda la caja del hero, `asunto: 'Solicitud de suscripción al boletín'` lo pone el backend al suscribirse— y un filtro por contenido no distinguía un mensaje de prueba de uno de verdad.
+> Nota: `make test-e2e` corre contra la **base de desarrollo**, la misma que ve el backoffice. Por eso su limpieza es por id (borra `id > idAlEmpezar`, lo que creó la corrida) y nunca por nombre o asunto: el e2e reproduce los payloads reales —`nombre: 'Ciudadanía'` lo manda la caja del hero, `asunto: 'Solicitud de suscripción al boletín'` lo pone el backend al suscribirse— y un filtro por contenido no distinguía un mensaje de prueba de uno de verdad. También siembra con `SEED_CONTENIDO=false`, porque si no cada corrida llenaba la base de desarrollo con los datos de muestra y deshacía cualquier `make db-vacia`.
+
+### Probar el sitio con la base vacía
+
+`make db-vacia` borra el volumen y deja la base **sin contenido de muestra**: no hay noticias, documentos, municipios, dimensiones ni mensajes. Se queda solo con la cuenta de admin (`admin@prospectiva.com` / `Admin123*`) y la fila de configuración del sitio, porque sin la primera no hay forma de entrar al backoffice a llenarla y sin la segunda el sitio no arranca. La cuenta de rol editor se crea desde el propio backoffice.
+
+El interruptor es `SEED_CONTENIDO` en `backend/.env.docker`, y queda puesto a `false` **de forma permanente**: el seeder siembra las tablas que encuentra vacías en cada arranque, así que un `SEED_CONTENIDO=false` de paso se perdería en el siguiente `make up` y todo el contenido volvería solo. `make db-reset` lo devuelve a `true` y recupera la semilla.
+
+En ese estado, `make smoke` avisa de que no hay contenido y se salta las 4 comprobaciones que cuentan dimensiones, aliados y municipios, en vez de fallar con cuatro X rojas. Los 4 formularios, la bandeja, la autenticación, los roles y el rechazo de archivos peligrosos en la galería se siguen verificando igual.
 
 > Nota: el Aviso de Privacidad sigue teniendo dos `[PENDIENTE]` (datos del responsable y canal de derechos). Son de la organización, no de este flujo.
 
@@ -395,7 +406,8 @@ make smoke       # recorrido http contra el entorno que esté corriendo
 ```
 
 - Los e2e necesitan PostgreSQL levantado. Usan `APP_ENV=e2e` → `backend/.env.e2e`, que apunta a la base Docker local por `127.0.0.1:5432` (publicada solo en loopback).
-- Arrancan el `AppModule` real, así que crean el esquema y siembran el admin ellos solos: funcionan también contra una base vacía. Dejan la base como estaba.
+- Arrancan el `AppModule` real, así que crean el esquema y siembran el admin ellos solos: funcionan también contra una base vacía. Corren con `SEED_CONTENIDO=false`, de modo que **no** siembran el contenido de muestra: dejan la base como estaba y funcionan igual contra una que se vació a propósito.
+- Lo que no se puede depender de la semilla, el test lo monta él. El único caso era el de las dimensiones, que ahora crea la suya y comprueba lo que de verdad vigila: que `body` sea una lista de párrafos y no un texto suelto.
 
 ### CI
 

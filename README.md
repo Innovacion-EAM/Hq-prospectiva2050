@@ -54,8 +54,9 @@ make install       # dependencias de los 3 servicios
 make dev           # backend + frontend + backoffice (npm, hot-reload)
 make up            # entorno docker local (5 contenedores)
 make test          # tests unitarios
-make test-e2e      # 33 tests e2e de la API (requiere la db levantada)
+make test-e2e      # 40 tests e2e de la API (requiere la db levantada)
 make smoke         # recorrido http contra el entorno que esté corriendo
+make db-vacia      # vaciar la base de contenido, para probar el sitio desde cero
 make db-migrate    # aplicar migraciones pendientes del esquema
 make prod-deploy   # desplegar producción              (previo: make env-prod)
 make prod-smoke    # verificar que producción responde
@@ -63,7 +64,7 @@ make backup        # respaldo de la base de datos
 make doctor        # diagnóstico del entorno
 ```
 
-> **Base de datos:** en dev/docker el esquema y los datos iniciales se crean solos al arrancar el backend (TypeORM `synchronize` + seeder). En producción corre con `DB_SYNCHRONIZE=false`, así que **el esquema no se crea solo**: sin él el backend no arranca (`relation "config_stats" does not exist`). Por eso `make prod-up` —y por tanto `make prod-deploy`— aplica `db-schema` y `db-migrate` antes de levantar. Si levantas el backend a mano, ese orden es obligatorio.
+> **Base de datos:** en dev/docker el esquema y los datos iniciales se crean solos al arrancar el backend (TypeORM `synchronize` + seeder). Para probar el sitio desde cero, `make db-vacia` borra el contenido de muestra y deja solo la cuenta de admin y la configuración del sitio —lo mínimo para poder entrar al backoffice y escribirlo todo a mano—; `make db-reset` recupera la semilla. En producción corre con `DB_SYNCHRONIZE=false`, así que **el esquema no se crea solo**: sin él el backend no arranca (`relation "config_stats" does not exist`). Por eso `make prod-up` —y por tanto `make prod-deploy`— aplica `db-schema` y `db-migrate` antes de levantar. Si levantas el backend a mano, ese orden es obligatorio.
 >
 > **Migraciones:** `scripts/migrations/NNNN-*.sql`. `make db-migrate` aplica solo las que falten y las registra en `schema_migrations`; se puede volver a correr las veces que haga falta. El esquema completo para una base vacía está en `scripts/schema-db.sql` (se regenera con `pg_dump --schema-only`; el procedimiento está escrito en su propia cabecera). A partir de la 0001, los cambios incrementales van como migración numerada, no editando ese archivo.
 
