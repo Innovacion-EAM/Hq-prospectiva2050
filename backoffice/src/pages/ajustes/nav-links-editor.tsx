@@ -1,30 +1,8 @@
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from "lucide-react";
-import {
-  Button,
-  Card,
-  CardBody,
-  ConfirmButton,
-  Divider,
-  Field,
-  IconBtn,
-  Input,
-} from "@/components/ui";
-import { ES_ENLACE_VALIDO, MENU_DEL_SITIO, esElMenuDelSitio } from "@/lib/nav-links";
+import { ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
+import { Card, CardBody, ConfirmButton, Divider, IconBtn } from "@/components/ui";
+import { MENU_DEL_SITIO, esElMenuDelSitio } from "@/lib/nav-links";
 import type { NavLink } from "@/lib/types";
-
-/**
- * Rutas internas del sitio, para no tener que escribirlas a mano.
- *
- * No son un catálogo cerrado: el campo acepta cualquier `/ruta`, y estas solo
- * aparecen como sugerencias. Sirven para lo que más se equivoca, que es el
- * `href`: escribirse `/noticia` en vez de `/noticias` no da ningún error, deja
- * un enlace que no lleva a ninguna parte y solo se nota cuando alguien navega.
- *
- * Se sacan del propio menú del sitio en vez de repetirlas aquí: son las mismas
- * siete páginas, y una lista aparte se quedaría vieja en cuanto una cambiara.
- */
-const RUTAS_SUGERIDAS = [...new Set(MENU_DEL_SITIO.map((l) => l.href))];
 
 /** Mueve un elemento de la lista, sin mutar el original. */
 function mover(links: NavLink[], de: number, a: number): NavLink[] {
@@ -35,6 +13,20 @@ function mover(links: NavLink[], de: number, a: number): NavLink[] {
   return copia;
 }
 
+/**
+ * Los enlaces del menú, en el orden en que se ven.
+ *
+ * Es solo una lista para **cambiar el orden**: no se agrega, no se quita y no se
+ * edita. Los enlaces del menú son las páginas del sitio, y esa lista ya vive en
+ * un solo sitio (`MENU_DEL_SITIO`); abrirla para escribirla a mano era la forma
+ * más fácil de dejar un enlace con la ruta mal escrita, que no da ningún error
+ * hasta que alguien navega y no llega a ninguna parte.
+ *
+ * Lo único editable es el orden, que es lo que el sitio necesita y lo que aquí
+ * tiene sentido cambiar. Si alguna vez hace falta una entrada más —otra página
+ * del sitio, o un enlace externo— se agrega a `MENU_DEL_SITIO` y la fila sale
+ * sola.
+ */
 export function NavLinksEditor({
   value,
   onChange,
@@ -42,10 +34,6 @@ export function NavLinksEditor({
   value: NavLink[];
   onChange: (next: NavLink[]) => void;
 }) {
-  function editar(i: number, cambios: Partial<NavLink>) {
-    onChange(value.map((l, j) => (j === i ? { ...l, ...cambios } : l)));
-  }
-
   // Se esconde el botón de reponer cuando la lista ya *es* el menú del sitio:
   // ahí no repone nada. Con una lista vacía, o con una distinta, es la salida.
   const puedeReponer = !esElMenuDelSitio(value);
@@ -62,108 +50,69 @@ export function NavLinksEditor({
       ) : null}
 
       <ul className="space-y-2">
-        {value.map((link, i) => {
-          const malHref = link.href.trim() !== "" && !ES_ENLACE_VALIDO.test(link.href.trim());
-          return (
-            <li
-              key={i}
-              className="rounded-2xl border border-mist bg-paper p-3 shadow-xs"
+        {value.map((link, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-3 rounded-2xl border border-mist bg-paper px-3 py-2.5 shadow-xs"
+          >
+            {/* El número es el orden en pantalla, que es justo lo que se está
+                cambiando: sin él, una lista de siete textos parecidos no dice
+                cuál es el primero. */}
+            <span
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-ink font-display text-xs font-bold text-paper"
+              aria-hidden="true"
             >
-              <div className="flex flex-wrap items-start gap-2">
-                {/* El número es el orden en pantalla, que es justo lo que se
-                    está cambiando: sin él, una lista de siete textos iguales no
-                    dice cuál es el primero. */}
-                <span
-                  className="mt-2 grid size-6 shrink-0 place-items-center rounded-full bg-ink font-display text-[0.65rem] font-bold text-paper"
-                  aria-hidden="true"
-                >
-                  {i + 1}
-                </span>
+              {i + 1}
+            </span>
 
-                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                  <Field label="Texto">
-                    <Input
-                      value={link.label}
-                      onChange={(e) => editar(i, { label: e.target.value })}
-                      placeholder="Noticias"
-                    />
-                  </Field>
-                  <Field
-                    label="Dirección"
-                    hint={malHref ? 'Debe empezar por "/" o por "https://".' : undefined}
-                  >
-                    <Input
-                      value={link.href}
-                      onChange={(e) => editar(i, { href: e.target.value })}
-                      placeholder="/noticias"
-                      // Todas las filas apuntan al mismo `datalist`: es una única
-                      // lista de sugerencias para el formulario, no una por fila.
-                      list="rutas-del-sitio"
-                      aria-invalid={malHref || undefined}
-                    />
-                  </Field>
-                </div>
+            <span className="min-w-0 flex-1">
+              {/* Una fila sin texto o sin dirección se puede haber guardado antes
+                  de que existiera esta pantalla. Se dice en rojo en vez de
+                  dejar un hueco en blanco, que es lo que se ve si solo se pone
+                  el texto. */}
+              <span className="block truncate text-sm font-medium text-ink">
+                {link.label || <span className="text-rose-600">Sin texto</span>}
+              </span>
+              <span className="block truncate font-mono text-[0.7rem] text-muted">
+                {link.href || <span className="text-rose-600">Sin dirección</span>}
+              </span>
+            </span>
 
-                <div className="flex shrink-0 items-center gap-1">
-                  <IconBtn
-                    label="Subir en la lista"
-                    disabled={i === 0}
-                    onClick={() => onChange(mover(value, i, i - 1))}
-                  >
-                    <ArrowUp className="size-4" />
-                  </IconBtn>
-                  <IconBtn
-                    label="Bajar en la lista"
-                    disabled={i === value.length - 1}
-                    onClick={() => onChange(mover(value, i, i + 1))}
-                  >
-                    <ArrowDown className="size-4" />
-                  </IconBtn>
-                  <IconBtn
-                    label={`Quitar ${link.label || `el enlace ${i + 1}`}`}
-                    onClick={() => onChange(value.filter((_, j) => j !== i))}
-                  >
-                    <Trash2 className="size-4" />
-                  </IconBtn>
-                </div>
-              </div>
-            </li>
-          );
-        })}
+            <span className="flex shrink-0 items-center gap-1">
+              <IconBtn
+                label={`Subir ${link.label || `el enlace ${i + 1}`}`}
+                disabled={i === 0}
+                onClick={() => onChange(mover(value, i, i - 1))}
+              >
+                <ArrowUp className="size-4" />
+              </IconBtn>
+              <IconBtn
+                label={`Bajar ${link.label || `el enlace ${i + 1}`}`}
+                disabled={i === value.length - 1}
+                onClick={() => onChange(mover(value, i, i + 1))}
+              >
+                <ArrowDown className="size-4" />
+              </IconBtn>
+            </span>
+          </li>
+        ))}
       </ul>
 
-      {/* El `list` del último input toma estas rutas. Es una ayuda de escritura,
-          no una validación: la lista no obliga a nada. */}
-      <datalist id="rutas-del-sitio">
-        {RUTAS_SUGERIDAS.map((r) => (
-          <option key={r} value={r} />
-        ))}
-      </datalist>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="lime"
-          size="md"
-          onClick={() => onChange([...value, { label: "", href: "" }])}
+      {/* Repone los siete enlaces del sitio en su orden. Pide dos clics porque
+          descarta lo que haya en la lista: es un "volver atrás" para cuando la
+          lista se vació o quedó a medias, no un atajo. No guarda —eso lo hace
+          el botón de guardar los ajustes, como todo lo demás—, así que se puede
+          reponer y luego ordenar. */}
+      {puedeReponer ? (
+        <ConfirmButton
+          variant="outline"
+          label="Poner el menú del sitio"
+          confirmText="¿Cambiar por el menú del sitio?"
+          onConfirm={() => onChange(MENU_DEL_SITIO.map((l) => ({ ...l })))}
         >
-          <Plus className="size-4" /> Agregar enlace
-        </Button>
-
-        {/* Repone los siete enlaces del sitio en su orden. Pide dos clics porque
-            descarta lo que haya en la lista: es un "deshacer" para cuando la lista
-            se vació, no un atajo. No guarda —eso lo hace el botón de guardar los
-            ajustes, como todo lo demás—, así que se puede reponer y luego mover. */}
-        {puedeReponer ? (
-          <ConfirmButton
-            variant="outline"
-            label="Poner el menú del sitio"
-            confirmText="¿Cambiar por el menú del sitio?"
-            onConfirm={() => onChange(MENU_DEL_SITIO.map((l) => ({ ...l })))}
-          >
-            <RotateCcw className="size-4" /> Poner el menú del sitio
-          </ConfirmButton>
-        ) : null}
-      </div>
+          <RotateCcw className="size-4" /> Poner el menú del sitio
+        </ConfirmButton>
+      ) : null}
     </div>
   );
 }

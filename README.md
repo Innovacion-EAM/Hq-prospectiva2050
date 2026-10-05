@@ -18,7 +18,7 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 - **Ciclo de atención de los mensajes**: cada mensaje se puede mover por los estados *nuevo → en revisión → respondido / archivado* y lleva una nota interna de a quién se le respondió y por qué canal. El sistema **no envía correos** (requiere SMTP/hosting); el registro es interno.
 - **Bandeja que se refresca sola** y con **contador de sin leer** en el menú, como el globito de WhatsApp: la lista se vuelve a pedir cada 30 segundos y el número baja cuando el mensaje se marca como leído, no al archivarlo.
 - **Backoffice** con sesión y dos roles para todo el contenido: noticias, documentos, convocatorias, mensajes, configuración editorial (incluida la de municipios), usuarios y galería de archivos.
-- **Ajustes del sitio sin tocar código**: el encabezado se edita desde el panel —logo, los textos que van al lado y el **orden de los enlaces del menú**, que se mueve con las flechas de cada fila. Si la lista de enlaces llega a quedar vacía, el sitio no se queda sin barra (usa el menú de respaldo) y el panel ofrece **«Poner el menú del sitio»** para reponerla con un clic.
+- **Ajustes del sitio sin tocar código**: el encabezado se edita desde el panel —logo, los textos que van al lado y el **orden de los enlaces del menú**, que se mueve con las flechas de cada fila. Del menú solo se cambia el orden, que es lo único que hace falta; si la lista llega a quedar vacía, el sitio no se queda sin barra (usa el menú de respaldo) y el panel ofrece **«Poner el menú del sitio»** para reponerla con un clic.
 
 ### Datos personales
 
