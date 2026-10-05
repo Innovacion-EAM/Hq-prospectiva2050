@@ -4,6 +4,28 @@ import type { NavLink } from "./types";
 export const ES_ENLACE_VALIDO = /^(\/|https?:\/\/)/;
 
 /**
+ * El menú que trae el sitio: los siete enlaces de siempre, en su orden.
+ *
+ * Es una de las tres copias de esta lista que hay en el repositorio, y no es
+ * casual: el frontend necesita la suya para poder verse completo sin conexión
+ * (`NAV` en `frontend/src/data/site.ts`), el backend necesita la suya para sembrar
+ * una instalación nueva (`SEED_SITE` en `backend/src/seed-data.ts`), y esta es la
+ * que deja que el panel **devuelva** el menú. Sin ella, borrar los siete enlaces y
+ * guardar era un camino sin vuelta atrás desde el panel: el sitio seguía viendo el
+ * menú de respaldo y el editor se quedaba vacío, sin forma de reponer nada sin
+ * escribirlos a mano uno por uno. Si se cambia en un lado, hay que cambiarla en los tres.
+ */
+export const MENU_DEL_SITIO: NavLink[] = [
+  { label: "Inicio", href: "/" },
+  { label: "El proyecto", href: "/proyecto" },
+  { label: "Dimensiones", href: "/dimensiones" },
+  { label: "Documentos", href: "/documentos" },
+  { label: "Noticias", href: "/noticias" },
+  { label: "Participa", href: "/participa" },
+  { label: "Contáctanos", href: "/contactos" },
+];
+
+/**
  * Comprueba la lista de enlaces del encabezado y devuelve el primer problema
  * encontrado, o `null` si todo está bien.
  *
@@ -23,4 +45,17 @@ export function problemaDeNav(links: NavLink[]): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Si la lista de la pantalla es exactamente el menú del sitio.
+ *
+ * Para una sola cosa: no ofrecer "poner el menú del sitio" cuando ya es el que hay,
+ * porque ese botón no repondría nada y solo haría ruido.
+ */
+export function esElMenuDelSitio(links: NavLink[]): boolean {
+  if (links.length !== MENU_DEL_SITIO.length) return false;
+  return links.every(
+    (l, i) => l.label === MENU_DEL_SITIO[i].label && l.href === MENU_DEL_SITIO[i].href,
+  );
 }

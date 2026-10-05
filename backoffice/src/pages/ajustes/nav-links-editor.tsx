@@ -1,7 +1,16 @@
 import type { ReactNode } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
-import { Button, Card, CardBody, Divider, Field, IconBtn, Input } from "@/components/ui";
-import { ES_ENLACE_VALIDO } from "@/lib/nav-links";
+import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from "lucide-react";
+import {
+  Button,
+  Card,
+  CardBody,
+  ConfirmButton,
+  Divider,
+  Field,
+  IconBtn,
+  Input,
+} from "@/components/ui";
+import { ES_ENLACE_VALIDO, MENU_DEL_SITIO, esElMenuDelSitio } from "@/lib/nav-links";
 import type { NavLink } from "@/lib/types";
 
 /**
@@ -11,16 +20,11 @@ import type { NavLink } from "@/lib/types";
  * aparecen como sugerencias. Sirven para lo que más se equivoca, que es el
  * `href`: escribirse `/noticia` en vez de `/noticias` no da ningún error, deja
  * un enlace que no lleva a ninguna parte y solo se nota cuando alguien navega.
+ *
+ * Se sacan del propio menú del sitio en vez de repetirlas aquí: son las mismas
+ * siete páginas, y una lista aparte se quedaría vieja en cuanto una cambiara.
  */
-const RUTAS_SUGERIDAS = [
-  "/",
-  "/proyecto",
-  "/dimensiones",
-  "/documentos",
-  "/noticias",
-  "/participa",
-  "/contactos",
-];
+const RUTAS_SUGERIDAS = [...new Set(MENU_DEL_SITIO.map((l) => l.href))];
 
 /** Mueve un elemento de la lista, sin mutar el original. */
 function mover(links: NavLink[], de: number, a: number): NavLink[] {
@@ -42,12 +46,18 @@ export function NavLinksEditor({
     onChange(value.map((l, j) => (j === i ? { ...l, ...cambios } : l)));
   }
 
+  // Se esconde el botón de reponer cuando la lista ya *es* el menú del sitio:
+  // ahí no repone nada. Con una lista vacía, o con una distinta, es la salida.
+  const puedeReponer = !esElMenuDelSitio(value);
+
   return (
     <div className="space-y-3">
       {value.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-mist bg-paper px-4 py-6 text-center text-xs text-muted">
           No hay enlaces en el menú. Mientras no haya ninguno, el sitio muestra el
-          menú que viene por defecto.
+          menú que viene por defecto, así que esta lista no es lo que ve la gente.
+          Con <strong>Poner el menú del sitio</strong>, abajo, aparecen los siete
+          para poder ordenarlos.
         </p>
       ) : null}
 
@@ -130,13 +140,30 @@ export function NavLinksEditor({
         ))}
       </datalist>
 
-      <Button
-        variant="lime"
-        size="md"
-        onClick={() => onChange([...value, { label: "", href: "" }])}
-      >
-        <Plus className="size-4" /> Agregar enlace
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="lime"
+          size="md"
+          onClick={() => onChange([...value, { label: "", href: "" }])}
+        >
+          <Plus className="size-4" /> Agregar enlace
+        </Button>
+
+        {/* Repone los siete enlaces del sitio en su orden. Pide dos clics porque
+            descarta lo que haya en la lista: es un "deshacer" para cuando la lista
+            se vació, no un atajo. No guarda —eso lo hace el botón de guardar los
+            ajustes, como todo lo demás—, así que se puede reponer y luego mover. */}
+        {puedeReponer ? (
+          <ConfirmButton
+            variant="outline"
+            label="Poner el menú del sitio"
+            confirmText="¿Cambiar por el menú del sitio?"
+            onConfirm={() => onChange(MENU_DEL_SITIO.map((l) => ({ ...l })))}
+          >
+            <RotateCcw className="size-4" /> Poner el menú del sitio
+          </ConfirmButton>
+        ) : null}
+      </div>
     </div>
   );
 }

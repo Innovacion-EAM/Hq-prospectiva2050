@@ -393,6 +393,23 @@ describe('API pública y validación (e2e)', () => {
       expect(publica.logoUrl).toBeNull();
     });
 
+    it('deja guardar el menú vacío sin romper nada', async () => {
+      // Una lista vacía es un estado válido, no un error: significa "usa el menú de
+      // respaldo". Por eso el panel la tiene que poder guardar y, sobre todo,
+      // reponer. Sin esa vuelta atrás, borrar los siete enlaces y guardar dejaba
+      // el editor vacío sin forma de volver, y el menú de respaldo del sitio
+      // quedaba como la única copia en pie.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ navLinks: [] })
+        .expect(200);
+
+      const publica = (await request(app.getHttpServer()).get('/api/site').expect(200)).body
+        .site as SiteConfig;
+      expect(publica.navLinks).toEqual([]);
+    });
+
     it.each([
       ['una dirección que no es ruta ni http', [{ label: 'X', href: 'noticias' }]],
       ['una dirección vacía', [{ label: 'X', href: '' }]],
