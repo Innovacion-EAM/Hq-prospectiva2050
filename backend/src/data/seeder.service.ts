@@ -35,17 +35,27 @@ export class SeederService implements OnApplicationBootstrap {
   private readonly logger = new Logger(SeederService.name);
 
   /**
-   * Si vale `false`, no se siembra contenido: la base arranca vacía para poder
-   * probar el sitio de verdad, con lo que se escriba a mano en lugar de con lo
-   * que el seedy de desarrollo inventó.
+   * Si vale `true`, se siembra contenido de muestra; si no, la base arranca vacía
+   * para poder probar el sitio de verdad, con lo que se escriba a mano en lugar
+   * de con lo que el seedy inventó.
+   *
+   * El interruptor es **opt-in**: hay que pedir el contenido de muestra
+   * explícitamente. Antes era al revés (se sembraba salvo que se pusiera
+   * `false`), y salió caro: `.env.dev` no tenía la variable, así que un backend
+   * levantado a mano rellenaba las tablas vacías sin avisar y la base volvía a
+   * tener 12 noticias deYYY que uno no había escrito. Que ningún entorno pueda
+   *_resetear_ la base de trabajo por olvido es lo que hace falta aquí.
    *
    * Las dos cosas que sí se siembran siempre son las **cuentas** y la
    * **configuración del sitio**, y no por descuido: sin una cuenta no hay forma
    * de entrar al backoffice a llenar la base, y sin la fila de configuración el
-   * sitio no tiene con qué arrancar. Lo que se puede quitar es el contenido de
-   * muestra, y eso es justo lo que estorba al probar desde cero.
+   * sitio no tiene con qué arrancar. Lo único que se puede quitar es el contenido
+   * de muestra, y eso es justo lo que estorba al probar desde cero.
+   *
+   * `make db-reset` es quien pone `SEED_CONTENIDO=true` cuando se quiere el
+   * contenido de vuelta.
    */
-  private readonly sembrarContenido = process.env.SEED_CONTENIDO !== 'false';
+  private readonly sembrarContenido = process.env.SEED_CONTENIDO === 'true';
 
   constructor(private readonly dataSource: DataSource) {}
 

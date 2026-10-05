@@ -17,6 +17,25 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Si la aplicación no monta en 8 s es que su bundle no se cargó. La causa
+         casi siempre es la misma: el navegador tiene en caché un index.html de
+         una versión anterior, que apunta a un archivo que ya no existe, y el
+         navegador rechaza ejecutarlo porque le llega HTML donde esperaba
+         JavaScript. Antes de dejar la pantalla en blanco sin decir nada, se
+         explica qué pasó y cómo se arregla. Va con estilos en línea a propósito:
+         en este momento tampoco se puede contar con que haya cargado el CSS. -->
+    <script>
+      setTimeout(function () {
+        var raiz = document.getElementById("root");
+        if (raiz && raiz.childElementCount > 0) return;
+        document.body.innerHTML =
+          '<div style="max-width:34rem;margin:12vh auto;padding:0 1.5rem;font-family:system-ui,sans-serif;color:#0B3336">' +
+          '<h1 style="font-size:1.3rem;margin:0 0 .8rem">La página no pudo cargar</h1>' +
+          '<p style="margin:0 0 .8rem;line-height:1.6">El navegador tiene guardada una versi&oacute;n anterior de esta p&aacute;gina, que apunta a archivos que ya no existen. Es la cach&eacute; del navegador, no un cambio en el c&oacute;digo.</p>' +
+          '<p style="margin:0;line-height:1.6"><strong>Recarga sin cach&eacute;:</strong> pulsa <strong>Ctrl + Shift + R</strong> (en Mac, <strong>Cmd + Shift + R</strong>). Si no basta, cierra la pestaña y &aacute;brela de nuevo.</p>' +
+          "</div>";
+      }, 8000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

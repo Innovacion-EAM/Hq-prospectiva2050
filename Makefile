@@ -305,7 +305,7 @@ define sembrar_contenido
 	if grep -q '^SEED_CONTENIDO=' backend/.env.docker 2>/dev/null; then \
 		sed -i 's/^SEED_CONTENIDO=.*/SEED_CONTENIDO=$(1)/' backend/.env.docker; \
 	else \
-		printf '\n# Puesto a false por db-vacia: la base se lleva sin contenido de muestra.\nSEED_CONTENIDO=$(1)\n' >> backend/.env.docker; \
+		printf '\n# Interruptor de contenido de muestra, puesto por db-vacia/db-reset.\nSEED_CONTENIDO=$(1)\n' >> backend/.env.docker; \
 	fi; \
 	echo "SEED_CONTENIDO=$(1) en backend/.env.docker"
 endef

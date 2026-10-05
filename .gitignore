@@ -1,2 +1,7 @@
 # Base de datos: dumps creados por `make backup`
 backups/
+
+# Archivos subidos a la biblioteca. Son datos del servidor, no código, y además
+# se cuelan en el árbol de trabajo cada vez que `make smoke` prueba la galería.
+# La carpeta la crea el backend al arrancar, así que no hace falta versionarla.
+backend/uploads/

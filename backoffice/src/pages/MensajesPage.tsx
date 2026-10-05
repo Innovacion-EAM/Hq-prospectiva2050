@@ -371,7 +371,6 @@ function MensajeDetalle({
   onUpdate: (cambios: Partial<Mensaje>) => Promise<unknown>;
   onRemove?: () => void;
 }) {
-  const [seguimiento, setSeguimiento] = useState(m.seguimiento ?? "");
   const [guardando, setGuardando] = useState(false);
   const [copiado, setCopiado] = useState(false);
   // Si el mensaje se actualiza desde afuera (otra pestaña, otro usuario) mientras
@@ -379,10 +378,19 @@ function MensajeDetalle({
   // durante el render y no en un `useEffect` a propósito: el efecto pinta el
   // cambio en un segundo render, en el que el textarea muestra brevemente un
   // valor viejo y el botón de guardar se enciende o apaga solo.
-  const [seguimientoGuardado, setSeguimientoGuardado] = useState(m.seguimiento ?? "");
-  if (m.seguimiento !== seguimientoGuardado) {
-    setSeguimientoGuardado(m.seguimiento ?? "");
-    setSeguimiento(m.seguimiento ?? "");
+  //
+  // `valorGuardado` normaliza a cadena el `null` de la columna, y la comparación
+  // usa las dos partes ya normalizadas. Antes se comparaba `m.seguimiento` —que es
+  // `null` en todo mensaje sin anotar— contra el estado, que era `""`: la
+  // condición era cierta en cada render y nunca paraba. React acababa cortando
+  // el bucle con su error #301 y, como no había nada que lo atrapara, se quedaba
+  // la pantalla **en blanco al abrir un mensaje**.
+  const valorGuardado = m.seguimiento ?? "";
+  const [seguimiento, setSeguimiento] = useState(valorGuardado);
+  const [seguimientoGuardado, setSeguimientoGuardado] = useState(valorGuardado);
+  if (valorGuardado !== seguimientoGuardado) {
+    setSeguimientoGuardado(valorGuardado);
+    setSeguimiento(valorGuardado);
   }
 
   const seguimientoCambiado = seguimiento.trim() !== (m.seguimiento ?? "").trim();

@@ -90,7 +90,7 @@ Variables principales:
 | `POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB` | Credenciales del contenedor de la db (compose) |
 | `APP_ENV` | Entorno del backend (`dev` / `docker` / `prod`) |
 | `DB_SYNCHRONIZE` | Esquema automático de TypeORM (`true` en dev/docker, `false` en prod) |
-| `SEED_CONTENIDO` | `false` = el seeder no siembra contenido de muestra (noticias, documentos, municipios, dimensiones, mensajes). Las cuentas y la configuración del sitio se siembran igual. Lo pone `make db-vacia` |
+| `SEED_CONTENIDO` | Contenido de muestra (noticias, documentos, municipios, dimensiones, mensajes). **Opt-in**: solo se siembra con `true`, así que un entorno sin la variable arranca vacío. Las cuentas y la configuración del sitio se siembran igual. `make db-reset` pone `true`, `make db-vacia` pone `false` |
 | `JWT_SECRET` | Clave para firmar los tokens de sesión del backoffice (obligatorio) |
 | `UPLOAD_DIR` | Carpeta (relativa al backend o absoluta) donde se guardan los archivos de la biblioteca |
 
@@ -358,6 +358,8 @@ La caja «¿Tienes alguna pregunta o quieres darnos una recomendación?» del he
 `make db-vacia` borra el volumen y deja la base **sin contenido de muestra**: no hay noticias, documentos, municipios, dimensiones ni mensajes. Se queda solo con la cuenta de admin (`admin@prospectiva.com` / `Admin123*`) y la fila de configuración del sitio, porque sin la primera no hay forma de entrar al backoffice a llenarla y sin la segunda el sitio no arranca. La cuenta de rol editor se crea desde el propio backoffice.
 
 El interruptor es `SEED_CONTENIDO` en `backend/.env.docker`, y queda puesto a `false` **de forma permanente**: el seeder siembra las tablas que encuentra vacías en cada arranque, así que un `SEED_CONTENIDO=false` de paso se perdería en el siguiente `make up` y todo el contenido volvería solo. `make db-reset` lo devuelve a `true` y recupera la semilla.
+
+Que el interruptor sea **opt-in** (solo se siembra con `SEED_CONTENIDO=true`) no es un detalle de estilo: mientras fue al revés, bastaba con que un entorno no tuviera la variable para que rellenara las tablas vacías. Pasó con `backend/.env.dev`, el que lee un backend levantado a mano con `make dev`: la base se vació, alguien levantó el backend fuera de docker y las 12 noticias de muestra volvieron a aparecer solas, sin avisar. La variable está hoy en `.env.docker`, `.env.e2e`, `.env.dev` y sus `.example`, pero el código ya no depende de que ningún archivo la traiga.
 
 En ese estado, `make smoke` avisa de que no hay contenido y se salta las 4 comprobaciones que cuentan dimensiones, aliados y municipios, en vez de fallar con cuatro X rojas. Los 4 formularios, la bandeja, la autenticación, los roles y el rechazo de archivos peligrosos en la galería se siguen verificando igual.
 
