@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { formatFecha } from "@/lib/api";
+import { formatFecha, resolveUrl } from "@/lib/api";
 import { toArray, toStringArray } from "@/lib/normalize";
 import { MUNICIPIOS_QUINDIO } from "./municipios";
 import {
   DIMENSIONS as FALLBACK_DIMENSIONS,
   DOC_CATEGORIES as FALLBACK_CATEGORIES,
   ENTITIES as FALLBACK_ENTITIES,
+  LOGO as FALLBACK_LOGO,
+  NAV as FALLBACK_NAV,
   PROJECT_PAGES as FALLBACK_PAGES,
   SITE as FALLBACK_SITE,
   STATS as FALLBACK_STATS,
@@ -15,6 +17,17 @@ import {
   type ProjectPage,
   type SearchHit,
 } from "./site";
+
+/** Un enlace del encabezado, tal y como llega de la base. */
+export type NavLink = { label: string; href: string };
+
+/** Identidad del encabezado: la marca y los textos que van al lado. */
+export type LogoShape = {
+  /** Ruta de la imagen subida, ya resuelta a una URL que el navegador pueda pedir. */
+  url: string;
+  titulo: string;
+  subtitulo: string;
+};
 
 type RawSiteConfig = {
   nombre: string;
@@ -28,6 +41,10 @@ type RawSiteConfig = {
   facebook: string | null;
   instagram: string | null;
   x: string | null;
+  logoUrl: string | null;
+  logoTitulo?: string | null;
+  logoSubtitulo?: string | null;
+  navLinks?: unknown;
 };
 
 type RawStat = { value: string; label: string; subtext: string | null };
@@ -89,6 +106,44 @@ function mapSite(raw: RawSiteConfig): SiteShape {
       instagram: raw.instagram || FALLBACK_SITE.social.instagram,
       x: raw.x || FALLBACK_SITE.social.x,
     },
+  };
+}
+
+/**
+ * Enlaces del encabezado, con el orden guardado.
+ *
+ * Si la lista llega vacía se usan los de respaldo en vez de mostrar una barra sin
+ * nada. Es a propósito: una lista vacía casi siempre es un dato que se vació por
+ * error, y un sitio sin menú es mucho peor que uno con el menú de siempre. Quien
+ * quiera quitar todos los enlaces puede, pero entonces conviene que lo vea
+ * desde el backoffice, no descubrirlo en la portada.
+ */
+function pickNav(raw: RawSiteConfig): NavLink[] {
+  const lista = toArray(raw.navLinks, (n) => {
+    const item = (n ?? {}) as { label?: unknown; href?: unknown };
+    const label = String(item.label ?? "").trim();
+    const href = String(item.href ?? "").trim();
+    // Un enlace sin texto o sin dirección no es un enlace: sin texto no se ve y
+    // sin dirección el clic no lleva a ninguna parte.
+    return href && label ? { label, href } : null;
+  }).filter((n): n is NavLink => n !== null);
+
+  return lista.length ? lista : [...FALLBACK_NAV];
+}
+
+/**
+ * Logo y textos del encabezado, con el respaldo cuando no hay nada guardado.
+ *
+ * Un texto vacío **no** oculta el texto: cae al valor por defecto. Se dice
+ * también en el formulario del backoffice, porque prometer "se puede dejar
+ * vacío" y que en realidad aparezca el predeterminado sería peor que no dar la
+ * opción. Para tapar el subtítulo hay que decirlo en el código, no con un dato.
+ */
+function pickLogo(raw: RawSiteConfig): LogoShape {
+  return {
+    url: resolveUrl(raw.logoUrl),
+    titulo: (raw.logoTitulo ?? "").trim() || FALLBACK_LOGO.titulo,
+    subtitulo: (raw.logoSubtitulo ?? "").trim() || FALLBACK_LOGO.subtitulo,
   };
 }
 
@@ -165,6 +220,10 @@ function pickDimensiones(dimensiones: RawDimension[] | undefined): Dimension[] {
 
 type SiteBundle = {
   SITE: SiteShape;
+  /** Marca y textos del encabezado, editables en Ajustes → Header. */
+  LOGO: LogoShape;
+  /** Enlaces del menú, en el orden guardado. */
+  NAV: NavLink[];
   STATS: Stat[];
   ENTITIES: string[];
   MUNICIPIOS: Municipio[];
@@ -180,6 +239,8 @@ type SiteBundle = {
 function fallbackBundle(): SiteBundle {
   return {
     SITE: FALLBACK_SITE,
+    LOGO: { ...FALLBACK_LOGO, url: "" },
+    NAV: [...FALLBACK_NAV],
     STATS: FALLBACK_STATS as unknown as Stat[],
     ENTITIES: FALLBACK_ENTITIES,
     MUNICIPIOS: MUNICIPIOS_QUINDIO.map((nombre) => ({ nombre, dato: "", descripcion: "" })),
@@ -208,6 +269,8 @@ function buildBundle(raw: RawSite | null): SiteBundle {
 
   return {
     SITE: mapSite(raw.site),
+    LOGO: pickLogo(raw.site),
+    NAV: pickNav(raw.site),
     STATS: pickStats(raw.stats),
     ENTITIES: entities,
     MUNICIPIOS: municipios,

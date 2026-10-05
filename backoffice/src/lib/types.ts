@@ -41,6 +41,12 @@ export type Convocatoria = {
   eliminadoAt?: string | null;
 };
 
+/** Un enlace del menú del encabezado. El orden del arreglo es el orden en pantalla. */
+export type NavLink = {
+  label: string;
+  href: string;
+};
+
 export type SiteSettings = {
   nombre: string;
   tagline: string;
@@ -53,6 +59,19 @@ export type SiteSettings = {
   facebook: string;
   instagram: string;
   x: string;
+  /**
+   * Ruta de la imagen del logo.
+   *
+   * `null` es lo que trae la base cuando no hay ninguna imagen, y `""` lo que
+   * deja el formulario al quitar la vista previa. El tipo lo refleja: declarado
+   * como `string` el compilador aceptaba `logoUrl.trim()` sobre un `null` que sí
+   * llega de la API, y el guardado fallaba con
+   * `Cannot read properties of null (reading 'trim')`.
+   */
+  logoUrl: string | null;
+  logoTitulo: string;
+  logoSubtitulo: string;
+  navLinks: NavLink[];
 };
 
 export type Stat = {

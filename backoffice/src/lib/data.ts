@@ -379,7 +379,20 @@ function configBackend<C>(path: string): ConfigBackend<C> {
       return http<C>(path);
     },
     set(next) {
-      return http<C>(path, { method: "PUT", body: JSON.stringify(next) });
+      /*
+       * Pasa por `sanear` igual que las colecciones.
+       *
+       * El formulario de ajustes se arma con `setForm({ ...value })`, y `value`
+       * es la fila que devuelve el servidor, que trae `id`. Mandarlo en el PUT
+       * hacía que **todos** los guardados de los ajustes respondieran
+       * `400 property id should not exist`: el botón anunciaba que no se pudo
+       * guardar y el cambio se perdía, sin explicación. Las colecciones ya
+       * filtraban ese campo; aquí se olvidaron.
+       */
+      return http<C>(path, {
+        method: "PUT",
+        body: JSON.stringify(sanear(next as unknown as { id: number })),
+      });
     },
   };
 }

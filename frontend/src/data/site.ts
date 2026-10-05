@@ -21,15 +21,34 @@ export const STATS = [
   { value: "60", label: "Años del Departamento", subtext: "Gobernanza y pertenencia territorial" },
 ] as const;
 
+/**
+ * Enlaces del menú del encabezado, y textos del logo.
+ *
+ * Esto ya no es la fuente de verdad: el orden y los textos vienen de la base, se
+ * editan en Ajustes → Header y llegan por `/api/site`. Queda como **respaldo**
+ * para los dos casos en que no haya nada guardable: que la API falle y para que
+ * el sitio se vea completo sin conexión.
+ *
+ * El respaldo también es lo que se siembra por defecto, así que un entorno recién
+ * instalado muestra el mismo menú de siempre en vez de una barra vacía.
+ */
 export const NAV = [
-  { label: "Inicio", href: "/", match: "/" },
-  { label: "El proyecto", href: "/proyecto", match: "/proyecto" },
-  { label: "Dimensiones", href: "/dimensiones", match: "/dimensiones" },
-  { label: "Documentos", href: "/documentos", match: "/documentos" },
-  { label: "Noticias", href: "/noticias", match: "/noticias" },
-  { label: "Participa", href: "/participa", match: "/participa" },
-  { label: "Contáctanos", href: "/contactos", match: "/contactos" },
-] as const;
+  { label: "Inicio", href: "/" },
+  { label: "El proyecto", href: "/proyecto" },
+  { label: "Dimensiones", href: "/dimensiones" },
+  { label: "Documentos", href: "/documentos" },
+  { label: "Noticias", href: "/noticias" },
+  { label: "Participa", href: "/participa" },
+  { label: "Contáctanos", href: "/contactos" },
+];
+
+/** Textos que van al lado del logo. Editables en Ajustes → Header. */
+export const LOGO = {
+  titulo: "Horizonte Quindío",
+  subtitulo: "Prospectiva 2050",
+  /** La imagen que se suba desde Ajustes → Header, si la hay. */
+  url: "" as string,
+};
 
 
 

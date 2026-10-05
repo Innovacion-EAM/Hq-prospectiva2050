@@ -31,6 +31,8 @@ export type SeedConvocatoria = {
   activa: boolean;
 };
 
+export type SeedNavLink = { label: string; href: string };
+
 export type SeedSite = {
   nombre: string;
   tagline: string;
@@ -43,6 +45,11 @@ export type SeedSite = {
   facebook: string;
   instagram: string;
   x: string;
+  /** `null` = se usa la marca propia del sitio, que es lo que había antes. */
+  logoUrl: string | null;
+  logoTitulo: string;
+  logoSubtitulo: string;
+  navLinks: SeedNavLink[];
 };
 
 export type SeedStat = { value: string; label: string; subtext: string };
@@ -522,6 +529,18 @@ export const SEED_SITE: SeedSite = {
   facebook: "https://www.facebook.com/",
   instagram: "https://www.instagram.com/",
   x: "https://x.com/",
+  logoUrl: null,
+  logoTitulo: "Horizonte Quindío",
+  logoSubtitulo: "Prospectiva 2050",
+  navLinks: [
+    { label: "Inicio", href: "/" },
+    { label: "El proyecto", href: "/proyecto" },
+    { label: "Dimensiones", href: "/dimensiones" },
+    { label: "Documentos", href: "/documentos" },
+    { label: "Noticias", href: "/noticias" },
+    { label: "Participa", href: "/participa" },
+    { label: "Contáctanos", href: "/contactos" },
+  ],
 };
 
 export const SEED_STATS: SeedStat[] = [

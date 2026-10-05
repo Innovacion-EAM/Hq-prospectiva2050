@@ -9,6 +9,7 @@ import { configureApp } from './../src/app.setup';
 import { Mensaje } from './../src/entities/mensaje.entity';
 import { Noticia } from './../src/entities/noticia.entity';
 import { Dimension } from './../src/entities/dimension.entity';
+import { SiteConfig } from './../src/entities/site-config.entity';
 
 /**
  * Todos los correos que usan los tests de formularios. Se borran al terminar
@@ -302,6 +303,133 @@ describe('API pública y validación (e2e)', () => {
         .post('/api/config/stats')
         .set('authorization', `Bearer ${await tokenAdmin()}`)
         .send({ nombre: 'campo de entidad' })
+        .expect(400);
+    });
+  });
+
+  // ── Encabezado configurable (Ajustes → Header) ────────────────────────────
+  describe('encabezado del sitio', () => {
+    let configRepo: Repository<SiteConfig>;
+    let original: SiteConfig | null = null;
+
+    beforeAll(async () => {
+      configRepo = app.get<Repository<SiteConfig>>(getRepositoryToken(SiteConfig));
+      // Se guarda la fila que hay y se vuelve a dejar tal cual al terminar. Esta
+      // suite corre contra la base de desarrollo, que es la que usa el panel de
+      // verdad: cambiarla sería tocar la configuración que está viendo la gente.
+      original = await configRepo.findOne({ where: { id: 1 } });
+    });
+
+    afterAll(async () => {
+      // `save` con la entidad tal cual la leyó, sin `...`: repartir con spread le
+      // quita el prototipo y el linter lo marca.
+      if (original) await configRepo.save(original);
+    });
+
+    it('guarda el logo, los textos y el orden de los enlaces', async () => {
+      const navLinks = [
+        { label: 'Noticias', href: '/noticias' },
+        { label: 'Inicio', href: '/' },
+        { label: 'Externo', href: 'https://ejemplo.com' },
+      ];
+      const token = await tokenAdmin();
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${token}`)
+        .send({ logoUrl: '/uploads/logo.png', logoTitulo: 'Prueba', logoSubtitulo: '2050', navLinks })
+        .expect(200);
+
+      // Se lee por la ruta **pública**: así se comprueba lo que de verdad ve un
+      // visitante, no solo que el PUT respondió bien.
+      const publica = (await request(app.getHttpServer()).get('/api/site').expect(200)).body
+        .site as SiteConfig;
+      expect(publica.logoUrl).toBe('/uploads/logo.png');
+      expect(publica.logoTitulo).toBe('Prueba');
+      expect(publica.navLinks).toEqual(navLinks);
+    });
+
+    it('guarda el orden tal cual, sin reordenar nada por su cuenta', async () => {
+      // El orden es lo que la persona eligió en el panel. Si el servidor lo
+      // "arreglara" por su cuenta, el menú del sitio nunca coincidiría con lo
+      // que se ve en la pantalla de ajustes.
+      const navLinks = [
+        { label: 'Contáctanos', href: '/contactos' },
+        { label: 'Inicio', href: '/' },
+        { label: 'Participa', href: '/participa' },
+      ];
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ navLinks })
+        .expect(200);
+
+      const publica = (await request(app.getHttpServer()).get('/api/site').expect(200)).body
+        .site as SiteConfig;
+      expect(publica.navLinks.map((l) => l.label)).toEqual([
+        'Contáctanos',
+        'Inicio',
+        'Participa',
+      ]);
+    });
+
+    it('deja quitar la imagen del logo', async () => {
+      // Con `VacioOpcional` el vacío llegaba como `undefined`, es decir como campo
+      // ausente, y un campo ausente no se asigna: el botón "Quitar imagen"
+      // respondía 200 y el logo se quedaba. El vacío tiene que llegar como `null`.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ logoUrl: '/uploads/logo.png' })
+        .expect(200);
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ logoUrl: '' })
+        .expect(200);
+
+      const publica = (await request(app.getHttpServer()).get('/api/site').expect(200)).body
+        .site as SiteConfig;
+      expect(publica.logoUrl).toBeNull();
+    });
+
+    it.each([
+      ['una dirección que no es ruta ni http', [{ label: 'X', href: 'noticias' }]],
+      ['una dirección vacía', [{ label: 'X', href: '' }]],
+      ['un texto vacío', [{ label: '', href: '/noticias' }]],
+      ['un campo de más dentro del enlace', [{ label: 'X', href: '/x', target: '_blank' }]],
+      ['más de veinte enlaces', Array.from({ length: 21 }, (_, i) => ({ label: `L${i}`, href: `/l${i}` }))],
+    ])('rechaza %s', async (_caso, navLinks) => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ navLinks })
+        .expect(400);
+    });
+
+    it.each([
+      ['javascript:', 'javascript:alert(1)'],
+      ['data:', 'data:image/png;base64,AAAA'],
+      ['una ruta suelta sin barra', 'uploads/logo.png'],
+    ])('no acepta una imagen de logo que empieza por %s', async (_caso, logoUrl) => {
+      // Sin este patrón, `javascript:…` se guardaría como logo y quedaría a un
+      // paso de acabar en un atributo que sí lo ejecuta.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ logoUrl })
+        .expect(400);
+    });
+
+    it('no acepta el id de la fila: lo pone el servidor', async () => {
+      // `forbidNonWhitelisted` es lo que evita que se escriban campos que no
+      // están en el DTO. El panel tiene que quitarlo antes de mandar (ver
+      // `sanear` en `backoffice/src/lib/data.ts`): cuando se colaba, **ningún**
+      // guardado de los ajustes funcionaba y el aviso no decía por qué.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ id: 1, logoTitulo: 'Con id' })
         .expect(400);
     });
   });

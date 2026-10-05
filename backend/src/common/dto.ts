@@ -12,8 +12,10 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 
 export const TIPOS_DOCUMENTO = [
@@ -381,11 +383,48 @@ export class MensajePatchDto {
   })
   estado?: EstadoMensaje;
 
+  /**
+   * La nota de seguimiento se puede **borrar**, y para eso el vacío tiene que
+   * llegar al servicio como `null`.
+   *
+   * Aquí no se usa `VacioOpcional`, que convierte el vacío en `undefined`: un
+   * campo ausente no se asigna, así que borrar la nota respondía `200` sin quitar
+   * nada —la interfaz anunciaba que estaba guardada y la nota seguía ahí—. Con
+   * este `Transform` el vacío pasa a `null`, `@IsOptional` lo deja pasar y
+   * `Object.assign` sí lo escribe.
+   */
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? null : value,
+  )
   @IsOptional()
-  @VacioOpcional()
   @IsString()
   @MaxLength(4000)
-  seguimiento?: string;
+  seguimiento?: string | null;
+}
+
+/**
+ * Un enlace del encabezado. Es un objeto anidado dentro de `navLinks`, así que
+ * necesita `@ValidateNested` + `@Type`: sin la declaración de clase que_class-
+ * transformer no sabe qué clase instanciar por elemento y la validación se
+ * saltaría el interior del objeto.
+ *
+ * El `href` acepta rutas internas (`/noticias`) y direcciones completas
+ * (`https://…`), que es lo que hace falta si algún día el menú enlaza a una
+ * página externa.
+ */
+export class NavLinkDto {
+  @IsString()
+  @MinLength(1, { message: 'El texto del enlace es obligatorio' })
+  @MaxLength(80)
+  label!: string;
+
+  @IsString()
+  @MinLength(1, { message: 'La dirección del enlace es obligatoria' })
+  @MaxLength(300)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La dirección debe empezar por "/" o por "https://"',
+  })
+  href!: string;
 }
 
 export class SiteConfigDto {
@@ -451,6 +490,59 @@ export class SiteConfigDto {
   @VacioOpcional()
   @urlOpcional()
   x?: string;
+
+  // --- Encabezado del sitio (módulo "Header" de los ajustes) ---
+
+  /**
+ * El logo se sube a la biblioteca, así que lo normal es una ruta interna
+ * (`/uploads/…`). Se admite una dirección completa porque puede que alguien
+ * quiere apuntar a una imagen que ya está en otro lado.
+ *
+ * El patrón no es un adorno: sin él, `javascript:…` se guardaría como logo y
+ * quedaría a un paso de acabar en un atributo que sí lo ejecuta. Va el mismo
+ * criterio que en el `href` de los enlaces del menú.
+ *
+ * Y aquí **no** se usa `VacioOpcional`, a propósito: ese decorador convierte el
+ * vacío en `undefined`, y un campo ausente no se asigna, así que el botón
+ * "Quitar imagen" no quitaría nada —se pondría en 200 y el logo seguiría ahí sin
+ * explicación—. Aquí el vacío se convierte en `null`, que sí es un valor que se
+ * guarda, y `null` es lo que el sitio lee como "usa la marca propia".
+ */
+@Transform(({ value }) =>
+  typeof value === 'string' && value.trim() === '' ? null : value,
+)
+@IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen del logo debe empezar por "/" o por "https://"',
+  })
+  logoUrl?: string | null;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  logoTitulo?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(300)
+  logoSubtitulo?: string;
+
+  /**
+   * El orden de los enlaces es el del arreglo, y eso es lo que se reordena en el
+   * backoffice. Se limita a 20 porque es un menú de navegación, no un listado: más
+   * de eso ya no cabe en la barra y el sitio se vería roto en pantallas
+   * normales.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20, { message: 'El encabezado admite máximo 20 enlaces' })
+  @ValidateNested({ each: true })
+  @Type(() => NavLinkDto)
+  navLinks?: NavLinkDto[];
 }
 
 export class StatDto {

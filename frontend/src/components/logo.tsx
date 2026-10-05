@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useSite } from "@/data/site-context";
 import { cn } from "@/lib/utils";
 
 export function LogoMark({ className }: { className?: string }) {
@@ -38,6 +39,16 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Marca y textos del encabezado.
+ *
+ * Los textos salen de la base (Ajustes → Header) y la imagen también: si se subió
+ * un logo se muestra ese, y si no se ve la marca dibujada en `LogoMark`, que es
+ * lo que había antes de que el módulo existiera.
+ *
+ * `compact` oculta el subtítulo y lo usa el pie de página, donde el logo va
+ * pequeño y de adorno.
+ */
 export function Logo({
   variant = "light",
   compact = false,
@@ -46,15 +57,31 @@ export function Logo({
   compact?: boolean;
 }) {
   const light = variant === "light";
+  const { LOGO } = useSite();
+
   return (
     <Link
       to="/"
       className="group flex items-center gap-2.5 no-underline"
-      aria-label="Horizonte Quindío — inicio"
+      aria-label={`${LOGO.titulo} — inicio`}
     >
-      <LogoMark
-        className={cn("h-11 w-11 transition-transform group-hover:scale-105", light ? "text-paper" : "text-ink")}
-      />
+      {LOGO.url ? (
+        /*
+          La imagen se recorta con `object-contain` y se limita a la altura que
+          ocupaba la marca dibujada. Sin ese tope, un logo alto estiraría la
+          barra más allá de los 4.5rem y desarmaría el encabezado entero; y con
+          `object-contain` no se deforma aunque tenga otra proporción.
+        */
+        <img
+          src={LOGO.url}
+          alt=""
+          className="max-h-11 max-w-[11rem] shrink-0 object-contain transition-transform group-hover:scale-105"
+        />
+      ) : (
+        <LogoMark
+          className={cn("h-11 w-11 transition-transform group-hover:scale-105", light ? "text-paper" : "text-ink")}
+        />
+      )}
       <span className="flex flex-col leading-none">
         <span
           className={cn(
@@ -62,16 +89,16 @@ export function Logo({
             light ? "text-paper" : "text-ink",
           )}
         >
-          Horizonte Quindío
+          {LOGO.titulo}
         </span>
-        {!compact ? (
+        {!compact && LOGO.subtitulo ? (
           <span
             className={cn(
               "mt-1 font-display text-[0.58rem] font-semibold tracking-[0.28em] uppercase",
               light ? "text-lime" : "text-muted",
             )}
           >
-            Prospectiva 2050
+            {LOGO.subtitulo}
           </span>
         ) : null}
       </span>

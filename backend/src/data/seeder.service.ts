@@ -101,7 +101,39 @@ export class SeederService implements OnApplicationBootstrap {
     if (!existing) {
       await repo.save(repo.create({ id: 1, ...SEED_SITE } as never));
       this.logger.log('Configuración del sitio sembrada (fila 1)');
+      return;
     }
+
+    /*
+     * Rellena los campos que todavía no existen en esta base.
+     *
+     * Añadir una columna a `config_site` no la llena: la fila 1 ya estaba, así que
+     * la columna nueva le cae con su valor por defecto y la base queda con el
+     * encabezado vacío —menú sin enlaces y textos en blanco— aunque la semilla
+     * diga que no. Pasó con el módulo Header.
+     *
+     * Es el mismo relleno idempotente que hace la migración 0008, y está aquí por
+     * la misma razón: en desarrollo el esquema lo crea TypeORM con
+     * `DB_SYNCHRONIZE` y las migraciones no se ejecutan, así que sin esto el
+     * relleno solo existiría en producción.
+     *
+     * Solo escribe donde el valor está vacío, de modo que no pisa lo que se haya
+     * cambiado desde el backoffice.
+     */
+    const cambios: Partial<SiteConfig> = {};
+    if (!existing.logoTitulo?.trim()) cambios.logoTitulo = SEED_SITE.logoTitulo;
+    if (!existing.logoSubtitulo?.trim()) cambios.logoSubtitulo = SEED_SITE.logoSubtitulo;
+    if (!existing.navLinks?.length) cambios.navLinks = SEED_SITE.navLinks;
+    if (Object.keys(cambios).length === 0) return;
+
+    // Se modifica la entidad que ya se leyó en vez de armar un objeto con
+    // `...`: repartir una instancia de TypeORM con spread le quita el prototipo y
+    // el linter lo marca. `Object.assign` + `save` es la vía de siempre.
+    Object.assign(existing, cambios);
+    await repo.save(existing);
+    this.logger.log(
+      `Configuración del sitio: rellenados los campos vacíos (${Object.keys(cambios).join(', ')})`,
+    );
   }
 
   private async seedUsers(): Promise<void> {

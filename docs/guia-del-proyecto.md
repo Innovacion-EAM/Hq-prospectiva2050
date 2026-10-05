@@ -313,6 +313,18 @@ dejar un 403 a la vista.
 - `frontend/src/data/site.ts` queda como **fallback**: si la API no responde o devuelve listas vacías, el sitio muestra los datos por defecto (mismas formas, no se rompe).
 - Las noticias con **`publicadoEn` futuro** quedan ocultas al público y aparecen automáticamente a partir de esa fecha; el backoffice las muestra como "Programada" y el admin puede verlas con `includeAll=true`.
 
+### Ajustes del sitio por módulos (el primero es el Header)
+
+- **Configuración → Ajustes** (`/configuracion`) está dividido en **módulos**, cada uno con su pantalla pero **un solo guardado**: se edita lo que haga falta y se pulsa «Guardar ajustes» una vez. Hoy hay dos: **Header** (el primero, porque es lo más visible) y **General** (lo que ya había: nombre, tagline, titular del hero, contacto y redes).
+- El módulo **Header** edita tres cosas que hasta ahora estaban escritas en el código del frontend: la **imagen del logo** (subida a la biblioteca de archivos), los **dos textos que van al lado** y el **orden de los enlaces del menú**, que se reordena con las flechas de cada fila.
+- Las cuatro columnas viven en **`config_site`** (`logoUrl`, `logoTitulo`, `logoSubtitulo`, `navLinks`), no en una tabla aparte, a propósito: esa fila **se siembra siempre**, aunque la base esté vacía a propósito (`make db-vacia`). En una tabla propia, vaciar el contenido borraría la navegación del sitio y no habría forma de arreglarlo desde el panel, porque no se puede entrar a él.
+- `navLinks` es una **lista ordenada** en `jsonb`: el orden del arreglo es el orden en pantalla y lo reordena el panel. El servidor guarda el orden tal cual, sin "arreglarlo" por su cuenta.
+- **Red de seguridad del sitio**: si la lista llega vacía, el frontend muestra el menú de respaldo de `frontend/src/data/site.ts`. Un sitio sin barra de navegación es mucho peor que uno con el menú de siempre, y una lista vacía casi siempre es un dato que se vació por error. Lo mismo con los textos del logo: vacío significa "usa el predeterminado", **no** "oculto" (por eso el formulario no promete que se pueda dejar en blanco).
+- **`logoUrl` vacío = `null`**, no campo ausente. `VacioOpcional()` convierte el vacío en `undefined`, y un campo ausente no se asigna: el botón "Quitar imagen" respondía `200` sin quitar nada. Con `@Transform` a `null` sí se guarda. El mismo caso está en `MensajePatchDto.seguimiento`, donde borrar la nota de seguimiento tampoco funcionaba.
+- El **relleno de una fila que ya existía** está en `seedSite()` y también en la migración `0008`: añadir una columna a `config_site` no la llena, porque a la fila que ya está le cae el valor por defecto. En desarrollo el esquema lo crea TypeORM con `DB_SYNCHRONIZE` y las migraciones no se ejecutan, así que sin el relleno el encabezado quedaría vacío solo en desarrollo. Es idempotente: **solo escribe donde el valor está vacío**, nunca pisa lo que se haya cambiado desde el panel.
+- La imagen se sube por `POST /api/media/uploads` (los mismos tipos que la galería; **SVG está rechazado**) y se guarda la **ruta** `/uploads/…`, no la URL absoluta, para que cambiar de dominio no obligue a reescribir la fila. En el sitio se ve con `object-contain` y con tope de altura: un logo alto estiraría la barra y desarmaría el encabezado.
+- `logoUrl` y el `href` de cada enlace validan `^(/|https?://)`: sin ese patrón, `javascript:…` se guardaría como logo y quedaría a un paso de acabar en un atributo que sí lo ejecuta.
+
 ### Galería (media)
 
 - `POST /api/media/uploads` (multipart, máx. 20 MB, un archivo) + `GET /api/media` — **admin y editor**. `DELETE /api/media/:id` — **solo admin**.
@@ -403,13 +415,14 @@ Con traefik (path-based `strip-api`), una llamada `…/api/api/…` es correcta:
 
 ```bash
 make test        # tests unitarios del backend
-make test-e2e    # 40 tests e2e de la API (levanta la app contra la db)
+make test-e2e    # 52 tests e2e de la API (levanta la app contra la db)
 make smoke       # recorrido http contra el entorno que esté corriendo
 ```
 
 - Los e2e necesitan PostgreSQL levantado. Usan `APP_ENV=e2e` → `backend/.env.e2e`, que apunta a la base Docker local por `127.0.0.1:5432` (publicada solo en loopback).
 - Arrancan el `AppModule` real, así que crean el esquema y siembran el admin ellos solos: funcionan también contra una base vacía. Corren con `SEED_CONTENIDO=false`, de modo que **no** siembran el contenido de muestra: dejan la base como estaba y funcionan igual contra una que se vació a propósito.
 - Lo que no se puede depender de la semilla, el test lo monta él. El único caso era el de las dimensiones, que ahora crea la suya y comprueba lo que de verdad vigila: que `body` sea una lista de párrafos y no un texto suelto.
+- La suite del encabezado **guarda la fila de `config_site` que encuentra y la deja tal cual** al terminar (`beforeAll`/`afterAll`). La suite corre contra la base de desarrollo, que es la que usa el panel de verdad: cambiarla sería tocar la configuración que está viendo la gente.
 
 ### CI
 
@@ -423,3 +436,4 @@ make smoke       # recorrido http contra el entorno que esté corriendo
 - **⚠️ Los dos `[PENDIENTE]` del Aviso de Privacidad** (nombre del responsable y canal de peticiones). Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
 - **⚠️ `noticias.slug` y `users.email` son UNIQUE sin mirar la columna de borrado lógico.** Un slug de una noticia borrada queda ocupado para siempre, y la siguiente noticia con ese slug se come un 500 en vez de un «ese slug ya existe». Salió al intentar hacer repetible la suite e2e. Lo mismo con el correo de un usuario dado de baja. El arreglo es un índice parcial `WHERE eliminado_at IS NULL`; no se hizo por estar fuera del alcance acordado.
 - **12 fotos de municipios por subir.** El sistema ya está listo (URL relativa, botón de quitar imagen, asignación en lote); faltan las fotos.
+- **⚠️ `AjustesPage` no exige rol `admin`** (`backoffice/src/App.tsx`), pero `PUT /api/config/site` sí lo exige (`@Roles('admin')`). Un editor que entre a esa página ve el formulario y recibe un `403` al guardar. Ahora el aviso enseña el mensaje real del servidor en vez de un «no se pudo» genérico, que es lo que hizo que este bug pasara inadvertido, pero el arreglo de fondo es envolver la ruta en `RequireRole('admin')`.

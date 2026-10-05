@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
-import { FOOTER_COLS, NAV } from "@/data/site";
+import { FOOTER_COLS } from "@/data/site";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,61 @@ export function SiteShell({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * ¿El enlace apunta a la página en la que estamos?
+ *
+ * Se compara con el prefijo para que `/noticias` siga marcado en el detalle de
+ * una noticia (`/noticias/alguna-cosa`). La barra final se cuelga a propósito:
+ * sin ella, `/noticias` se marcaría activo dentro de `/noticias-mas`, que no
+ * existe pero podría existir mañana.
+ */
+function estaEn(href: string, pathname: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * Un enlace del menú, sea del tipo que sea.
+ *
+ * El módulo Header acepta direcciones externas (`https://…`) porque a veces hace
+ * falta enlazar a algo de otro lado, y ahí `<Link>` de react-router no sirve: en
+ * el enrutador interno **todas** las direcciones se tratan como rutas de la
+ * aplicación, así que un `https://` se interpreta como una ruta y la navegación
+ * se rompe. Para esas se usa un `<a>` normal.
+ *
+ * Se abre en pestaña nueva: el sitio es una SPA y perder el estado de la página
+ * (dónde iba la persona, qué había buscado) por seguir un enlace externo es un
+ * coste que no compensa.
+ */
+function NavEnlace({
+  href,
+  activo,
+  className,
+  children,
+}: {
+  href: string;
+  activo: boolean;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!href.startsWith("/")) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={href} aria-current={activo ? "page" : undefined} className={className}>
+      {children}
+    </Link>
+  );
+}
+
 function Header({
   pathname,
   onSearch,
@@ -61,30 +116,33 @@ function Header({
   menuOpen: boolean;
   onMenu: () => void;
 }) {
+  // El orden de los enlaces y los textos del logo llegan de la base, editables
+  // en Ajustes → Header. `useSite` además cae al menú de respaldo si la lista
+  // llegara vacía, así que el encabezado nunca queda sin navegación.
+  const { NAV } = useSite();
   return (
     <header className="sticky top-0 z-40 bg-ink text-paper">
       <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo variant="light" />
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Principal">
           {NAV.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.match}/`);
+            const active = estaEn(item.href, pathname);
             return (
-              <Link
+              // El resaltado visual no lo anuncia nadie: `aria-current` es lo
+              // que le dice al lector de pantalla que esta es la página en la
+              // que se está, y es lo único que distingue un enlace activo de
+              // uno que solo se ve distinto.
+              <NavEnlace
                 key={item.href}
-                to={item.href}
-                // El resaltado visual no lo anuncia nadie: `aria-current` es lo
-                // que le dice al lector de pantalla que esta es la página en la
-                // que se está, y es lo único que distingue un enlace activo de
-                // uno que solo se ve distinto.
-                aria-current={active ? "page" : undefined}
+                href={item.href}
+                activo={active}
                 className={cn(
                   "rounded-pill px-4 py-2 font-display text-[0.8rem] font-semibold tracking-wide no-underline transition-colors duration-200",
                   active ? "bg-lime text-lime-fg" : "text-paper hover:bg-paper/10",
                 )}
               >
                 {item.label}
-              </Link>
+              </NavEnlace>
             );
           })}
           <button
@@ -127,6 +185,7 @@ function MobileNav({
   pathname: string;
   onSearch: () => void;
 }) {
+  const { NAV } = useSite();
   return (
     <nav
       className="border-b border-ink-soft bg-ink px-4 py-4 lg:hidden"
@@ -134,20 +193,19 @@ function MobileNav({
     >
       <ul className="flex flex-col gap-1">
         {NAV.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.match}/`);
+          const active = estaEn(item.href, pathname);
           return (
             <li key={item.href}>
-              <Link
-                to={item.href}
-                aria-current={active ? "page" : undefined}
+              <NavEnlace
+                href={item.href}
+                activo={active}
                 className={cn(
                   "block rounded-xl px-4 py-3 font-display text-sm font-semibold no-underline",
                   active ? "bg-lime text-lime-fg" : "text-paper hover:bg-paper/10",
                 )}
               >
                 {item.label}
-              </Link>
+              </NavEnlace>
             </li>
           );
         })}

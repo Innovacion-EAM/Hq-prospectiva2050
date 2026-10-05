@@ -49,7 +49,10 @@ export function IconBtn({
       aria-label={label}
       title={label}
       className={cn(
-        "grid size-8 place-items-center rounded-full transition-colors",
+        // `disabled` se ve aquí porque hay botones de reordenar que se apagan en
+        // los extremos de la lista: sin el cambio de opacidad, el que está
+        // apagado parece roto y no solo no disponible.
+        "grid size-8 place-items-center rounded-full transition-colors disabled:pointer-events-none disabled:opacity-35",
         danger ? "text-muted hover:bg-rose-50 hover:text-rose-600" : "text-muted hover:bg-fog hover:text-ink",
         className,
       )}
