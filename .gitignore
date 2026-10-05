@@ -1,2 +1,6 @@
 # Base de datos: dumps creados por `make backup`
 backups/
+
+# Claves privadas y certificados: nunca en git
+*.pem
+*.key

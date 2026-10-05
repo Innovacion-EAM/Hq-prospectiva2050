@@ -11,7 +11,14 @@ async function bootstrap() {
 
   const uploadsDir = path.resolve(config.get<string>('UPLOAD_DIR', 'uploads'));
   fs.mkdirSync(uploadsDir, { recursive: true });
+  // Dos montajes, a propósito. Las URLs que guarda el backend ya son públicas
+  // (`${baseUrl}/api/uploads/...`), pero hay dos despliegues con distinto número
+  // de prefijos:
+  //   - npm dev:  nada quita prefijos → el backend recibe /api/uploads/...
+  //   - docker:   traefik quita un /api  → el backend recibe /uploads/...
+  // Sin el segundo montage, en producción toda imagen subida devolvería 404.
   app.use('/api/uploads', express.static(uploadsDir));
+  app.use('/uploads', express.static(uploadsDir));
 
   const corsOrigins = config
     .get<string>(

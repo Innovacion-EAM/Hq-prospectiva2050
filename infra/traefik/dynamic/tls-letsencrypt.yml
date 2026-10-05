@@ -1,0 +1,89 @@
+# ── Traefik: resolver de certificados Let's Encrypt (ACME) ───────────
+#
+# ESTE FICHERO ESTÁ ACTIVO, pero es INERTE: un `certificatesResolvers` al que
+# ningún router referencia no hace nada por sí solo. Es decir, puedes tenerlo
+# desplegado sin que el sitio se rompa mientras siga sirviendo por HTTP.
+#
+# ============================================================
+#  ANTES DE ACTIVARLO
+#    1. Pon tu email real abajo (si no, ACME rechaza el registro).
+#    2. El registro A del dominio debe apuntar YA a la instancia.
+#    3. El puerto 80 abierto desde internet (0.0.0.0/0).
+#    4. NO lo actives antes de cumplir 1-3 o el challenge falla.
+# ============================================================
+#
+# ── CÓMO ACTIVARLO ─────────────────────────────────────────────────
+# Añade este bloque a LOS TRES routers de routes.yml (frontend, backoffice, api):
+#
+#     tls:
+#       certResolver: letsencrypt
+#
+# y quita el `rule: Host(...)` fijo si quieres que el certificado cubra varios
+# hostnames. Con `Host(\`{{ env "HQ_SITE_HOST" }}\`)` el certificado se emite
+# solo para ese host, que es lo que se quiere.
+#
+# Después, en el servidor, recrea Traefik para que aplique el TLS:
+#
+#     cd /opt/hq-prospectiva2050
+#     HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
+#
+# ── CÓMO COMPROBAR QUE SE EMITIÓ ───────────────────────────────────
+#
+#     docker compose -f infra/compose/docker-compose.yml \
+#       -f infra/compose/docker-compose.prod.yml exec traefik \
+#       cat /etc/traefik/certs/acme.json | head -c 100
+#
+# Si acme.json está vacío, el challenge falló: revisa que el DNS apunta a la
+# instancia, que el 80 está abierto y que el email es válido.
+# El detalle completo está en docs/dominio-y-ssl.md.
+
+tls:
+  certificatesResolvers:
+    letsencrypt:
+      acme:
+        # ⚠ CAMBIA ESTE EMAIL por el tuyo. Let's Encrypt lo usa para avisarte
+        # de que un certificado va a caducar. Un email inventado hace fallar el
+        # registro del Challenge.
+        email: cambia-este-email@ejemplo.com
+
+        # Validación por HTTP en el puerto 80. Es la más simple y no necesita
+        # permisos especiales, pero REQUIERE que el dominio ya apunte a la
+        # instancia (no sirve mientras el DNS esté pendiente).
+        httpChallenge:
+          entryPoint: web
+
+        # ─────────────────────────────────────────────────────────────
+        # ALTERNATIVA si el dueño del dominio NO puede dejar que el 80
+        # responda, o si hay un CDN por delante: validación por DNS.
+        #
+        # Con esta vía el certificado se emite aunque el registro A todavía
+        # NO apunte a la instancia, porque la validación mira un registro TXT
+        # y no una petición HTTP. Traefik crea y borra el TXT solo.
+        #
+        # Necesita un token de API del proveedor DNS. Descomenta el del tuyo
+        # y rellena el token (se guarda como secreto, no en este fichero).
+        #
+        #   dnsChallenge:
+        #     provider: cloudflare
+        #     resolver:
+        #       cloudflare:
+        #         credentials:
+        #           CF_DNS_API_TOKEN: pegarlo_aqui
+        #
+        #   dnsChallenge:
+        #     provider: route53
+        #     resolver:
+        #       route53:
+        #         credentials:
+        #           accessKeyId:     pegarlo_aqui
+        #           secretAccessKey: pegarlo_aqui
+        #
+        #   dnsChallenge:
+        #     provider: gandi
+        #     ...
+        # ─────────────────────────────────────────────────────────────
+
+        # Dónde se guarda el certificado y la cuenta ACME. El directorio
+        # /etc/traefik/certs está montado como volumen (docker-compose.yml),
+        # así que sobrevive a los despliegues. No lo borres a mano.
+        storage: /etc/traefik/certs/acme.json

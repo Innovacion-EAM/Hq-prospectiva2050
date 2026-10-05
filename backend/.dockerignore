@@ -2,5 +2,10 @@ node_modules
 dist
 coverage
 .git
-.env.dev
-.env.docker.example
+
+# Archivos de entorno reales: nunca deben entrar al contexto de build.
+# Compose los inyecta en el contenedor con `env_file` leyéndolos del host, así
+# que la imagen no los necesita. Excluir los .example tampoco molesta: solo
+# contienen valores de relleno.
+.env
+.env.*

@@ -11,6 +11,15 @@ http:
         prefixes:
           - /api
 
+    # strip-admin: quita el prefijo /admin de la petición al backoffice.
+    # El bundle del panel se construye con base "/admin/", así que su index.html
+    # pide /admin/assets/…; traefik lo deja en /assets/… y nginx lo sirve desde
+    # la raíz real del build. Simétrico a strip-api.
+    strip-admin:
+      stripPrefix:
+        prefixes:
+          - /admin
+
     # ── ALTERNATIVA CORS por middleware ──────────────────────────────
     # Ojo: con path-based NO hace falta (todo vive bajo localhost =
     # mismo origen). Con host-based el backend ya lo cubre vía su variable

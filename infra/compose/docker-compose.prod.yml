@@ -1,30 +1,86 @@
-# ── Entorno PRODUCCIÓN (overlay sobre docker-compose.yml) ──────────────
+# ── Entorno PRODUCCIÓN (overlay sobre docker-compose.yml) ────────────────────
 # Uso:
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 #     --env-file .env.prod build frontend backoffice
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
 #     --env-file .env.prod up -d
 #
-# Solo define lo que difiere del entorno docker:
-#   - backend: APP_ENV=prod + variables reales desde backend/.env.prod
-#   - frontend/backoffice: build con VITE_MODE=prod (incrusta la URL real)
-# El resto (db, traefik, red, healthchecks) lo hereda del archivo base.
+# Lo que define (todo lo demás se hereda del archivo base):
+#
+#   1. IMÁGENES — las 3 apps se descargan de GHCR en lugar de compilarse en el
+#      servidor. La t3.micro (1 vCPU / 1 GB) no debe ejecutar `vite build` ni
+#      `nest build`: por eso el flujo normal es `pull` + `up`, nunca `build`.
+#      Las imágenes las publica GitHub Actions (.github/workflows/deploy.yml).
+#      Cada `image:` es sobreescribible por variable → rollback sin editar nada:
+#        HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:v1.2.3 make prod-up
+#
+#   2. PLATFORM — t3.micro es x86_64 (amd64). Fijado para que un `pull` en un
+#      ARM no intente ejecutar la imagen nativa.
+#
+#   3. POSTGRES — memoria de PostgreSQL ajustada a una máquina de 1 GB para que
+#      conviva con traefik, nginx x2 y node.
+#
+# El bloque `build:` se conserva a propósito: es la red de seguridad para poder
+# reconstruir en el propio servidor si el registro no está disponible.
+# El flujo de despliegue NO lo usa.
 
 services:
   backend:
+    image: ${HQ_BACKEND_IMAGE:-ghcr.io/innovacion-eam/hq-backend:latest}
+    platform: linux/amd64
+    # La política por defecto de Docker es `missing`: solo descarga si la
+    # imagen no está ya en local. Con el tag `latest` eso significa que NUNCA
+    # descarga la versión nueva, porque `latest` siempre "está presente". Por eso
+    # el flujo de despliegue necesita esto explícitamente.
+    pull_policy: always
+    build:
+      context: ../../backend
     environment:
       APP_ENV: prod
     env_file:
       - ../../backend/.env.prod
 
   frontend:
+    image: ${HQ_FRONTEND_IMAGE:-ghcr.io/innovacion-eam/hq-frontend:latest}
+    platform: linux/amd64
+    pull_policy: always
+    # Bloque `build` = red de seguridad para reconstruir en el propio servidor
+    # si el registro no estuviera disponible. El flujo normal NO lo usa.
+    # Debe llevar la MISMA URL de API que usa GitHub Actions (build-arg
+    # PROD_API_URL en el workflow), o el bundle hablará con otro host.
     build:
       context: ../../frontend
       args:
         VITE_MODE: prod
+        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com/api}
 
   backoffice:
+    image: ${HQ_BACKOFFICE_IMAGE:-ghcr.io/innovacion-eam/hq-backoffice:latest}
+    platform: linux/amd64
+    pull_policy: always
     build:
       context: ../../backoffice
       args:
         VITE_MODE: prod
+        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com/api}
+        VITE_SITE_URL: ${VITE_SITE_URL:-https://prospectivaquindio2050.com}
+
+  postgres:
+    # Memoria de PostgreSQL ajustada a una máquina de 1 GB, para que conviva con
+    # traefik, nginx x2 y node. shared_buffers y work_mem bajan de los valores por
+    # defecto; effective_cache_size solo informa al planificador, no reserva RAM.
+    # max_connections: el pool de TypeORM abre hasta 10 conexiones por proceso, y
+    # durante un despliegue corre el backend Y db-init a la vez (20). 60 deja
+    # holgura sin coste apreciable de memoria.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - effective_cache_size=320MB
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - max_connections=60

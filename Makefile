@@ -74,7 +74,9 @@ doctor:
 	@echo "── 3. Contenedores hq-* ──"
 	@docker ps --filter "name=hq-" --format "     {{.Names}}: {{.Status}}" 2>/dev/null || echo "     (docker no disponible)"
 	@echo "── 4. Archivos de entorno ──"
-	@for f in backend/.env.docker backend/.env.prod frontend/.env.docker frontend/.env.prod backoffice/.env.docker backoffice/.env.prod infra/compose/.env infra/compose/.env.prod; do \
+	@echo "     (en prod solo se necesitan los 2 marcados PROD; frontend/backoffice"
+	@echo "      llevan la URL de la API como build-arg, no como archivo)"
+	@for f in backend/.env.docker backend/.env.dev infra/compose/.env infra/compose/.env.prod backend/.env.prod; do \
 		if [ -f "$$f" ]; then echo "     [OK]   $$f"; else echo "     [FALTA] $$f"; fi; \
 	done
 
@@ -230,17 +232,19 @@ db-reset:
 		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
 		$(DOCKER) down -v && $(DOCKER) up -d postgres --wait && echo "Base de datos recreada."
 
-## db-schema: Aplica scripts/schema-db.sql a la db (complemento de PRODUCCIÓN)
-#  Opcional: en dev/docker el esquema y la semilla se crean solos (TypeORM
-#  synchronize + seeder). Aquí para el flujo estricto de prod (DB_SYNCHRONIZE=false).
+## db-schema: Aplica scripts/schema-db.sql a la db
+#  ⚠ Obsoleto para producción: usa `make prod-db-init`, que genera el esquema
+#    desde las entidades de TypeORM (backend/src/entities) y no puede desincronizarse.
+#    scripts/schema-db.sql sigue como alternativa manual para entornos sin Node.
 db-schema:
-	@if [ ! -s scripts/schema-db.sql ]; then echo "[!] scripts/schema-db.sql está vacío. Llénalo con el SQL del esquema."; exit 1; fi
+	@if [ ! -s scripts/schema-db.sql ]; then echo "[!] scripts/schema-db.sql está vacío. Usa 'make prod-db-init' en su lugar."; exit 1; fi
 	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/schema-db.sql && echo "Esquema aplicado."
 
-## db-seed: Aplica scripts/seed.sql a la db (semilla inicial para PRODUCCIÓN)
-#  Opcional: el seeder del backend carga los datos iniciales en dev/docker.
+## db-seed: Aplica scripts/seed.sql a la db (semilla inicial)
+#  ⚠ Obsoleto para producción: `make prod-db-init` ya siembra usando el mismo
+#    SeederService que usa la app, así que el contenido no puede divergir.
 db-seed:
-	@if [ ! -s scripts/seed.sql ]; then echo "[!] scripts/seed.sql está vacío. Llénalo con la semilla inicial."; exit 1; fi
+	@if [ ! -s scripts/seed.sql ]; then echo "[!] scripts/seed.sql está vacío. Usa 'make prod-db-init' en su lugar."; exit 1; fi
 	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/seed.sql && echo "Semilla aplicada."
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -254,6 +258,11 @@ shell:
 # ────────────────────────────────────────────────────────────────────────────
 # 7. PRODUCCIÓN (overlay docker-compose.prod.yml · credenciales y URL reales)
 #    Requiere los .env.prod. Si fallan = te lo dice y te indica `make env-prod`.
+#
+#    FLUJO NORMAL: GitHub Actions construye y publica las imágenes en GHCR, y el
+#    servidor solo hace pull + db-init + up (ver docs/despliegue-aws.md).
+#    Nada de esto compila código, que es lo que tumba una instancia de 1 GB.
+#    prod-build existe solo como plan B para reconstruir en el propio servidor.
 # ────────────────────────────────────────────────────────────────────────────
 
 # Guardia: los targets prod fallan con mensaje claro si no existen los .env.prod
@@ -263,29 +272,78 @@ infra/compose/.env.prod:
 	@echo "  Luego EDITALOS con el password de la db y el dominio real antes de make prod-up."
 	@exit 1
 
-## env-prod: Genera los 4 archivos .env.prod desde los .env.prod.example
-#  Crea: infra/compose/.env.prod · backend/.env.prod · frontend/.env.prod · backoffice/.env.prod
+## env-prod: Genera los 2 archivos .env.prod que SÍ hacen falta
+#  Crea: infra/compose/.env.prod (password de postgres + dominio) y
+#        backend/.env.prod (credenciales de db + JWT_SECRET)
+#  Los .env.prod de frontend/backoffice ya NO hacen falta: la URL de la API se
+#  incrusta en la imagen como build-arg (VITE_API_URL), no como archivo.
+#  En el servidor los genera automáticamente scripts/deploy/bootstrap.sh.
 env-prod:
 	@cp $(COMPOSE_DIR)/.env.prod.example $(COMPOSE_DIR)/.env.prod
 	@cp backend/.env.prod.example backend/.env.prod
-	@cp frontend/.env.prod.example frontend/.env.prod
-	@cp backoffice/.env.prod.example backoffice/.env.prod
-	@echo "Creados los .env.prod. EDÍTALOS: pon el password de la db (los 4) y el dominio real (frontend/backoffice VITE_API_URL) antes de prod-up."
+	@echo "Creados los .env.prod. EDÍTALOS antes de prod-up:"
+	@echo "  · infra/compose/.env.prod → POSTGRES_PASSWORD y HQ_SITE_HOST (dominio real)"
+	@echo "  · backend/.env.prod       → DB_PASSWORD (el MISMO) y un JWT_SECRET nuevo"
+	@echo "  Para generar secretos: openssl rand -hex 24"
 
 ## prod-config: Valida el overlay de producción (config resuelta sin levantar)
 prod-config: infra/compose/.env.prod
 	@$(PROD) config
 
-## prod-build: Construye frontend/backoffice con la URL de prod incrustada (VITE_MODE=prod)
+## prod-build: Construye las imágenes EN ESTA MÁQUINA (solo uso local / emergencia)
+#  ⚠ En un servidor pequeño esto es lo que tumba la instancia (1 vCPU / 1 GB).
+#    El flujo normal es que GitHub Actions construya y este comando solo descargue:
+#    `make prod-deploy`. Déjalo solo como plan B si el registro no está disponible.
 prod-build: infra/compose/.env.prod
-	@$(PROD) build frontend backoffice
+	@$(PROD) build
+
+## prod-pull: Descarga las imágenes publicadas en GHCR (sin compilar nada)
+#  Es el paso que hace el servidor en cada despliegue.
+prod-pull: infra/compose/.env.prod
+	@$(PROD) pull
+
+## prod-login: Guarda credenciales de GHCR en el servidor. Uso: make prod-login TOKEN=ghp_xxx
+#  Necesario si el registro es privado y el bootstrap se hizo sin token.
+prod-login:
+	@[ -n "$(TOKEN)" ] || { echo "Uso: make prod-login TOKEN=ghp_xxx"; exit 1; }
+	@printf '%s' "$(TOKEN)" | docker login ghcr.io -u "$$USER" --password-stdin
+	@echo "Login en ghcr.io guardado."
+
+## prod-db-init: Crea el esquema y siembra la db en producción (idempotente)
+#  ⚠ Imprescindible la PRIMERA VEZ: en prod DB_SYNCHRONIZE=false, así que sin esto
+#    el backend arranca contra una base de datos sin tablas y se cae.
+#  · Crea y arranca primero PostgreSQL y llama a `node dist/cli/db-init.js`,
+#    que sincroniza el esquema desde las entidades de TypeORM y luego siembra
+#    las tablas vacías. Es idempotente y usa el MISMO SeederService que la app.
+#  · `make db-schema` / `make db-seed` (SQL manual) quedan como alternativa para
+#    entornos sin Node; ver la nota de "obsoleto" en sus comentarios.
+#  Es lo que ejecuta scripts/deploy/deploy.sh en cada despliegue.
+prod-db-init: infra/compose/.env.prod
+	@$(PROD) up -d postgres
+	@$(PROD) run --rm --no-deps -T backend node dist/cli/db-init.js
+	@echo "Esquema y semilla aplicados."
+
+## prod-rollback: Vuelve a una versión anterior. Uso: make prod-rollback TAG=v1.0.0
+#  Fija los tres tags de imagen y rearranca. Las imágenes viejas se conservan en el
+#  servidor porque el prune solo borra imágenes sin etiqueta.
+prod-rollback: infra/compose/.env.prod
+	@[ -n "$(TAG)" ] || { echo "Uso: make prod-rollback TAG=v1.0.0"; exit 1; }
+	@echo "== Reverting a $(TAG) =="
+	@HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:$(TAG) \
+	 HQ_FRONTEND_IMAGE=ghcr.io/innovacion-eam/hq-frontend:$(TAG) \
+	 HQ_BACKOFFICE_IMAGE=ghcr.io/innovacion-eam/hq-backoffice:$(TAG) \
+	 $(PROD) up -d
+	@echo "Verifica con: make prod-smoke"
 
 ## prod-up: Levanta el entorno de producción (usa .env.prod)
 prod-up: infra/compose/.env.prod
 	@$(PROD) up -d
 
-## prod-deploy: Construye y levanta producción en un solo paso (build + up)
-prod-deploy: prod-build prod-up
+## prod-deploy: Descarga y levanta la última versión publicada (pull + db-init + up)
+#  No compila: eso ocurre en GitHub Actions. Es exactamente lo que ejecuta el
+#  despliegue automático por SSH (scripts/deploy/deploy.sh).
+prod-deploy: prod-pull prod-db-init prod-up
+	@echo "Desplegado. Verifica con: make prod-smoke"
 
 ## prod-down: Detiene producción (SIN borrar datos)
 prod-down: infra/compose/.env.prod
@@ -316,23 +374,50 @@ prod-shell: infra/compose/.env.prod
 ## prod-smoke: Smoke test de producción (verifica que la app responde de verdad)
 #  Comprueba: contenedores healthy · frontend (/) · backoffice (/admin) · backend
 #  (/api/health/db) · comportamiento de https (depende de la decisión SSL pendiente).
+#  OJO: se envía el Host de HQ_SITE_HOST porque los routers de Traefik filtran por
+#  host. Sin esa cabecera, con el dominio real configurado todo respondería 404.
 prod-smoke: infra/compose/.env.prod
 	@echo "── Smoke test de producción ──"
-	@echo "[1/4] Contenedores:"
-	@$(PROD) ps --format "  {{.Name}}: {{.Status}}"
-	@echo "[2/4] Frontend y backoffice (vía traefik):"
-	@curl -sk -o /dev/null -w "  http://localhost/        → HTTP %{http_code}\n" http://localhost/
-	@curl -sk -o /dev/null -w "  http://localhost/admin   → HTTP %{http_code}\n" http://localhost/admin
-	@echo "[3/4] Backend health (db):"
-	@curl -sk http://localhost/api/health/db | head -c 200; echo
-	@echo "[4/4] HTTPS (según decisión SSL):"
-	@curl -sk -o /dev/null -w "  https://localhost → HTTP %{http_code}\n" https://localhost/ 2>/dev/null || echo "  (SSL aún no configurado)"
+	@HQ_HOST=$$(grep -E '^HQ_SITE_HOST=' $(COMPOSE_DIR)/.env.prod | cut -d= -f2- | tr -d '"'); \
+	HQ_HOST="$${HQ_HOST:-localhost}"; \
+	echo "  Host probado: $$HQ_HOST"; \
+	echo "[1/5] Contenedores:"; \
+	$(PROD) ps --format "  {{.Name}}: {{.Status}}"; \
+	echo "[2/5] Frontend y backoffice (vía traefik):"; \
+	curl -sk -o /dev/null -w "  /        → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/; \
+	curl -sk -o /dev/null -w "  /admin   → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/admin; \
+	echo "[3/5] Assets reales:"; \
+	echo "  (pedir /admin solo devuelve el HTML: el panel puede salir en blanco aunque dé 200)"; \
+	for svc in frontend backoffice; do \
+	  asset=$$($(PROD) exec -T $$svc sh -c 'ls /usr/share/nginx/html/assets/*.js 2>/dev/null | head -1' 2>/dev/null | tr -d '\r'); \
+	  if [ -z "$$asset" ]; then echo "  [!] No se encontró ningún asset en $$svc"; continue; fi; \
+	  base=$$(basename "$$asset"); \
+	  prefix=""; [ "$$svc" = "backoffice" ] && prefix="/admin"; \
+	  code=$$(curl -sk -o /dev/null -w '%{http_code}' -H "Host: $$HQ_HOST" "http://localhost$$prefix$$asset"); \
+	  if [ "$$code" = "200" ]; then \
+	    echo "  OK       $$svc $$prefix$$base → HTTP 200"; \
+	  else \
+	    echo "  FALLO    $$svc $$prefix$$base → HTTP $$code"; \
+	    echo "           [!] $$svc NO sirve sus assets: la página saldrá en blanco."; \
+	  fi; \
+	done; \
+	echo "[4/5] Backend health (db):"; \
+	curl -sk -H "Host: $$HQ_HOST" http://localhost/api/health/db | head -c 200; echo; \
+	echo "[5/5] HTTPS (neutro si aún no hay certificado):"; \
+	if [ -s $(COMPOSE_DIR)/../traefik/certs/acme.json ] 2>/dev/null; then \
+	  curl -sk -o /dev/null -w "  https://$$HQ_HOST → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" https://localhost/ || echo "  (hay acme.json pero https no responde)"; \
+	else \
+	  echo "  (sin certificado todavía: esperado hasta que se active el TLS)"; \
+	fi
 
-## deploy: Actualiza el server a la última versión (git pull + build + up de producción)
-#  ⚠ Usar en la rama correcta y con el trabajo local commiteado (git pull fallará si hay
-#     cambios sin commitear). Es el comando de "salir a producción" de cada cambio.
+## deploy: Despliegue MANUAL desde tu máquina (git pull + prod-deploy)
+#  En el flujo normal esto no lo usas: haces `git push origin main` y GitHub
+#  Actions construye, publica en GHCR y despliega en la instancia por SSH.
+#  Este comando sirve para el despliegue manual o para probar el overlay en local.
+#  OJO: `prod-deploy` descarga imágenes linux/amd64 construidas en CI, así que no
+#  es lo que quieres si estás en una Mac con Apple Silicon.
 deploy:
-	@echo "── Desplegando la última versión ──"
+	@echo "── Desplegando la última versión (manual) ──"
 	@git pull
 	@$(MAKE) prod-deploy
 	@echo "Desplegado. Verifica con: make prod-smoke"

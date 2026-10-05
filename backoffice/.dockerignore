@@ -2,5 +2,10 @@ node_modules
 dist
 coverage
 .git
+
+# Archivos de entorno reales: nunca deben entrar al contexto de build.
+# Las URLs de build llegan como build-arg (VITE_API_URL / VITE_SITE_URL), así
+# que el bundle no depende de tener un .env dentro de la imagen.
 .env.dev
-.env.docker.example
+.env.prod
+.env.prod.local

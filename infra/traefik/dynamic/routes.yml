@@ -2,26 +2,40 @@
 # Define "quién va a dónde". Se recarga en caliente (file.watch: true).
 # PRIORIDAD: traefik ordena por longitud de regla → /api y /admin
 # ganan al catch-all "/". No hace falta declarar priority explícita.
+#
+# ⚠ El host NO está escrito a mano: sale de la variable de entorno HQ_SITE_HOST
+#   que recibe el contenedor traefik (docker-compose.yml). Así el mismo archivo
+#   sirve para docker local (HQ_SITE_HOST=localhost) y para producción con
+#   dominio real (HQ_SITE_HOST=prospectivaquindio2050.com, en .env.prod).
+#   Cambia el host -> cambia solo .env.prod y reinicia traefik: `make prod-restart`.
+#   Traefik v3 usa la función `env` en el provider de archivos.
 
 http:
   routers:
-    # http://localhost/  → frontend (catch-all)
+    # / → frontend (catch-all)
     frontend:
-      rule: "Host(`localhost`) && PathPrefix(`/`)"
+      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/`)'
       entryPoints:
         - web
       service: frontend
 
-    # http://localhost/admin → backoffice (SPA servido bajo subruta)
+    # /admin → backoffice (SPA servida bajo subruta)
+    # El middleware strip-admin le quita /admin, igual que strip-api hace con la
+    # API. Así nginx sirve el panel en "/" con su try_files normal. Si no se
+    # quitara el prefijo, nginx tendría que resolver /admin/** con `alias`, y
+    # `try_files $uri` dentro de un `alias` busca contra el root del server y no
+    # contra el alias: los assets devolverían 500 y el panel saldría en blanco.
     backoffice:
-      rule: "Host(`localhost`) && PathPrefix(`/admin`)"
+      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/admin`)'
       entryPoints:
         - web
+      middlewares:
+        - strip-admin
       service: backoffice
 
-    # http://localhost/api → backend (el middleware strip-api le quita /api)
+    # /api → backend (el middleware strip-api le quita /api)
     api:
-      rule: "Host(`localhost`) && PathPrefix(`/api`)"
+      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/api`)'
       entryPoints:
         - web
       middlewares:
