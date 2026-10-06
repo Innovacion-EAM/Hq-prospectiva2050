@@ -1,8 +1,8 @@
 name: Build & Deploy
 
 # ── Qué hace este workflow ───────────────────────────────────────────────────
-# 1. Construye las 3 imágenes (backend, frontend, backoffice) en un runner de
-#    GitHub. NUNCA en el servidor: una t3.micro (1 vCPU / 1 GB) se queda sin
+# 1. Construye las 4 imágenes (backend, frontend, backoffice, repo) en un runner
+#    de GitHub. NUNCA en el servidor: una t3.micro (1 vCPU / 1 GB) se queda sin
 #    memoria en cuanto `nest build` y `vite build` empiezan en paralelo.
 # 2. Las publica en GHCR con varios tags (latest, rama, sha, semver).
 # 3. Si toca producción, entra por SSH a la instancia y ejecuta
