@@ -15,6 +15,7 @@ export { Media } from './media.entity';
 export { Mensaje } from './mensaje.entity';
 export { Noticia } from './noticia.entity';
 export { PaginaProyecto } from './pagina-proyecto.entity';
+export { RepositorioItem } from './repositorio-item.entity';
 export { SiteConfig } from './site-config.entity';
 export { Stat } from './stat.entity';
 export { Taller } from './taller.entity';
@@ -29,6 +30,7 @@ import { Media } from './media.entity';
 import { Mensaje } from './mensaje.entity';
 import { Noticia } from './noticia.entity';
 import { PaginaProyecto } from './pagina-proyecto.entity';
+import { RepositorioItem } from './repositorio-item.entity';
 import { SiteConfig } from './site-config.entity';
 import { Stat } from './stat.entity';
 import { Taller } from './taller.entity';
@@ -47,5 +49,6 @@ export const ALL_ENTITIES = [
   Convocatoria,
   Mensaje,
   Media,
+  RepositorioItem,
   User,
 ];

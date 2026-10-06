@@ -11,6 +11,14 @@ export type SeedNoticia = {
   destacado: boolean;
 };
 
+// El repositorio vive en `data/repositorio-seed.ts` (297 ítems generados desde
+// el Excel original); aquí solo se re-exporta para que el seeder siga teniendo
+// un único punto de importación.
+export {
+  SEED_REPOSITORIO,
+  type SeedRepositorioItem,
+} from './data/repositorio-seed';
+
 export type SeedDocumento = {
   titulo: string;
   autor: string;

@@ -10,6 +10,7 @@ import { Entidad } from '../entities/entidad.entity';
 import { Mensaje } from '../entities/mensaje.entity';
 import { Noticia } from '../entities/noticia.entity';
 import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
+import { RepositorioItem } from '../entities/repositorio-item.entity';
 import { SiteConfig } from '../entities/site-config.entity';
 import { Stat } from '../entities/stat.entity';
 import { Taller } from '../entities/taller.entity';
@@ -23,6 +24,7 @@ import {
   SEED_MENSAJES,
   SEED_NOTICIAS,
   SEED_PROYECTO_PAGINAS,
+  SEED_REPOSITORIO,
   SEED_SITE,
   SEED_STATS,
   SEED_TALLERES,
@@ -65,6 +67,7 @@ export class SeederService implements OnApplicationBootstrap {
     await this.seed(Noticia, SEED_NOTICIAS);
     await this.seed(Documento, SEED_DOCUMENTOS);
     await this.seed(Convocatoria, SEED_CONVOCATORIAS);
+    await this.seed(RepositorioItem, SEED_REPOSITORIO);
     await this.seed(Mensaje, SEED_MENSAJES);
     await this.seedSite();
     await this.seedUsers();

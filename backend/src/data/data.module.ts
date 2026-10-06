@@ -8,6 +8,7 @@ import { Entidad } from '../entities/entidad.entity';
 import { Mensaje } from '../entities/mensaje.entity';
 import { Noticia } from '../entities/noticia.entity';
 import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
+import { RepositorioItem } from '../entities/repositorio-item.entity';
 import { SiteConfig } from '../entities/site-config.entity';
 import { Stat } from '../entities/stat.entity';
 import { Taller } from '../entities/taller.entity';
@@ -22,6 +23,9 @@ import { MensajesController } from './mensajes.controller';
 import { MensajesService } from './mensajes.service';
 import { NoticiasController } from './noticias.controller';
 import { NoticiasService } from './noticias.service';
+import { RepositorioController } from './repositorio.controller';
+import { RepositorioImportService } from './repositorio-import.service';
+import { RepositorioService } from './repositorio.service';
 import { SeederService } from './seeder.service';
 import { SiteController } from './site.controller';
 import { SiteService } from './site.service';
@@ -40,6 +44,7 @@ import { SiteService } from './site.service';
       Dimension,
       Mensaje,
       SiteConfig,
+      RepositorioItem,
     ]),
   ],
   controllers: [
@@ -50,6 +55,7 @@ import { SiteService } from './site.service';
     MensajesController,
     FormsController,
     SiteController,
+    RepositorioController,
   ],
   providers: [
     NoticiasService,
@@ -59,6 +65,8 @@ import { SiteService } from './site.service';
     ConfigService,
     SeederService,
     SiteService,
+    RepositorioService,
+    RepositorioImportService,
   ],
 })
 export class DataModule {}
