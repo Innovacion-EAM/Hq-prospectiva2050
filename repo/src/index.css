@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/*
+ * Tema del Repositorio de Información: dashboard oscuro analítico.
+ * Fondo verde petróleo + gráficas neón + números gigantes (el estilo que eligió
+ * el cliente). Los acentos por dimensión NO viven aquí: se aplican inline desde
+ * lib/api.ts (DIM_COLOR) para que la paleta esté en un solo sitio y la usen
+ * también el sitio principal y el backoffice.
+ */
+@theme {
+  --color-petro: #0a1f1e;
+  --color-petro-deep: #071514;
+  --color-petro-mid: #102b29;
+  --color-petro-soft: #163634;
+  --color-line: #1d3b38;
+  --color-neon: #c6e85c;
+  --color-neon-deep: #a8d13c;
+  --color-paper: #e9f4f1;
+  --color-mist: #9db8b5;
+  --color-muted: #6f8f8b;
+
+  --font-display: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-pill: 999px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-petro-deep font-sans text-paper;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line) transparent;
+  }
+  .glass {
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-petro-mid) 92%, transparent), color-mix(in srgb, var(--color-petro) 96%, transparent));
+    border: 1px solid var(--color-line);
+  }
+}
+
+@utility tap-scale {
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+}
