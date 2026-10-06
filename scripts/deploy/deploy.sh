@@ -17,6 +17,10 @@
 #                       rearrancar. Es idempotente y corrige desajustes de esquema.
 #   SKIP_GIT_PULL       yes|no. yes omite `git pull` (si el repo del servidor lo
 #                       actualiza otro proceso).
+#   IMAGE_RETENTION_HOURS
+#                       horas que se guardan las imágenes ya sin usar (para
+#                       rollback). Por defecto 72. Bajarlo llena menos disco y
+#                       deja menos margen para volver atrás.
 #   HQ_TRAEFIK_RESTART  1|yes para forzar el recreado de Traefik. Necesario tras
 #                       cambiar HQ_SITE_HOST, porque los routers lo leen de la
 #                       variable de entorno del contenedor, no del archivo.
@@ -25,6 +29,8 @@ set -euo pipefail
 APP_DIR="${APP_DIR:-/opt/hq-prospectiva2050}"
 RUN_DB_INIT="${RUN_DB_INIT:-yes}"
 SKIP_GIT_PULL="${SKIP_GIT_PULL:-no}"
+# Horas que se conservan las imágenes ya sin usar, para poder hacer rollback.
+IMAGE_RETENTION_HOURS="${IMAGE_RETENTION_HOURS:-72}"
 COMPOSE_DIR="$APP_DIR/infra/compose"
 
 log()  { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -111,11 +117,27 @@ fi
 log "Rearrancando servicios"
 "${COMPOSE[@]}" up -d --remove-orphans
 
-# ── 9. Limpiar imágenes colgantes ──────────────────────────────────────────────
-# Solo `dangling`: conserva las versiones anteriores CON etiqueta, que son
-# exactamente las que hacen posible un rollback.
+# ── 9. Limpiar imágenes ───────────────────────────────────────────────────────
+# Dos pasadas, y el orden importa:
+#
+# 1. `dangling`: solo las capas huérfanas de un build. No se pierde ninguna
+#    versión desplegable.
+# 2. Las CON etiqueta que ya no usa ningún contenedor y llevan más de
+#    IMAGE_RETENTION_HOURS horas. Esto es lo que evita que el disco se llene:
+#    el volumen de la instancia es de 6,7 GB y cada despliegue baja ~560 MB de
+#    capas nuevas. Sin esta segunda pasada, las versiones viejas se acumulan
+#    para siempre y el servidor acaba sin espacio (la base de datos es lo
+#    primero que se para, y sin disco no hay despliegue posible).
+#
+# El plazo deja varias versiones de rollback disponibles. Bajarlo mucho quita
+# margen de volver atrás; subirlo llena el disco. Ante la duda, 72 h.
 log "Limpiando imágenes sin etiqueta"
 docker image prune -f >/dev/null
+
+log "Limpiando versiones antiguas (sin usar, más de ${IMAGE_RETENTION_HOURS} h)"
+# -f = no preguntar. --all = también las que tienen etiqueta, siempre que no
+# las use ningún contenedor. `until` se cuenta desde la fecha de creación.
+docker image prune -f --all --filter "until=${IMAGE_RETENTION_HOURS}h" >/dev/null
 
 # ── 10. Comprobación de salud ─────────────────────────────────────────────────
 # OJO: la cabecera Host debe coincidir con HQ_SITE_HOST. Los routers de Traefik
