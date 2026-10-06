@@ -13,6 +13,10 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    // Imprescindible: createNestApplication() NO ejecuta main.ts, así que sin
+    // esta línea AppController (@Controller() + @Get()) sirve en "/" y no en
+    // "/api", que es lo que prueba este test. Debe coincidir con main.ts.
+    app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
     await app.init();
   });
 
