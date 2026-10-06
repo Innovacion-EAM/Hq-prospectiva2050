@@ -96,7 +96,28 @@ export class UploadService implements OnModuleInit {
     });
     const saved = await this.repo.save(entity);
     this.logger.log(`Guardado archivo ${filename} (${file.size} bytes)`);
-    return this.toDto(saved);
+    return this.absoluteUrl(saved, '');
+  }
+
+    // Alias para mantener compatibilidad
+  toDto(media: Media, origin = ''): Media {
+    return this.absoluteUrl(media, origin);
+  }
+
+  findAll(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
+  }
+
+  list(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
+  }
+
+  findAllWithoutOrigin(): Promise<Media[]> {
+    return this.repo.find({ order: { createdAt: 'DESC' } });
   }
 
   /** Path público de un fichero, tal y como lo consume el navegador. */
@@ -112,20 +133,17 @@ export class UploadService implements OnModuleInit {
    * origen del panel (`/admin`) y no a la API. Como las dos cosas están bajo
    * el mismo dominio en producción, basta con el origen de la petición.
    */
-  absoluteUrl(media: Media, origin: string): Media {
+  absoluteUrl(media: Media, origin = ''): Media {
     return {
       ...media,
       url: media.url.startsWith('/') ? `${origin}${media.url}` : media.url,
     };
   }
 
-  async list(origin: string): Promise<Media[]> {
-    const items = await this.repo.find({ order: { createdAt: 'DESC' } });
-    return items.map((item) => this.absoluteUrl(item, origin));
-  }
-
-  async list(): Promise<Media[]> {
-    return this.repo.find({ order: { createdAt: 'DESC' } });
+  listAll(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
   }
 
   async remove(id: number): Promise<void> {
