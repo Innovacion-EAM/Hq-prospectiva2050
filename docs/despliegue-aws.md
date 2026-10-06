@@ -113,16 +113,22 @@ no funciona.
 
 | Secreto             | Para qué                                        |
 |---------------------|-------------------------------------------------|
-| `GHCR_TOKEN`        | GitHub Actions **empuja** las imágenes a GHCR    |
 | `GHCR_DEPLOY_TOKEN` | La instancia **descarga** las imágenes           |
 | `DEPLOY_SSH_KEY`    | Clave privada para entrar por SSH                |
 | `DEPLOY_SSH_USER`   | `ubuntu`                                         |
 | `DEPLOY_SSH_PORT`   | `22`                                             |
 
-Crea los dos tokens en **Settings → Developer settings → Personal access tokens
-→ Fine-grained** (classic también vale):
+**Para subir imágenes no hace falta ningún PAT.** El workflow publica en GHCR con
+el `GITHUB_TOKEN` del propio repo, que ya tiene el permiso `packages: write`
+declarado en el propio `deploy.yml`. Solo hace falta un token, el de lectura.
 
-- `GHCR_TOKEN` → permiso **Packages: Read and write**
+> Ojo con esto, porque es la causa habitual de que el build falle: los Secrets
+> deben crearse en la pestaña **Secrets** del **repositorio**. Si se crean como
+> *Environment secrets* de `production`, el job `build` no los ve (no declara
+> `environment:`) y el login a GHCR falla con `Error: Password required`.
+
+Crea el token en **Settings → Developer settings → Personal access tokens**:
+
 - `GHCR_DEPLOY_TOKEN` → permiso **Packages: Read only**
 
 > ¿Por qué dos? El de escritura solo lo usa GitHub. El de lectura solo vive en la

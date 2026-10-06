@@ -16,8 +16,9 @@ name: Build & Deploy
 #
 # ── Configuración necesaria (Settings → Secrets and variables) ──────────────
 #   Secrets:
-#     GHCR_TOKEN           PAT con write:packages  (empuja imágenes)
 #     GHCR_DEPLOY_TOKEN    PAT con read:packages   (el servidor descarga)
+#   (para SUBIR imágenes no hace falta ningún PAT: usa el GITHUB_TOKEN nativo
+#    del repo, que ya tiene packages:write declarado en el bloque permissions)
 #     DEPLOY_SSH_KEY       clave privada ed25519, en formato PEM
 #     DEPLOY_SSH_USER      usuario (ubuntu)
 #     DEPLOY_SSH_PORT      puerto (22)
@@ -71,11 +72,15 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      # Se usa el GITHUB_TOKEN del propio repo (habilitado con
+      # `permissions: packages: write` más abajo) en lugar de un PAT personal:
+      # un token de escritura compartido es un riesgo innecesario, y si el
+      # Secret estuviera vacío el paso fallaría con "Password required".
       - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
         uses: docker/metadata-action@v5
