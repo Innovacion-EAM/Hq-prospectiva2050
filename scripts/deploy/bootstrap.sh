@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ── Arranque de la instancia (se ejecuta UNA VEZ) ─────────────────────────────
 # Deja la instancia Ubuntu lista para servir el sitio: instala Docker, crea swap,
-# clona el repo, genera los secretos y levanta los cinco contenedores con las
+# clona el repo, genera los secretos y levanta los seis contenedores con las
 # imágenes ya construidas por GitHub Actions.
 #
 # Es idempotente: volver a ejecutarlo NO borra datos ni sobrescribe secretos

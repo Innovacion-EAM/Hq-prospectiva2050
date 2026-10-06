@@ -1,6 +1,6 @@
 name: Limpieza de imágenes en GHCR
 
-# Cada push a main publica una versión nueva de los tres servicios en GitHub
+# Cada push a main publica una versión nueva de los cuatro servicios en GitHub
 # Container Registry, y ninguna se borra después: la cuota de almacenamiento de
 # la organización se llena en semanas. Este workflow deja las KEEP_VERSIONS
 # últimas de cada paquete y borra el resto.
@@ -67,7 +67,7 @@ jobs:
           GHCR_OWNER: innovacion-eam
           KEEP_VERSIONS: ${{ inputs.keep_versions || '2' }}
           DRY_RUN: ${{ github.event_name == 'schedule' && 'no' || (inputs.dry_run && 'yes' || 'no') }}
-          PACKAGES: hq-backend hq-frontend hq-backoffice
+          PACKAGES: hq-backend hq-frontend hq-backoffice hq-repo
         run: |
           if [ -z "$GHCR_TOKEN" ]; then
             echo "::error::Falta el secreto GHCR_CLEANUP_TOKEN (PAT con delete:packages)."
@@ -85,7 +85,7 @@ jobs:
             echo "### Limpieza de GHCR"
             echo
             echo "- Se conservan las ${{ inputs.keep_versions || 2 }} versiones más recientes"
-            echo "  de \`hq-backend\`, \`hq-frontend\` y \`hq-backoffice\`."
+            echo "  de \`hq-backend\`, \`hq-frontend\`, \`hq-backoffice\` y \`hq-repo\`."
             echo "- Los despliegues NO se ven afectados: solo se borran versiones"
             echo "  antiguas que ya nadie está usando."
             echo "- La limpieza automática corre cada lunes a las 04:17 UTC."

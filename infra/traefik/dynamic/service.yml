@@ -16,6 +16,11 @@ http:
         servers:
           - url: "http://backoffice:80"
 
+    repo:
+      loadBalancer:
+        servers:
+          - url: "http://repo:80"
+
     api:
       loadBalancer:
         servers:

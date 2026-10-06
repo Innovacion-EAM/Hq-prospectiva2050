@@ -64,6 +64,8 @@ jobs:
             context: ./frontend
           - service: backoffice
             context: ./backoffice
+          - service: repo
+            context: ./repo
     defaults:
       run:
         working-directory: ${{ matrix.context }}

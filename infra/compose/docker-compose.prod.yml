@@ -7,7 +7,7 @@
 #
 # Lo que define (todo lo demás se hereda del archivo base):
 #
-#   1. IMÁGENES — las 3 apps se descargan de GHCR en lugar de compilarse en el
+#   1. IMÁGENES — las 4 apps se descargan de GHCR en lugar de compilarse en el
 #      servidor. La t3.micro (1 vCPU / 1 GB) no debe ejecutar `vite build` ni
 #      `nest build`: por eso el flujo normal es `pull` + `up`, nunca `build`.
 #      Las imágenes las publica GitHub Actions (.github/workflows/deploy.yml).
@@ -60,6 +60,17 @@ services:
     pull_policy: always
     build:
       context: ../../backoffice
+      args:
+        VITE_MODE: prod
+        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com/api}
+        VITE_SITE_URL: ${VITE_SITE_URL:-https://prospectivaquindio2050.com}
+
+  repo:
+    image: ${HQ_REPO_IMAGE:-ghcr.io/innovacion-eam/hq-repo:latest}
+    platform: linux/amd64
+    pull_policy: always
+    build:
+      context: ../../repo
       args:
         VITE_MODE: prod
         VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com/api}

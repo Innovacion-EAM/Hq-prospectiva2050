@@ -33,6 +33,15 @@ http:
         - strip-admin
       service: backoffice
 
+    # /repo → repositorio de información (SPA bajo subruta, como /admin)
+    repo:
+      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/repo`)'
+      entryPoints:
+        - web
+      middlewares:
+        - strip-repo
+      service: repo
+
     # /api → backend (el middleware strip-api le quita /api)
     api:
       rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/api`)'

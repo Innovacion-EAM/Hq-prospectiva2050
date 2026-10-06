@@ -1,6 +1,6 @@
 # HQ Prospectiva 2050
 
-Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite), PostgreSQL, Docker Compose y Traefik. Tres formas de correr: **dev (npm)**, **docker local** y **producción**.
+Monorepo con **backend (NestJS)**, **frontend**, **backoffice** y **repositorio de información** (React + Vite), PostgreSQL, Docker Compose y Traefik. Tres formas de correr: **dev (npm)**, **docker local** y **producción**.
 
 ## Stack
 
@@ -9,22 +9,24 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 | backend | TypeScript · NestJS 12 · TypeORM · Node 24 | :3006 | `/api` |
 | frontend | TypeScript · React 19 · Vite 8 | :5173 | `/` |
 | backoffice | TypeScript · React 19 · Vite 8 | :1234 | `/admin` |
+| repo | TypeScript · React 19 · Vite 8 · Recharts | :4173 | `/repo` |
 | Infra | PostgreSQL 16 · Traefik v3.5 · nginx 1.27 | — | `localhost` vía Traefik |
 
 ## Documentación
 
 - ▶ **Guía completa (cómo correr cada servicio, puertos, compose, producción): [`docs/guia-del-proyecto.md`](docs/guia-del-proyecto.md)**
+- ▶ **Repositorio de información (la cuarta app, /repo): [`docs/repositorio-de-informacion.md`](docs/repositorio-de-informacion.md)**
 - ▶ **Despliegue en AWS EC2 con CI/CD (paso a paso): [`docs/despliegue-aws.md`](docs/despliegue-aws.md)**
 - ▶ **Dominio y HTTPS (para los dueños del dominio y para nosotros): [`docs/dominio-y-ssl.md`](docs/dominio-y-ssl.md)**
 
 ## Comandos rápidos
 
-`make help` muestra el menú completo (58 comandos). Lo esencial:
+`make help` muestra el menú completo. Lo esencial:
 
 ```bash
-make install       # dependencias de los 3 servicios
-make dev           # backend + frontend + backoffice (npm, hot-reload)
-make up            # entorno docker local (5 contenedores)
+make install       # dependencias de los 4 servicios
+make dev           # backend + frontend + backoffice + repo (npm, hot-reload)
+make up            # entorno docker local (6 contenedores)
 make prod-deploy   # producción: descarga imágenes de GHCR y rearranca
 make prod-smoke    # verificar que producción responde
 make backup        # respaldo de la base de datos

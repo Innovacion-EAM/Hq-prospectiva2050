@@ -89,6 +89,25 @@ services:
     networks:
       - hq-net
 
+  repo:
+    build:
+      context: ../../repo
+      args:
+        VITE_MODE: docker
+        VITE_API_URL: ${VITE_API_URL:-http://localhost/api}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:5173}
+    container_name: hq-repo
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
   traefik:
     image: traefik:v3.5
     container_name: hq-traefik
@@ -109,6 +128,8 @@ services:
       frontend:
         condition: service_healthy
       backoffice:
+        condition: service_healthy
+      repo:
         condition: service_healthy
     volumes:
       - ../traefik/traefik.yml:/etc/traefik/traefik.yml:ro

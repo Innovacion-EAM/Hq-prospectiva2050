@@ -2,17 +2,17 @@
 #  HQ PROSPECTIVA 2050 — Makefile de comandos
 # ════════════════════════════════════════════════════════════════════════════
 #  Centraliza TODOS los comandos del monorepo (backend + frontend + backoffice
-#  + docker + producción) en un solo lugar, para no recordarlos.
+#  + repo + docker + producción) en un solo lugar, para no recordarlos.
 #
 #  USO:
 #     make help                    → menú (también es el default con solo `make`)
 #     make <comando>               → ejecuta ese comando
 #     make <comando> SERVICE=X     → algunos comandos aceptan elegir el servicio
-#                                    (backend | frontend | backoffice | traefik | postgres)
+#                                    (backend | frontend | backoffice | repo | traefik | postgres)
 #
 #  ESTRUCTURA (secciones):
 #     1. Utilidades / diagnóstico
-#     2. Entorno dev  (npm LOCAL, sin docker: backend :3006, front :5173, backoffice :1234)
+#     2. Entorno dev  (npm LOCAL, sin docker: backend :3006, front :5173, backoffice :1234, repo :4173)
 #     3. Calidad      (lint, tests, formato)
 #     4. Docker       (entorno de contenedores LOCAL, traefik en http://localhost)
 #     5. Base de datos
@@ -69,8 +69,8 @@ help:
 doctor:
 	@echo "── 1. Docker ──"
 	@if docker info >/dev/null 2>&1; then echo "     [OK] docker disponible"; else echo "     [!] docker NO disponible (¿daemon apagado?)"; fi
-	@echo "── 2. Puertos dev (3006 backend · 5173 frontend · 1234 backoffice · 8080 traefik) ──"
-	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:8080 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "     (nada escuchando)"
+	@echo "── 2. Puertos dev (3006 backend · 5173 frontend · 1234 backoffice · 4173 repo · 8080 traefik) ──"
+	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:4173 -i tcp:8080 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "     (nada escuchando)"
 	@echo "── 3. Contenedores hq-* ──"
 	@docker ps --filter "name=hq-" --format "     {{.Names}}: {{.Status}}" 2>/dev/null || echo "     (docker no disponible)"
 	@echo "── 4. Archivos de entorno ──"
@@ -82,15 +82,15 @@ doctor:
 
 ## dev-status: Muestra quién está escuchando en los puertos dev
 dev-status:
-	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "Nada escuchando en puertos dev."
+	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:4173 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "Nada escuchando en puertos dev."
 
 # ────────────────────────────────────────────────────────────────────────────
 # 2. ENTORNO DEV (npm local, SIN docker)
 # ────────────────────────────────────────────────────────────────────────────
 
-## install: Instala las dependencias de los 3 servicios (paralelo)
+## install: Instala las dependencias de los 4 servicios (paralelo)
 install:
-	$(MAKE) -j3 install-backend install-frontend install-backoffice
+	$(MAKE) -j4 install-backend install-frontend install-backoffice install-repo
 
 ## install-backend: Instala dependencias del backend
 install-backend:
@@ -104,14 +104,19 @@ install-frontend:
 install-backoffice:
 	@cd backoffice && npm install
 
-## dev: Levanta los 3 servicios dev en paralelo (Ctrl+C detiene todo)
-#  Puedes levantarlos por separado con dev-backend / dev-frontend / dev-backoffice.
+## install-repo: Instala dependencias del repositorio (repo/)
+install-repo:
+	@cd repo && npm ci
+
+## dev: Levanta los 4 servicios dev en paralelo (Ctrl+C detiene todo)
+#  Puedes levantarlos por separado con dev-backend / dev-frontend / dev-backoffice / dev-repo.
 #  Si algo se queda colgado, usa `make dev-stop`.
 dev:
-	@echo "Levantando backend (:3006), frontend (:5173) y backoffice (:1234)... (Ctrl+C detiene todo)"
+	@echo "Levantando backend (:3006), frontend (:5173), backoffice (:1234) y repo (:4173)... (Ctrl+C detiene todo)"
 	@$(MAKE) dev-backend & \
 	$(MAKE) dev-frontend & \
 	$(MAKE) dev-backoffice & \
+	$(MAKE) dev-repo & \
 	wait
 
 ## dev-backend: Levanta el backend NestJS en :3006 con hot-reload (--watch)
@@ -126,9 +131,13 @@ dev-frontend:
 dev-backoffice:
 	@cd backoffice && npm run dev
 
-## dev-stop: Mata los procesos dev que estén en los puertos 3006/5173/1234
+## dev-repo: Levanta el repositorio Vite/React en :4173 (modo dev)
+dev-repo:
+	@cd repo && npm run dev
+
+## dev-stop: Mata los procesos dev que estén en los puertos 3006/5173/1234/4173
 dev-stop:
-	@pids=$$(lsof -ti tcp:3006 -ti tcp:5173 -ti tcp:1234); \
+	@pids=$$(lsof -ti tcp:3006 -ti tcp:5173 -ti tcp:1234 -ti tcp:4173); \
 	if [ -n "$$pids" ]; then \
 		echo "Matando procesos dev: $$pids"; kill $$pids; \
 	else \
@@ -139,8 +148,8 @@ dev-stop:
 # 3. CALIDAD (lint, tests, formato)
 # ────────────────────────────────────────────────────────────────────────────
 
-## lint: Ejecuta el lint (oxlint) de los 3 servicios
-lint: lint-backend lint-frontend lint-backoffice
+## lint: Ejecuta el lint (oxlint) de los 4 servicios
+lint: lint-backend lint-frontend lint-backoffice lint-repo
 
 ## lint-backend: Lint del backend
 lint-backend:
@@ -154,6 +163,10 @@ lint-frontend:
 lint-backoffice:
 	@cd backoffice && npm run lint
 
+## lint-repo: Lint del repositorio
+lint-repo:
+	@cd repo && npm run lint
+
 ## test: Ejecuta los tests (jest) del backend
 test:
 	@cd backend && npm test
@@ -166,9 +179,10 @@ format:
 # 4. DOCKER (entorno local de contenedores, traefik en http://localhost)
 # ────────────────────────────────────────────────────────────────────────────
 
-## up: Levanta el entorno docker local (5 servicios) en segundo plano
-#  Servicios: postgres (hq-db), backend, frontend, backoffice y traefik.
-#  Rutas: http://localhost  → frontend · http://localhost/admin → backoffice · http://localhost/api → backend
+## up: Levanta el entorno docker local (6 servicios) en segundo plano
+#  Servicios: postgres (hq-db), backend, frontend, backoffice, repo y traefik.
+#  Rutas: http://localhost  → frontend · http://localhost/admin → backoffice
+#         http://localhost/repo → repositorio · http://localhost/api → backend
 up:
 	@$(DOCKER) up -d --build
 	@echo "Levantando... revisa el estado con: make health"
@@ -324,7 +338,7 @@ prod-db-init: infra/compose/.env.prod
 	@echo "Esquema y semilla aplicados."
 
 ## prod-rollback: Vuelve a una versión anterior. Uso: make prod-rollback TAG=v1.0.0
-#  Fija los tres tags de imagen y rearranca.
+#  Fija los cuatro tags de imagen y rearranca.
 #  TAG=previous (el valor por defecto de la etiqueta) vuelve a la versión
 #  anterior: deploy.sh etiqueta la imagen en marcha como :previous ANTES de
 #  descargar la nueva. Sin ese paso no habría a dónde volver.
@@ -335,6 +349,7 @@ prod-rollback: infra/compose/.env.prod
 	@HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:$(TAG) \
 	 HQ_FRONTEND_IMAGE=ghcr.io/innovacion-eam/hq-frontend:$(TAG) \
 	 HQ_BACKOFFICE_IMAGE=ghcr.io/innovacion-eam/hq-backoffice:$(TAG) \
+	 HQ_REPO_IMAGE=ghcr.io/innovacion-eam/hq-repo:$(TAG) \
 	 $(PROD) up -d
 	@echo "Verifica con: make prod-smoke"
 
@@ -375,8 +390,9 @@ prod-shell: infra/compose/.env.prod
 	@$(PROD) exec -it $(or $(SERVICE),backend) sh
 
 ## prod-smoke: Smoke test de producción (verifica que la app responde de verdad)
-#  Comprueba: contenedores healthy · frontend (/) · backoffice (/admin) · backend
-#  (/api/health/db) · comportamiento de https (depende de la decisión SSL pendiente).
+#  Comprueba: contenedores healthy · frontend (/) · backoffice (/admin) · repo
+#  (/repo) · backend (/api/health/db) · comportamiento de https (depende de la
+#  decisión SSL pendiente).
 #  OJO: se envía el Host de HQ_SITE_HOST porque los routers de Traefik filtran por
 #  host. Sin esa cabecera, con el dominio real configurado todo respondería 404.
 prod-smoke: infra/compose/.env.prod
@@ -384,18 +400,21 @@ prod-smoke: infra/compose/.env.prod
 	@HQ_HOST=$$(grep -E '^HQ_SITE_HOST=' $(COMPOSE_DIR)/.env.prod | cut -d= -f2- | tr -d '"'); \
 	HQ_HOST="$${HQ_HOST:-localhost}"; \
 	echo "  Host probado: $$HQ_HOST"; \
-	echo "[1/5] Contenedores:"; \
+	echo "[1/6] Contenedores:"; \
 	$(PROD) ps --format "  {{.Name}}: {{.Status}}"; \
-	echo "[2/5] Frontend y backoffice (vía traefik):"; \
+	echo "[2/6] Frontend, backoffice y repo (vía traefik):"; \
 	curl -sk -o /dev/null -w "  /        → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/; \
 	curl -sk -o /dev/null -w "  /admin   → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/admin; \
-	echo "[3/5] Assets reales:"; \
-	echo "  (pedir /admin solo devuelve el HTML: el panel puede salir en blanco aunque dé 200)"; \
-	for svc in frontend backoffice; do \
+	curl -sk -o /dev/null -w "  /repo    → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/repo; \
+	echo "[3/6] Assets reales:"; \
+	echo "  (pedir /admin o /repo solo devuelve el HTML: el panel puede salir en blanco aunque dé 200)"; \
+	for svc in frontend backoffice repo; do \
 	  asset=$$($(PROD) exec -T $$svc sh -c 'ls /usr/share/nginx/html/assets/*.js 2>/dev/null | head -1' 2>/dev/null | tr -d '\r'); \
 	  if [ -z "$$asset" ]; then echo "  [!] No se encontró ningún asset en $$svc"; continue; fi; \
 	  base=$$(basename "$$asset"); \
-	  prefix=""; [ "$$svc" = "backoffice" ] && prefix="/admin"; \
+	  prefix=""; \
+	  if [ "$$svc" = "backoffice" ]; then prefix="/admin"; fi; \
+	  if [ "$$svc" = "repo" ]; then prefix="/repo"; fi; \
 	  code=$$(curl -sk -o /dev/null -w '%{http_code}' -H "Host: $$HQ_HOST" "http://localhost$$prefix$$asset"); \
 	  if [ "$$code" = "200" ]; then \
 	    echo "  OK       $$svc $$prefix$$base → HTTP 200"; \
@@ -404,9 +423,11 @@ prod-smoke: infra/compose/.env.prod
 	    echo "           [!] $$svc NO sirve sus assets: la página saldrá en blanco."; \
 	  fi; \
 	done; \
-	echo "[4/5] Backend health (db):"; \
+	echo "[4/6] Backend health (db):"; \
 	curl -sk -H "Host: $$HQ_HOST" http://localhost/api/health/db | head -c 200; echo; \
-	echo "[5/5] HTTPS (neutro si aún no hay certificado):"; \
+	echo "[5/6] API del repositorio (pública):"; \
+	curl -sk -H "Host: $$HQ_HOST" http://localhost/api/repositorio/estadisticas | head -c 120; echo; \
+	echo "[6/6] HTTPS (neutro si aún no hay certificado):"; \
 	if [ -s $(COMPOSE_DIR)/../traefik/certs/acme.json ] 2>/dev/null; then \
 	  curl -sk -o /dev/null -w "  https://$$HQ_HOST → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" https://localhost/ || echo "  (hay acme.json pero https no responde)"; \
 	else \
@@ -482,9 +503,9 @@ status:
 # Targets sin archivo asociado (fuerzan a make a ejecutarlos siempre)
 # ────────────────────────────────────────────────────────────────────────────
 .PHONY: help doctor dev-status \
-        install install-backend install-frontend install-backoffice \
-        dev dev-backend dev-frontend dev-backoffice dev-stop \
-        lint lint-backend lint-frontend lint-backoffice test format \
+        install install-backend install-frontend install-backoffice install-repo \
+        dev dev-backend dev-frontend dev-backoffice dev-repo dev-stop \
+        lint lint-backend lint-frontend lint-backoffice lint-repo test format \
         up down down-v ps health logs build rebuild restart config \
         db-shell db-logs db-reset db-schema db-seed shell \
         env-prod prod-config prod-build prod-up prod-deploy prod-down \

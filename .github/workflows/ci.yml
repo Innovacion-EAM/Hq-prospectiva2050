@@ -90,6 +90,8 @@ jobs:
             dir: frontend
           - app: backoffice
             dir: backoffice
+          - app: repo
+            dir: repo
     defaults:
       run:
         working-directory: ${{ matrix.dir }}

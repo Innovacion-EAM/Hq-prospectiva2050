@@ -33,7 +33,7 @@ set -euo pipefail
 KEEP_VERSIONS="${KEEP_VERSIONS:-2}"
 KEEP_PROTECTED_TAGS="${KEEP_PROTECTED_TAGS:-latest}"
 DRY_RUN="${DRY_RUN:-no}"
-PACKAGES="${PACKAGES:-hq-backend hq-frontend hq-backoffice}"
+PACKAGES="${PACKAGES:-hq-backend hq-frontend hq-backoffice hq-repo}"
 API="https://api.github.com"
 
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
