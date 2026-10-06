@@ -22,10 +22,11 @@ la instancia solo las descarga.
 6. [Paso 4 — Primer despliegue](#paso-4--primer-despliegue)
 7. [Paso 5 — Despliegues siguientes](#paso-5--despliegues-siguientes)
 8. [Rollback](#rollback)
-9. [Copias de seguridad](#copias-de-seguridad)
-10. [Diagnóstico de problemas](#diagnóstico-de-problemas)
-11. [Activar HTTPS](#activar-https)
-12. [Hardening y decisiones abiertas](#hardening-y-decisiones-abiertas)
+9. [Limpieza de disco e imágenes](#limpieza-de-disco-e-imágenes)
+10. [Copias de seguridad](#copias-de-seguridad)
+11. [Diagnóstico de problemas](#diagnóstico-de-problemas)
+12. [Activar HTTPS](#activar-https)
+13. [Hardening y decisiones abiertas](#hardening-y-decisiones-abiertas)
 
 ---
 
@@ -332,18 +333,39 @@ producción un commit sin querer.
 
 ## Rollback
 
-Las imágenes anteriores **se conservan** en el servidor: el prune solo borra
-imágenes sin etiqueta.
+Cada versión anterior se conserva en el servidor con la etiqueta `:previous`.
+No es una limpieza automática: `deploy.sh` etiqueta la imagen que está en
+marcha **antes** de descargar la nueva. Sin ese paso, al tirar de `:latest` la
+anterior se quedaría sin ninguna etiqueta y la poda se la llevaría.
 
 ```bash
 cd /opt/hq-prospectiva2050
 
-# Mira qué hay disponible
+# Qué hay disponible (cada servicio con :latest y :previous)
 docker images | grep hq-
 
-# Vuelve a una versión
-make prod-rollback TAG=v1.0.0
+# Vuelve a la versión anterior
+make prod-rollback TAG=previous
 make prod-smoke
+```
+
+Ajuste del margen de rollback:
+
+```bash
+KEEP_IMAGE_VERSIONS=3 bash scripts/deploy/deploy.sh   # 3 versiones
+```
+
+> El volumen de la instancia es de 6,7 GB. Subir mucho este número llena el
+> disco, y cuando se llena se para la base de datos: no hay despliegue posible.
+> Con 2 (el valor por defecto) sobra.
+
+Rollback permanente: fija los tags en `infra/compose/.env.prod` para que un
+despliegue posterior no los sobrescriba.
+
+```bash
+echo 'HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:v1.0.0'   >> infra/compose/.env.prod
+echo 'HQ_FRONTEND_IMAGE=ghcr.io/innovacion-eam/hq-frontend:v1.0.0' >> infra/compose/.env.prod
+echo 'HQ_BACKOFFICE_IMAGE=ghcr.io/innovacion-eam/hq-backoffice:v1.0.0' >> infra/compose/.env.prod
 ```
 
 Rollback permanente: fija los tags en `infra/compose/.env.prod` para que un
@@ -358,6 +380,75 @@ echo 'HQ_BACKOFFICE_IMAGE=ghcr.io/innovacion-eam/hq-backoffice:v1.0.0' >> infra/
 El `rollback` no deshace cambios de esquema en la base de datos. `db-init` solo
 **añade** columnas y tablas, nunca las borra, así que una versión antigua
 funcionará contra un esquema más nuevo, pero al revés puede no ser cierto.
+
+---
+
+## Limpieza de disco e imágenes
+
+El volumen de la instancia es de **6,7 GB**, y cada despliegue baja del orden de
+560 MB. Sin limpieza, las versiones viejas se acumulan y el disco se llena;
+cuando eso pasa se para la base de datos y ya no hay despliegue posible. Por eso
+`deploy.sh` limpia solo, en dos sitios distintos.
+
+### En el servidor
+
+`deploy.sh` hace dos cosas, en este orden:
+
+1. **Antes** de descargar la imagen nueva, etiqueta la que está en marcha como
+   `:previous`. Así siempre queda una versión anterior a la que volver.
+2. **Después** de arrancar, borra las que sobren. Se conservan
+   `KEEP_IMAGE_VERSIONS` por servicio (2 por defecto: la desplegada y la
+   anterior).
+
+```bash
+cd /opt/hq-prospectiva2050
+
+# Simular, sin borrar nada
+DRY_RUN=yes KEEP_VERSIONS=2 bash scripts/deploy/images.sh prune \
+  ghcr.io/innovacion-eam/hq-backend \
+  ghcr.io/innovacion-eam/hq-frontend \
+  ghcr.io/innovacion-eam/hq-backoffice
+
+# Qué ocupa el disco
+docker system df
+df -h /
+```
+
+La poda **nunca borra** la imagen que usa un contenedor en marcha, ni la
+etiqueta `:latest`, ni la `:previous`. La protección es por nombre y por uso, no
+por antigüedad: si se protegiera solo "lo más reciente", cualquier imagen con
+fecha mayor (una reconstrucción, una etiqueta puesta a mano) desplazaría a
+`latest` y se llevaría por delante la imagen que está sirviendo.
+
+> Ojo con Docker 29 y el snapshotter de containerd: el ID que muestra
+> `docker image ls` y el que registra el contenedor no siempre coinciden. Por eso
+> el script protege las dos referencias, no solo una.
+
+### En GHCR
+
+Cada push a `main` publica una versión nueva y **ninguna se borra sola**: la
+cuota de almacenamiento de la organización se llena en semanas.
+
+| Qué | Dónde |
+|---|---|
+| Workflow | [`.github/workflows/cleanup-ghcr.yml`](../.github/workflows/cleanup-ghcr.yml) |
+| Script | `scripts/deploy/prune-ghcr.sh` |
+| Cuándo | lunes 04:17 UTC, y a mano desde *Actions → Limpieza de imágenes en GHCR* |
+
+Necesita el secreto **`GHCR_CLEANUP_TOKEN`**: un PAT con el scope
+`delete:packages`. Ojo, `read:packages` **no** sirve: es el permiso que
+permite leer los paquetes, y hace falta el de borrar. El `GITHUB_TOKEN` del
+propio workflow tampoco vale, aunque ya tenga `packages: write`.
+
+```bash
+# Avatar → Settings → Developer settings → Personal access tokens
+# → Tokens (classic) → Generate new token (classic)
+# Scope: SOLO delete:packages
+# → Settings → Secrets and variables → Actions → New repository secret
+```
+
+La primera vez, conviene probarlo en modo simulación (el botón de dispatched
+trae `dry_run` activado por defecto) y comprobar la lista antes de borrar.
 
 ---
 

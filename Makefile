@@ -324,10 +324,13 @@ prod-db-init: infra/compose/.env.prod
 	@echo "Esquema y semilla aplicados."
 
 ## prod-rollback: Vuelve a una versión anterior. Uso: make prod-rollback TAG=v1.0.0
-#  Fija los tres tags de imagen y rearranca. Las imágenes viejas se conservan en el
-#  servidor porque el prune solo borra imágenes sin etiqueta.
+#  Fija los tres tags de imagen y rearranca.
+#  TAG=previous (el valor por defecto de la etiqueta) vuelve a la versión
+#  anterior: deploy.sh etiqueta la imagen en marcha como :previous ANTES de
+#  descargar la nueva. Sin ese paso no habría a dónde volver.
+#  La poda conserva KEEP_IMAGE_VERSIONS versiones por servicio (2 por defecto).
 prod-rollback: infra/compose/.env.prod
-	@[ -n "$(TAG)" ] || { echo "Uso: make prod-rollback TAG=v1.0.0"; exit 1; }
+	@[ -n "$(TAG)" ] || { echo "Uso: make prod-rollback TAG=previous (o un tag como v1.0.0)"; exit 1; }
 	@echo "== Reverting a $(TAG) =="
 	@HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:$(TAG) \
 	 HQ_FRONTEND_IMAGE=ghcr.io/innovacion-eam/hq-frontend:$(TAG) \
