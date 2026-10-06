@@ -12,10 +12,11 @@ import { RepositorioService } from './../src/data/repositorio.service';
  */
 const TEST_PASSWORD = 'Prueba-Solo-CI-2026';
 
+const runId = Date.now().toString(36);
 let accountSeq = 0;
 function freshEmail(prefix: string): string {
   accountSeq += 1;
-  return `${prefix}-${accountSeq}@prospectiva.test`;
+  return `${prefix}-${runId}-${accountSeq}@prospectiva.test`;
 }
 
 /**

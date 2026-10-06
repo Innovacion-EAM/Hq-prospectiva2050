@@ -14,19 +14,14 @@ http:
   routers:
     # / → frontend (catch-all)
     frontend:
-      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/`)'
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/`)'
       entryPoints:
         - web
       service: frontend
 
     # /admin → backoffice (SPA servida bajo subruta)
-    # El middleware strip-admin le quita /admin, igual que strip-api hace con la
-    # API. Así nginx sirve el panel en "/" con su try_files normal. Si no se
-    # quitara el prefijo, nginx tendría que resolver /admin/** con `alias`, y
-    # `try_files $uri` dentro de un `alias` busca contra el root del server y no
-    # contra el alias: los assets devolverían 500 y el panel saldría en blanco.
     backoffice:
-      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/admin`)'
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/admin`)'
       entryPoints:
         - web
       middlewares:
@@ -35,7 +30,7 @@ http:
 
     # /repo → repositorio de información (SPA bajo subruta, como /admin)
     repo:
-      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/repo`)'
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/repo`)'
       entryPoints:
         - web
       middlewares:
@@ -44,7 +39,7 @@ http:
 
     # /api → backend (el middleware strip-api le quita /api)
     api:
-      rule: 'Host(`{{ env "HQ_SITE_HOST" }}`) && PathPrefix(`/api`)'
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/api`)'
       entryPoints:
         - web
       middlewares:

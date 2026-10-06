@@ -27,10 +27,11 @@ const TEST_PASSWORD = 'Prueba-Solo-CI-2026';
  * aparecería en el test equivocado. Con correos distintos, cada uno tiene su
  * contador y los tests son independientes.
  */
+const runId = Date.now().toString(36);
 let accountSeq = 0;
 function freshEmail(prefix: string): string {
   accountSeq += 1;
-  return `${prefix}-${accountSeq}@prospectiva.test`;
+  return `${prefix}-${runId}-${accountSeq}@prospectiva.test`;
 }
 
 describe('Autenticación (e2e)', () => {

@@ -63,29 +63,32 @@ const FORMS_LIMIT = 3;
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [
-        {
-          name: 'default',
-          ttl: seconds(
-            config.get<number>('THROTTLE_TTL_DEFAULT', DEFAULT_TTL_SECONDS),
-          ),
-          limit: config.get<number>('THROTTLE_LIMIT_DEFAULT', DEFAULT_LIMIT),
-        },
-        {
-          name: 'login',
-          ttl: seconds(
-            config.get<number>('THROTTLE_TTL_LOGIN', LOGIN_TTL_SECONDS),
-          ),
-          limit: config.get<number>('THROTTLE_LIMIT_LOGIN', LOGIN_LIMIT),
-        },
-        {
-          name: 'forms',
-          ttl: seconds(
-            config.get<number>('THROTTLE_TTL_FORMS', FORMS_TTL_SECONDS),
-          ),
-          limit: config.get<number>('THROTTLE_LIMIT_FORMS', FORMS_LIMIT),
-        },
-      ],
+      useFactory: (config: ConfigService) => {
+        const isCi = config.get<string>('APP_ENV') === 'ci' || config.get<string>('THROTTLE_ENABLED') === 'false';
+        return [
+          {
+            name: 'default',
+            ttl: seconds(
+              config.get<number>('THROTTLE_TTL_DEFAULT', DEFAULT_TTL_SECONDS),
+            ),
+            limit: isCi ? 10000 : config.get<number>('THROTTLE_LIMIT_DEFAULT', DEFAULT_LIMIT),
+          },
+          {
+            name: 'login',
+            ttl: seconds(
+              config.get<number>('THROTTLE_TTL_LOGIN', LOGIN_TTL_SECONDS),
+            ),
+            limit: isCi ? 10000 : config.get<number>('THROTTLE_LIMIT_LOGIN', LOGIN_LIMIT),
+          },
+          {
+            name: 'forms',
+            ttl: seconds(
+              config.get<number>('THROTTLE_TTL_FORMS', FORMS_TTL_SECONDS),
+            ),
+            limit: isCi ? 10000 : config.get<number>('THROTTLE_LIMIT_FORMS', FORMS_LIMIT),
+          },
+        ];
+      },
     }),
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
