@@ -297,6 +297,23 @@ Y ya está. Actions hace el resto. Para ver el progreso:
 
 **Actions → Build & Deploy** en GitHub.
 
+> **Comando clave en el servidor** — cuando quieras traer lo último de GHCR sin
+> esperar al push automático (p. ej. para rollback manual, hotfix o forzar
+> reinicio):
+>
+> ```bash
+> cd /opt/hq-prospectiva2050
+> bash scripts/deploy/deploy.sh
+> ```
+>
+> Ese script hace: `git pull` → `docker login ghcr.io` → `docker compose pull`
+> → `db-init` → `docker compose up -d` → health check. Es **idempotente** y
+> seguro ejecutarlo las veces que haga falta.
+
+Y ya está. Actions hace el resto. Para ver el progreso:
+
+**Actions → Build & Deploy** en GitHub.
+
 ### Qué dispara qué
 
 | Evento                    | Construye | Publica | Despliega |
