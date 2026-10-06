@@ -29,7 +29,7 @@ export interface Paginated<T> {
 /** Un grupo de la agregación (filtros y gráficas). */
 export interface Grupo {
   clave: string | number | null;
-  etiqueta?: string;
+  etiqueta?: string | null;
   count: number;
 }
 

@@ -78,7 +78,7 @@ function toLink(raw: string | null | undefined): string | null {
  */
 export function normalizarFilaRepositorio(
   raw: Record<string, string>,
-  fila: number,
+  _fila: number,
 ): { item: ImportableRepositorioItem } | { error: string } {
   const titulo = (raw.titulo ?? '').trim();
   if (!titulo) {

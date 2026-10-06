@@ -43,7 +43,8 @@ async function bootstrap() {
   // X-Forwarded-For que envíe el cliente, y entonces bastaría con mandar esa
   // cabecera para inventarse la IP y esquivar los límites. Con `1` solo se
   // confía en el primer salto, que es Traefik.
-  app.set('trust proxy', 1);
+  const expressApp = app.getHttpAdapter().getInstance() as express.Express;
+  expressApp.set('trust proxy', 1);
 
   await app.listen(config.get<number>('PORT') ?? 3000);
 }
