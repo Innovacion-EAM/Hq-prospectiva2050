@@ -23,7 +23,10 @@
 set -uo pipefail
 
 BASE="${BASE:-http://localhost}"
-API="$BASE/api/api"
+# La API pública es el origen más `/api`: el prefijo lo pone el backend
+# (prefijo global de Nest) y Traefik pasa la petición tal cual — ver
+# backend/src/app.setup.ts y infra/traefik/dynamic/routes.yml.
+API="$BASE/api"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@prospectiva.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin123*}"
 

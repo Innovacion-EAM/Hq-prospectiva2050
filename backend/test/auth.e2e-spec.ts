@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { configureApp } from './../src/app.setup';
 
 describe('Autenticación (e2e)', () => {
   let app: INestApplication<App>;
@@ -13,7 +14,7 @@ describe('Autenticación (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
+    configureApp(app);
     await app.init();
   });
 

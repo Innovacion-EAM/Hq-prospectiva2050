@@ -18,6 +18,13 @@ const buttonVariants = cva(
         // `hot` se conserva porque aparece en varios `<Button variant="hot">` y
         // renombrarlo sería romperlos sin ganar nada.
         hot: "bg-lime-btn text-white hover:brightness-110",
+        // Sin ningún color, para los botones cuyo color elige el editor desde el
+        // panel (portada → Ajustes → Home) y llega en `className`. Con cualquier
+        // otra variante se mezclan: `tailwind-merge` resuelve bien los `bg-*` y
+        // los `text-*` duplicados, pero no puede saber que `hover:bg-lime-ink` y
+        // `hover:brightness-110` son del mismo botón y se quedan **los dos** —
+        // al pasar el ratón el fondo se oscurecía y además se aclaraba.
+        pintado: "",
       },
       size: {
         sm: "h-9 rounded-pill px-4 text-xs",

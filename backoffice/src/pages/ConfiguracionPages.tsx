@@ -1,8 +1,9 @@
+import { Navigate } from "react-router-dom";
 import { ConfigCrud, type FieldDef } from "@/components/config-crud";
 import { Badge } from "@/components/ui";
 import { collections } from "@/lib/data";
 import { ICONOS_CATEGORIA, STATUS_TALLER } from "@/lib/types";
-import type { DocCategoria, Entidad, Municipio, Stat, Taller } from "@/lib/types";
+import type { DocCategoria, Municipio, Stat, Taller } from "@/lib/types";
 
 export function EstadisticasPage() {
   const fields: FieldDef<Stat>[] = [
@@ -23,19 +24,7 @@ export function EstadisticasPage() {
 }
 
 export function EntidadesPage() {
-  const fields: FieldDef<Entidad>[] = [
-    { key: "nombre", label: "Nombre de la entidad", hint: "Aparece en la lista de la red institucional." },
-  ];
-  return (
-    <ConfigCrud<Entidad>
-      title="Entidades aliadas"
-      description="Las doce instituciones que conforman el arreglo institucional del ejercicio."
-      store={collections.entidades}
-      empty={() => ({ id: 0, nombre: "" })}
-      fields={fields}
-      columns={(e) => [e.nombre]}
-    />
-  );
+  return <Navigate to="/configuracion?modulo=proyecto" replace />;
 }
 
 export function MunicipiosPage() {

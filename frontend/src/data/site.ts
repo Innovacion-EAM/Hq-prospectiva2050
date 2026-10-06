@@ -50,9 +50,49 @@ export const LOGO = {
   url: "" as string,
 };
 
+/**
+ * Los colores con los que se puede pintar un botón de la portada.
+ *
+ * No son solo del hero: **todos** los botones de la portada eligen de esta misma
+ * lista, y es lo que hace que el sitio se vea igual aunque cada sección tenga el
+ * suyo. Deben coincidir con `COLORES_BOTON` del backend —la clave es lo que viaja
+ * por la API y lo que se guarda— y con el mapa de clases de
+ * `portada-colores.ts`, que es donde la clave se traduce a color. Si se añade un
+ * color en uno de los tres sitios y no en los otros, el backend responde 400 al
+ * guardar o el botón sale sin fondo.
+ *
+ * La lista es cerrada y corta a propósito: cada color viene con el texto que sí
+ * contrasta con él (los ratios están en `portada-colores.ts`), y con un selector
+ * libre se podía elegir un fondo claro con la letra oscura encima y quedaría
+ * ilegible sin que nada lo avisara.
+ */
+export const COLORES_BOTON = ["lima", "lima-oscuro", "verde", "tinta", "convoca"] as const;
+export type ColorBoton = (typeof COLORES_BOTON)[number];
 
+/**
+ * Los colores válidos para el botón que va **encima de la caja lima** del hero.
+ *
+ * Una lista aparte porque la caja es lima: un botón lima encima de una caja lima
+ * es el mismo color con el mismo texto encima, y el botón deja de verse. Los tres
+ * que quedan son oscuros y se leen bien tanto ahí como sobre el papel. El backend
+ * valida contra su propia copia de esta lista.
+ */
+export const COLORES_BOTON_SOBRE_LIMA = ["verde", "tinta", "convoca"] as const;
+export type ColorBotonSobreLima = (typeof COLORES_BOTON_SOBRE_LIMA)[number];
 
-
+/**
+ * Las entidades aliadas de la red institucional.
+ *
+ * Antes viajaban en su propia tabla (`config_entidades`) con una pantalla
+ * aparte en el panel. Desde que la lista se edita y ordena en Ajustes → El
+ * proyecto viven en `PORTADA.elProyecto.entidades` —como el resto del contenido
+ * de esa página, con un solo guardado—, y esta constante queda como respaldo
+ * para cuando no hay nada guardado.
+ *
+ * CEPAL no está aquí: va siempre al final del respaldo de `elProyecto` (es la
+ * entidad que trae el acompañamiento técnico), y en `/proyecto` se pinta con su
+ * caja lima cuando el nombre contiene "CEPAL".
+ */
 export const ENTITIES = [
   "Gobernación del Quindío",
   "Alcaldía de Armenia",
@@ -67,6 +107,91 @@ export const ENTITIES = [
   "Facilísimo",
   "Empresa de Energía del Quindío",
 ];
+
+/**
+ * La portada: el hero y las secciones que van desde ahí hasta antes del pie de
+ * página, **más la página `/proyecto`** (la sección `elProyecto`).
+ *
+ * El contenido de `/proyecto` vive aquí porque las secciones editables del
+ * sitio viven todas en `home` (jsonb) y el módulo «El proyecto» del panel la
+ * edita con el mismo guardado que el resto. No es que la página sea parte de la
+ * portada: es que comparten almacenamiento.
+ *
+ * Esto ya no es la fuente de verdad: llega de la base, se edita bloque a bloque en
+ * Ajustes y viene por `/api/site`. Queda como **respaldo** para cuando no hay nada
+ * guardado o la API falla, con el mismo criterio que el menú y los textos del
+ * logo: un texto vacío cae aquí en vez de dejar la sección a medias.
+ *
+ * Está duplicado a propósito en `backend/src/seed-data.ts` (semilla) — los dos
+ * paquetes no se importan entre sí —, así que **si se cambia aquí, hay que
+ * cambiarlo allá**.
+ */
+export const PORTADA = {
+  hero: {
+    fondo: "/images/hero-city.jpg",
+    imagen: "/images/hero-people.jpg",
+    botonTexto: "Explorar más »",
+    botonColor: "lima" as ColorBoton,
+    cajaTitulo: "¿Tienes alguna pregunta o quieres darnos una recomendación?",
+    cajaBotonColor: "verde" as ColorBotonSobreLima,
+  },
+  proyecto: {
+    fondo: "/images/city-aerial.jpg",
+    titulo: "El proyecto",
+    texto:
+      "Un ejercicio participativo con catorce entidades y la CEPAL para construir la visión de largo plazo del departamento.",
+    tarjetaBoton: "Explorar más >>",
+    botonColor: "lima" as ColorBoton,
+    dimsTitulo: "Las cuatro dimensiones",
+    dimsTexto:
+      "Cuatro lecturas del territorio que estructuran la lectura del Quindío. Toca una para desplegar su resumen.",
+    accionTitulo: "Del diagnóstico a la acción",
+  },
+  elProyecto: {
+    fondo: "/images/hero-city.jpg",
+    titulo: "Una visión compartida para el Quindío",
+    intro:
+      "Catorce entidades del departamento y la CEPAL construyen, entre 2026 y 2027, la hoja de ruta al 2050.",
+    parrafoUno:
+      "Horizonte Quindío es un ejercicio de prospectiva territorial. No predice el futuro: lo acuerda. Parte del diagnóstico de capacidades, construye escenarios con la gente del departamento e institucionaliza un observatorio para que la visión sobreviva a los ciclos políticos.",
+    parrafoDos:
+      "El 24 de marzo de 2026 se presentó en la Universidad del Quindío, con el acompañamiento del ILPES-CEPAL. Es el primer ejercicio de este tipo en el departamento en más de veinte años.",
+    etapas: [
+      "Diagnóstico y diseño metodológico",
+      "Escenarios y visión compartida",
+      "Institucionalización y observatorio",
+    ],
+    entidades: [...ENTITIES, "CEPAL — ILPES (acompañamiento técnico)"],
+  },
+  cobertura: {
+    titulo: "Todo el departamento participa",
+    texto: "La visión del 2050 se construye para el Quindío completo, no solo para Armenia.",
+  },
+  documentos: {
+    titulo: "Documentos y publicaciones",
+    texto:
+      "Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y piezas de socialización. Explora cada categoría del repositorio.",
+    botonColor: "lima" as ColorBoton,
+  },
+  noticias: {
+    titulo: "Noticias",
+    texto:
+      "Comunicados, talleres, convocatorias y avances del ejercicio de prospectiva territorial.",
+    botonTexto: "Ver todas",
+    botonColor: "lima" as ColorBoton,
+    tarjetaBotonColor: "lima" as ColorBoton,
+  },
+  contacto: {
+    titulo: "Contactos",
+    texto:
+      "Escríbenos para más información sobre el ejercicio de prospectiva, los talleres o las convocatorias abiertas del departamento.",
+    formTitulo: "Escríbenos para más información",
+    botonColor: "tinta" as ColorBoton,
+    enviarColor: "tinta" as ColorBoton,
+  },
+};
+
+export type Portada = typeof PORTADA;
 
 export type ProjectPage = {
   slug: string;
@@ -491,7 +616,9 @@ export const FOOTER_COLS = [
       { label: "El proyecto", href: "/proyecto" },
       { label: "Dimensiones", href: "/dimensiones" },
       { label: "Documentos", href: "/documentos" },
+      { label: "Noticias", href: "/noticias" },
       { label: "Participa", href: "/participa" },
+      { label: "Contáctanos", href: "/contactos" },
     ],
   },
   {
@@ -513,6 +640,7 @@ export const FOOTER_COLS = [
       { label: "Dimensión físico-ambiental", href: "/dimensiones/fisico-ambiental" },
       { label: "Dimensión socio-cultural", href: "/dimensiones/socio-cultural" },
       { label: "Misiones del proceso", href: "/dimensiones/misiones" },
+      { label: "Retos transversales", href: "/dimensiones/retos" },
       { label: "Iniciativas y fichas", href: "/dimensiones/iniciativas" },
       { label: "Hallazgos y tendencias", href: "/dimensiones/hallazgos" },
     ],
@@ -525,6 +653,22 @@ export const FOOTER_COLS = [
     links: [{ label: "Aviso de privacidad", href: "/privacidad" }],
   },
 ];
+
+/**
+ * La columna del pie que sí se elige desde el panel: las tarjetas de «El
+ * proyecto».
+ *
+ * Las otras tres columnas son fijas y salen de `FOOTER_COLS`: son el temario
+ * del sitio entero (menú, dimensiones) y el aviso legal, no contenido que
+ * cambie según quien administre. Esta, en cambio, se edita en **Ajustes →
+ * Footer** y vive en `home.footer.enlaces`; lo que hay aquí es solo su
+ * respaldo —lo que se ve si nunca se ha guardado nada—, igual que `NAV` frente
+ * a los enlaces del menú.
+ *
+ * El respaldo es además lo que siembra el backend en una base nueva, así que
+ * si cambia aquí, hay que cambiarlo también en `backend/src/seed-data.ts`.
+ */
+export const FOOTER_PROYECTO_FALLBACK = FOOTER_COLS[1].links;
 
 export function getProject(slug: string) {
   return PROJECT_PAGES.find((p) => p.slug === slug);

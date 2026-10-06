@@ -1,4 +1,5 @@
 import { PartialType } from "@nestjs/mapped-types";
+import { applyDecorators } from "@nestjs/common";
 import { Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
@@ -36,6 +37,27 @@ export const ROLES = ['admin', 'editor'] as const;
 /** Convierte '' y null en undefined para que @IsOptional los trate como ausentes. */
 export const VacioOpcional = () =>
   Transform(({ value }) => (value === '' || value === null ? undefined : value));
+
+/**
+ * Como `VacioOpcional`, pero para los campos de imagen de la portada.
+ *
+ * La diferencia —y el motivo de que esto exista— es que el vacío significa aquí
+ * **"usa la imagen que trae el sitio"**, y es un valor que el editor tiene que
+ * poder guardar: es lo que hace el botón «Usar la del sitio» del panel. Con
+ * `VacioOpcional` el vacío llegaba como `undefined` y el guardado respondía `400`
+ * ("La imagen de fondo debe empezar por "/" o por "https://""), porque
+ * `@Matches` no acepta la cadena vacía y el campo vacío sí llega al validador.
+ *
+ * O sea: sin esto **no se podía quitar una imagen de la portada**. Subir una
+ * nueva funcionaba, pero volver a la del sitio —justo lo que hace ese botón—
+ * no, y la causa era que el campo vacío y el campo "no vine a tocarlo" se
+ * confundían en el mismo hueco.
+ *
+ * Se aplica en las tres imágenes de la portada (`hero.fondo`, `hero.imagen` y
+ * `proyecto.fondo`), que son las que el panel edita con ese botón.
+ */
+export const VacioEnPortada = () =>
+  Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value));
 
 /**
  * Recorta los espacios de los bordes antes de validar.
@@ -427,6 +449,412 @@ export class NavLinkDto {
   href!: string;
 }
 
+/**
+ * Colores del botón del hero.
+ *
+ * No es libre, y a propósito. El botón lleva el texto dentro de un color
+ * concreto, así que aceptar cualquier hexadecimal dejaría poder elegir, sin
+ * querer, un fondo claro con letra oscura encima —ilegible— sin que nada lo
+ * avise. Con una lista corta de colores del propio sitio, todos ellos con su
+ * texto ya emparejado, el contraste está garantizado por construcción.
+ *
+ * Los pares son estos:
+ *   - `lima`        `#c6e85c` con texto `#1c3334` → 9,60:1 (el de siempre)
+ *   - `lima-oscuro` `#b5dc4a` con texto `#1c3334` → 8,86:1
+ *   - `verde`       `#3f6b0e` con texto blanco    → 6,32:1
+ *   - `tinta`       `#0b3336` con texto blanco    → 15,3:1
+ *   - `convoca`     `#5b2d8a` con texto blanco    → 8,6:1
+ *
+ * Todos por encima del 4,5:1 que pide WCAG AA para texto normal. Si algún día
+ * hace falta un color más, se añade aquí **y** en el mapa del frontend
+ * (`COLOR_BOTON`), que es donde se traduce la clave a clases.
+ */
+export const COLORES_BOTON = ['lima', 'lima-oscuro', 'verde', 'tinta', 'convoca'] as const;
+
+/**
+ * Un color de botón de la portada, de la lista cerrada de arriba.
+ *
+ * Existe como decorador porque el color es un campo repetido en **siete** sitios
+ * de `home` —el botón del hero, el «Enviar» de la caja de sugerencias, el de
+ * cada tarjeta del proyecto, el de cada categoría de documentos, el «Ver todas»,
+ * el de cada tarjeta de noticias y el del teléfono— y la lista tiene que ser **la
+ * misma** en todos: si uno se validara contra una lista propia, ese botón acabaría
+ * aceptando colores que el frontend no sabe pintar, y saldría sin fondo.
+ *
+ * **Con `@IsOptional()`, como el resto de campos de la portada.** Un color puede
+ * no venir, y no solo porque alguien lo mande vacío:
+ *
+ *  - una fila guardada antes de que existiera el campo no lo tiene, así que
+ *    cualquier guardado parcial de la portada la dejaría como está y llegaría sin
+ *    él. Sin `@IsOptional()`, `IsIn` ve `undefined` y **todo** guardado parcial
+ *    respondería `400` —que es justo lo que pasó aquí al añadir los seis
+ *    colores nuevos—.
+ *  - un guardado parcial a propósito (un script, un `curl`, la suite) manda solo
+ *    la sección que quiere cambiar.
+ *
+ * Que no venga no es un estado que alguien pueda dejar a propósito —un botón sin
+ * color se pierde sobre el papel—, así que quien lo deja vacío lo que quiere es
+ * "ponme el color que tenía". De eso se encarga el frontend, campo a campo
+ * (`colorO` en `frontend/src/data/site-context.tsx`), que es la red de seguridad.
+ */
+export const EsColorBoton = () =>
+  applyDecorators(
+    IsOptional(),
+    IsIn(COLORES_BOTON, { message: `El color debe ser uno de: ${COLORES_BOTON.join(', ')}` }),
+  );
+
+/** El tipo del valor de un color, para no repetirlo en cada campo. */
+export type ColorBotonDto = (typeof COLORES_BOTON)[number];
+
+/**
+ * Los colores que se pueden elegir para un botón que va **encima de una caja
+ * lima**: hoy, el «Enviar» de la caja de sugerencias del hero.
+ *
+ * Es una lista aparte y más corta a propósito. La caja es `bg-lime`, así que un
+ * botón `lima` o `lima-oscuro` se fundiría con ella: el texto `text-lime-fg`
+ * sobre el mismo lima da 1:1 y el botón desaparecería. No es un mal gusto, es un
+ * botón que nadie puede leer ni pulsar porque no se distingue del fondo.
+ *
+ * Los tres que quedan (verde, tinta, convoca) son oscuros y se leen bien tanto
+ * sobre la caja lima como sobre el papel. El frontend los aplica con el mismo
+ * `clasesBoton` de siempre, así que el color se ve igual en todos los botones de
+ * la portada; lo único que cambia es cuántos se ofrecen.
+ *
+ * `@IsOptional()` por lo mismo que `EsColorBoton`: si no viene, se usa el del
+ * sitio y no se rechaza el guardado entero.
+ */
+export const COLORES_BOTON_ENCIMA_LIMA = ['verde', 'tinta', 'convoca'] as const;
+
+/** Valida contra la lista corta, para el botón que va sobre la caja lima. */
+export const EsColorBotonSobreLima = () =>
+  applyDecorators(
+    IsOptional(),
+    IsIn(COLORES_BOTON_ENCIMA_LIMA, {
+      message: `Sobre la caja lima el color debe ser uno de: ${COLORES_BOTON_ENCIMA_LIMA.join(', ')}`,
+    }),
+  );
+
+/** El tipo del valor de un botón sobre la caja lima. */
+export type ColorBotonSobreLimaDto = (typeof COLORES_BOTON_ENCIMA_LIMA)[number];
+
+/**
+ * Textos de una sección de la portada: titular y párrafo.
+ *
+ * Todos opcionales y todos con el mismo contrato: **vacío significa "usa el
+ * texto del sitio"**, nunca "sin texto". Es la misma decisión que con los textos
+ * del logo, y por el mismo motivo —una sección con el titular en blanco se ve
+ * rota, y es mejor el texto de siempre que un hueco—.
+ */
+export class SeccionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  titulo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  texto?: string;
+}
+
+/**
+ * El hero de la portada.
+ *
+ * Las dos imágenes aceptan ruta interna (`/images/…` para las que trae el sitio,
+ * `/uploads/…` para las que se suben desde el panel) o dirección completa.
+ *
+ * El patrón `^(\/|https?:\/\/)` de las imágenes no es un adorno: sin él,
+ * `javascript:…` se guardaría como imagen y quedaría a un paso de acabar en un
+ * atributo que sí lo ejecuta. Es el mismo criterio que usa el `href` de los
+ * enlaces del menú.
+ *
+ */
+export class HeroDto {
+  @IsOptional()
+  @VacioEnPortada()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen de fondo debe empezar por "/" o por "https://"',
+  })
+  fondo?: string;
+
+  @IsOptional()
+  @VacioEnPortada()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen debe empezar por "/" o por "https://"',
+  })
+  imagen?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  botonTexto?: string;
+
+  @EsColorBoton()
+  botonColor?: ColorBotonDto;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  cajaTitulo?: string;
+
+  /**
+   * El color del «Enviar» de la caja de sugerencias.
+   *
+   * Valida contra `COLORES_BOTON_ENCIMA_LIMA` y no contra la lista completa: la
+   * caja es lima, y un botón lima encima de una caja lima es ilegible.
+   */
+  @EsColorBotonSobreLima()
+  cajaBotonColor?: ColorBotonSobreLimaDto;
+}
+
+/** La sección oscura de «El proyecto». */
+export class ProyectoPortadaDto extends SeccionDto {
+  @IsOptional()
+  @VacioEnPortada()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen de fondo debe empezar por "/" o por "https://"',
+  })
+  fondo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  tarjetaBoton?: string;
+
+  /** El color del botón «Explorar más» de cada tarjeta del carrusel. */
+  @EsColorBoton()
+  botonColor?: ColorBotonDto;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  dimsTitulo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(400)
+  dimsTexto?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  accionTitulo?: string;
+}
+
+/**
+ * La página «El proyecto» (`/proyecto`): el hero, los dos párrafos, las tres
+ * etapas y las entidades aliadas.
+ *
+ * No es un bloque de la portada: es la página que cuelga del menú. Vive en
+ * `home` porque ahí viven las secciones editables del sitio, y el módulo «El
+ * proyecto» del panel la edita con el mismo guardado que el resto.
+ *
+ * A diferencia de los rótulos de la portada, el «titulo» aquí **sí** se edita:
+ * es el titular de la página, no parte del diseño fijo.
+ */
+export class ElProyectoPortadaDto {
+  /** Como `ProyectoPortadaDto.fondo`: `null` = la imagen que trae el sitio. */
+  @IsOptional()
+  @VacioEnPortada()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen de fondo debe empezar por "/" o por "https://"',
+  })
+  fondo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  titulo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  intro?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  parrafoUno?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  parrafoDos?: string;
+
+  /**
+   * Las tres etapas, en orden; el «01/02/03» lo pone el diseño.
+   *
+   * Son exactamente tres a propósito: el panel edita tres recuadros y el sitio
+   * los pinta tres. Se admite menos (o ninguna) porque un guardado parcial o
+   * una base vieja no deberían caerse, y el frontend resuelve cada hueco al
+   * texto del sitio.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  etapas?: string[];
+
+  /** Las entidades aliadas, en el orden en que se ven. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(30)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  entidades?: string[];
+}
+
+/** La tira de municipios. */
+export class CoberturaPortadaDto extends SeccionDto {}
+
+/**
+ * El bloque de documentos.
+ *
+ * No es un `SeccionDto` pelado porque el botón «Ver más» de cada categoría
+ * también es un botón, y su color se edita desde el panel igual que los demás.
+ */
+export class DocumentosPortadaDto extends SeccionDto {
+  /** El color del botón «Ver más» de las tarjetas de categorías. */
+  @EsColorBoton()
+  botonColor?: ColorBotonDto;
+}
+
+/** La tira de noticias. */
+export class NoticiasPortadaDto extends SeccionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  botonTexto?: string;
+
+  /** El color del botón «Ver todas». */
+  @EsColorBoton()
+  botonColor?: ColorBotonDto;
+
+  /**
+   * El color del «Ver más» de cada tarjeta.
+   *
+   * Va aparte del de «Ver todas» porque los dos botones no se parecen: el
+   * primero es un botón de la página, el segundo va **encima** de la foto de la
+   * noticia, y el color que se lee bien sobre el papel no siempre es el que se
+   * lee bien sobre una imagen. Con uno solo había que elegir cuál de los dos
+   *estringiera el color.
+   */
+  @EsColorBoton()
+  tarjetaBotonColor?: ColorBotonDto;
+}
+
+/** La sección de contacto. */
+export class ContactoPortadaDto extends SeccionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  formTitulo?: string;
+
+  /**
+   * El color del botón del teléfono.
+   *
+   * Es el único botón de la sección que no es un "enviar": es un enlace al
+   * teléfono, y por eso lleva su propio color en vez de compartirlo con el del
+   * formulario.
+   */
+  @EsColorBoton()
+  botonColor?: ColorBotonDto;
+
+  /** El color del botón «Enviar» del formulario. */
+  @EsColorBoton()
+  enviarColor?: ColorBotonDto;
+}
+
+/**
+ * El pie de página: la columna con las tarjetas de «El proyecto».
+ *
+ * Es la **única** columna del pie que se edita desde el panel, y es a
+ * propósito. Las otras dos —«Mapa del sitio» y las dimensiones— son fijas y
+ * salen del código (`FOOTER_COLS` en el frontend): son el temario del sitio
+ * entero y no un contenido que cambie según quien administre. Esta, en cambio,
+ * son seis enlaces de las páginas del proyecto, y elegir cuáles se ven evita
+ * que el pie muestre siempre las mismas seis.
+ *
+ * El tope de seis es el del diseño: el pie pinta una sola columna de ese
+ * tamaño, y más enlaces la desbordarían. Se reutiliza `NavLinkDto` —el mismo
+ * validador de los enlaces del menú— porque es el mismo tipo de cosa: un texto
+ * y una dirección que empieza por `/` o `https://`, con las mismas razones
+ * (sin texto no se ve y sin dirección el clic no lleva a ninguna parte).
+ *
+ * Una lista vacía significa "usa las del sitio", igual que con `navLinks`: el
+ * frontend vuelve a las seis por defecto en vez de dejar el pie sin nada.
+ */
+export class FooterPortadaDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(6, { message: 'El pie de página admite máximo 6 enlaces' })
+  @ValidateNested({ each: true })
+  @Type(() => NavLinkDto)
+  enlaces?: NavLinkDto[];
+}
+
+/**
+ * Todo lo editable de la portada, por secciones.
+ *
+ * Cada bloque es opcional y se valida anidado (`@ValidateNested` + `@Type`)
+ * porque son objetos, no valores sueltos. Sin esas dos declaraciones
+ * class-transformer no sabría qué clase instanciar y la validación se saltaría
+ * el interior: se podría mandar `hero: { botonColor: "blanco-neon" }` y pasaba.
+ *
+ * Mandar solo una sección es válido y **no borra las demás**: cada una se
+ * guarda como viene, así que un guardado parcial deja el resto intacto.
+ */
+export class HomeDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HeroDto)
+  hero?: HeroDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ProyectoPortadaDto)
+  proyecto?: ProyectoPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ElProyectoPortadaDto)
+  elProyecto?: ElProyectoPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CoberturaPortadaDto)
+  cobertura?: CoberturaPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DocumentosPortadaDto)
+  documentos?: DocumentosPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NoticiasPortadaDto)
+  noticias?: NoticiasPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ContactoPortadaDto)
+  contacto?: ContactoPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FooterPortadaDto)
+  footer?: FooterPortadaDto;
+}
+
 export class SiteConfigDto {
   @IsString()
   @MinLength(1, { message: 'El nombre es obligatorio' })
@@ -543,6 +971,17 @@ export class SiteConfigDto {
   @ValidateNested({ each: true })
   @Type(() => NavLinkDto)
   navLinks?: NavLinkDto[];
+
+  /**
+   * El contenido de la portada (módulo "Home"). El titular del hero **no** entra
+   * aquí: es la columna `headline` de la fila, que ya existía. Si el titular
+   * viviera dentro de `home` habría dos sitios editándolo y solo se vería el que
+   * se hubiera guardado.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HomeDto)
+  home?: HomeDto;
 }
 
 export class StatDto {
@@ -559,13 +998,6 @@ export class StatDto {
   @IsString()
   @MaxLength(200)
   subtext?: string;
-}
-
-export class EntidadDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(200)
-  nombre!: string;
 }
 
 /**
@@ -757,7 +1189,6 @@ export class DocumentoPatchDto extends PartialType(DocumentoDto) {}
 export class ConvocatoriaPatchDto extends PartialType(ConvocatoriaDto) {}
 export class SiteConfigPatchDto extends PartialType(SiteConfigDto) {}
 export class StatPatchDto extends PartialType(StatDto) {}
-export class EntidadPatchDto extends PartialType(EntidadDto) {}
 export class MunicipioPatchDto extends PartialType(MunicipioDto) {}
 export class TallerPatchDto extends PartialType(TallerDto) {}
 export class DocCategoriaPatchDto extends PartialType(DocCategoriaDto) {}

@@ -4,7 +4,6 @@ import type {
   Dimension,
   DocCategoria,
   Documento,
-  Entidad,
   Media,
   Mensaje,
   Municipio,
@@ -131,7 +130,7 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function loginRequest(email: string, password: string) {
-  return http<{ accessToken: string; user: User }>("/api/auth/login", {
+  return http<{ accessToken: string; user: User }>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
@@ -156,7 +155,7 @@ export async function uploadFileRequest(file: File): Promise<Media> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/api/media/uploads`, { method: "POST", body: form, headers });
+  const res = await fetch(`${API_BASE}/media/uploads`, { method: "POST", body: form, headers });
   if (res.status === 401) {
     clearSession();
     gotoLogin();
@@ -216,30 +215,38 @@ function httpCrud<T extends { id: number }>(
   papeleraPath?: string,
   restaurar?: (id: number) => string,
 ): Crud<T> {
+  const normalizedPath = path.startsWith("/api/") ? path.slice(4) : path;
+  const normalizedPapelera = papeleraPath?.startsWith("/api/") ? papeleraPath.slice(4) : papeleraPath;
+  const normalizedRestaurar = restaurar
+    ? (id: number) => {
+        const url = restaurar(id);
+        return url.startsWith("/api/") ? url.slice(4) : url;
+      }
+    : undefined;
   const conPapelera = papeleraPath !== undefined && restaurar !== undefined;
   return {
     async list() {
-      return normalizeList<T>(await http<HttpList<T>>(path));
+      return normalizeList<T>(await http<HttpList<T>>(normalizedPath));
     },
     async create(item) {
-      return http<T>(path, { method: "POST", body: JSON.stringify(sanear(item)) });
+      return http<T>(normalizedPath, { method: "POST", body: JSON.stringify(sanear(item)) });
     },
     async update(id, patch) {
-      return http<T>(`${path}/${id}`, {
+      return http<T>(`${normalizedPath}/${id}`, {
         method: "PATCH",
         body: JSON.stringify(sanear(patch as T)),
       });
     },
     async remove(id) {
-      await http<void>(`${path}/${id}`, { method: "DELETE" });
+      await http<void>(`${normalizedPath}/${id}`, { method: "DELETE" });
     },
-    ...(conPapelera
+    ...(conPapelera && normalizedRestaurar
       ? {
           async trashed() {
-            return normalizeList<T>(await http<HttpList<T>>(papeleraPath));
+            return normalizeList<T>(await http<HttpList<T>>(normalizedPapelera!));
           },
           async restore(id: number) {
-            return http<T>(restaurar(id), { method: "POST" });
+            return http<T>(normalizedRestaurar(id), { method: "POST" });
           },
         }
       : {}),
@@ -284,13 +291,13 @@ function httpCrudPaginado<T extends { id: number }>(
  * Colecciones del panel. Solo las que tienen `@DeleteDateColumn` en el backend
  * exponen papelera; `mensajes`, `media` y `users` siguen sin ella a proposito.
  */
-const papeleraDe = (recurso: string) => `/api/config/papelera/${recurso}`;
+const papeleraDe = (recurso: string) => `/config/papelera/${recurso}`;
 
 /** Ruta de restauracion de las colecciones de configuracion. */
-const restaurarDe = (recurso: string) => (id: number) => `/api/config/papelera/${recurso}/${id}/restaurar`;
+const restaurarDe = (recurso: string) => (id: number) => `/config/papelera/${recurso}/${id}/restaurar`;
 
 /** Ruta de restauracion del contenido: cuelga del recurso, no de la papelera. */
-const restaurarDeContenido = (recurso: string) => (id: number) => `/api/${recurso}/${id}/restaurar`;
+const restaurarDeContenido = (recurso: string) => (id: number) => `/${recurso}/${id}/restaurar`;
 
 /**
  * Une un CRUD ya construido —noticias necesita la versión paginada— con sus
@@ -327,8 +334,6 @@ export const collections = {
     ),
   stats: () =>
     httpCrud<Stat>("/api/config/stats", papeleraDe("stats"), restaurarDe("stats")),
-  entidades: () =>
-    httpCrud<Entidad>("/api/config/entidades", papeleraDe("entidades"), restaurarDe("entidades")),
   municipios: () =>
     httpCrud<Municipio>(
       "/api/config/municipios",
@@ -398,7 +403,7 @@ function configBackend<C>(path: string): ConfigBackend<C> {
 }
 
 export const configs = {
-  site: () => configBackend<SiteSettings>("/api/config/site"),
+  site: () => configBackend<SiteSettings>("/config/site"),
 };
 
 export function useCollection<T extends { id: number }>(

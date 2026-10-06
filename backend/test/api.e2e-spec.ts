@@ -9,7 +9,7 @@ import { configureApp } from './../src/app.setup';
 import { Mensaje } from './../src/entities/mensaje.entity';
 import { Noticia } from './../src/entities/noticia.entity';
 import { Dimension } from './../src/entities/dimension.entity';
-import { SiteConfig } from './../src/entities/site-config.entity';
+import { SiteConfig, type Portada } from './../src/entities/site-config.entity';
 
 /**
  * Todos los correos que usan los tests de formularios. Se borran al terminar
@@ -448,6 +448,383 @@ describe('API pública y validación (e2e)', () => {
         .set('authorization', `Bearer ${await tokenAdmin()}`)
         .send({ id: 1, logoTitulo: 'Con id' })
         .expect(400);
+    });
+  });
+
+  // ── Portada: el hero y las secciones hasta antes del pie de página ────────
+  describe('portada (módulo Home)', () => {
+    let configRepo: Repository<SiteConfig>;
+    let original: SiteConfig | null = null;
+
+    beforeAll(async () => {
+      configRepo = app.get<Repository<SiteConfig>>(getRepositoryToken(SiteConfig));
+      original = await configRepo.findOne({ where: { id: 1 } });
+    });
+
+    afterAll(async () => {
+      if (original) await configRepo.save(original);
+    });
+
+    /** Lo que ve un visitante, no lo que se envió. */
+    async function portadaPublica(): Promise<Portada> {
+      const res = await request(app.getHttpServer()).get('/api/site').expect(200);
+      return (res.body.site as SiteConfig).home;
+    }
+
+    it('guarda el hero y las seis secciones', async () => {
+      const home = {
+        hero: {
+          fondo: '/uploads/hero.jpg',
+          imagen: '/images/otra-hero.jpg',
+          botonTexto: 'Ver el proyecto',
+          botonColor: 'tinta',
+          cajaTitulo: '¿Alguna pregunta?',
+          cajaBotonColor: 'convoca',
+        },
+        proyecto: {
+          fondo: '/images/city-aerial.jpg',
+          titulo: 'El ejercicio',
+          texto: 'Catorce entidades y la CEPAL.',
+          tarjetaBoton: 'Leer más',
+          botonColor: 'verde',
+          dimsTitulo: 'Las dimensiones',
+          dimsTexto: 'Cuatro lecturas del territorio.',
+          accionTitulo: 'Del diagnóstico a la acción',
+        },
+        cobertura: { titulo: 'Los doce municipios', texto: 'Todo el departamento.' },
+        documentos: { titulo: 'Documentos', texto: 'Convenios e informes.', botonColor: 'convoca' },
+        noticias: {
+          titulo: 'Actualidad',
+          texto: 'Comunicados del proceso.',
+          botonTexto: 'Ver todo',
+          botonColor: 'tinta',
+          tarjetaBotonColor: 'verde',
+        },
+        contacto: {
+          titulo: 'Escríbenos',
+          texto: 'Para más información.',
+          formTitulo: 'Cuéntanos',
+          botonColor: 'convoca',
+          enviarColor: 'verde',
+        },
+      };
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.hero.botonColor).toBe('tinta');
+      expect(guardada.hero.botonTexto).toBe('Ver el proyecto');
+      expect(guardada.hero.fondo).toBe('/uploads/hero.jpg');
+      expect(guardada.proyecto.dimsTitulo).toBe('Las dimensiones');
+      expect(guardada.cobertura.titulo).toBe('Los doce municipios');
+      expect(guardada.documentos.texto).toBe('Convenios e informes.');
+      expect(guardada.noticias.botonTexto).toBe('Ver todo');
+      expect(guardada.contacto.formTitulo).toBe('Cuéntanos');
+    });
+
+    it('guarda un color distinto en cada botón', async () => {
+      // Cada botón tiene su campo y no hay uno compartido. Con un solo color
+      // habría que decidir cuál de los dos lados de cada botón se enteraba: el
+      // «Ver más» de las noticias va **encima** de la foto y «Ver todas» va sobre
+      // el papel, y no siempre se lee bien el mismo color en los dos sitio.
+      // Aquí se mandan seis distintos a la vez —si alguno se guardara en el campo
+      // de otro, no podrían serlo—.
+      const colores = {
+        proyecto: 'convoca',
+        documentos: 'lima-oscuro',
+        noticias: 'tinta',
+        tarjeta: 'verde',
+        telefono: 'lima',
+        enviar: 'convoca',
+      };
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({
+          home: {
+            proyecto: { botonColor: colores.proyecto },
+            documentos: { botonColor: colores.documentos },
+            noticias: { botonColor: colores.noticias, tarjetaBotonColor: colores.tarjeta },
+            contacto: { botonColor: colores.telefono, enviarColor: colores.enviar },
+          },
+        })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.proyecto.botonColor).toBe(colores.proyecto);
+      expect(guardada.documentos.botonColor).toBe(colores.documentos);
+      expect(guardada.noticias.botonColor).toBe(colores.noticias);
+      expect(guardada.noticias.tarjetaBotonColor).toBe(colores.tarjeta);
+      expect(guardada.contacto.botonColor).toBe(colores.telefono);
+      expect(guardada.contacto.enviarColor).toBe(colores.enviar);
+    });
+
+    it('guardar una sección no borra las demás', async () => {
+      // Es lo que permite abrir el panel, cambiar un rótulo y guardar sin
+      // tener que reenviar la portada entera. Si no, el PUT entero dejaría el
+      // resto en `undefined` y el sitio caería al respaldo en todo lo demás.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { noticias: { titulo: 'Solo noticias' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.noticias.titulo).toBe('Solo noticias');
+      // Lo que no viene en el PUT se queda como estaba —estos valores son los que
+      // dejó el test anterior—, y no se convierte en vacío ni desaparece.
+      expect(guardada.contacto.titulo).toBe('Escríbenos');
+      expect(guardada.hero.botonColor).toBe('tinta');
+      expect(guardada.proyecto.dimsTitulo).toBe('Las dimensiones');
+      expect(guardada.documentos.titulo).toBe('Documentos');
+    });
+
+    it('guarda una sección sin que las otras queden ni tocadas ni borradas', async () => {
+      // `class-transformer` crea las seis secciones del DTO siempre que venga
+      // `home`, y deja en `undefined` las que no se mandaron. Al fusionar, esas
+      // `undefined` no son objetos y `Object.entries(undefined)` revienta con un
+      // `500`. El panel no lo notaba porque manda el bloque entero, pero
+      // cualquier guardado parcial —un script, un `curl`, la suite— sí.
+      const antes = await portadaPublica();
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { noticias: { titulo: 'Solo noticias' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.noticias.titulo).toBe('Solo noticias');
+      // Lo que no se mandó queda igual, no se convierte en `{}` ni desaparece.
+      expect(guardada.hero).toEqual(antes.hero);
+      expect(guardada.contacto).toEqual(antes.contacto);
+    });
+
+    it('deja vaciar un campo sin llevarse el resto de su sección', async () => {
+      // Vacío significa "usa el texto del sitio", no "sin texto": así es como el
+      // frontend lo resuelve (`pickPortada`). Por eso el backend tiene que
+      // aceptarlo —si lo rechazara, el panel no podría devolver un rótulo a su
+      // valor de fábrica sin escribirlo a mano— y, sobre todo, por qué no puede
+      // llevarse el resto: vaciar el texto del botón no puede borrar el fondo
+      // del hero ni el rótulo de la caja de preguntas.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { hero: { botonTexto: '' }, noticias: { botonTexto: '' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.hero.botonTexto).toBeFalsy();
+      expect(guardada.noticias.botonTexto).toBeFalsy();
+      expect(guardada.hero.fondo).toBe('/uploads/hero.jpg');
+      expect(guardada.hero.cajaTitulo).toBe('¿Alguna pregunta?');
+      expect(guardada.noticias.titulo).toBe('Solo noticias');
+    });
+
+    it.each([
+      ['fondo', 'imagen', '/images/otra-hero.jpg'],
+      ['imagen', 'fondo', '/uploads/fondo-que-sigue.jpg'],
+    ])(
+      'deja volver a la del sitio "%s" del hero sin llevarse "%s"',
+      async (clave, otra, valorDeLaOtra) => {
+        // Es el botón «Usar la del sitio» del panel, y hace falta cuando una
+        // imagen subida no era la buena. La cadena vacía es cómo el panel dice
+        // "usa la del sitio": el backend tiene que aceptarla y guardarla, porque
+        // el frontend la resuelve al respaldo (`imagenO`). Antes devolvía `400`
+        // —"La imagen de fondo debe empezar por "/" o por "https://""—, así que
+        // subir una imagen nueva funcionaba pero quitarla no, que es justo lo
+        // que dejaba el botón sin efecto.
+        const auth = `Bearer ${await tokenAdmin()}`;
+        // Las dos quedan con un valor conocido antes de probar a quitarlas.
+        await request(app.getHttpServer())
+          .put('/api/config/site')
+          .set('authorization', auth)
+          .send({ home: { hero: { [clave]: '/uploads/nueva.jpg', [otra]: valorDeLaOtra } } })
+          .expect(200);
+
+        await request(app.getHttpServer())
+          .put('/api/config/site')
+          .set('authorization', auth)
+          .send({ home: { hero: { [clave]: '' } } })
+          .expect(200);
+
+        const hero = (await portadaPublica()).hero as unknown as Record<string, unknown>;
+        expect(hero[clave]).toBeFalsy();
+        // Y quitarla no puede llevarse la otra imagen del hero.
+        expect(hero[otra]).toBe(valorDeLaOtra);
+      },
+    );
+
+    it('deja volver a la del sitio el fondo de la sección del proyecto', async () => {
+      // La tercera imagen de la portada, y el mismo caso: se sube una y hay que
+      // poder quitarla. Es el mismo botón del panel, en otra sección.
+      const tituloPrevio = (await portadaPublica()).proyecto.titulo;
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { proyecto: { fondo: '' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.proyecto.fondo).toBeFalsy();
+      // Y el resto de la sección del proyecto sigue como estaba.
+      expect(guardada.proyecto.titulo).toBe(tituloPrevio);
+    });
+
+    it('guarda el contenido de la página El proyecto, incluidas las entidades en su orden', async () => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({
+          home: {
+            elProyecto: {
+              titulo: 'Una visión editada',
+              intro: 'Introduccion nueva.',
+              parrafoUno: 'Primer parrafo.',
+              parrafoDos: 'Segundo parrafo.',
+              etapas: ['Etapa A', 'Etapa B', 'Etapa C'],
+              entidades: ['Universidad del Quindío', 'CEPAL — ILPES (acompañamiento técnico)'],
+            },
+          },
+        })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.elProyecto.titulo).toBe('Una visión editada');
+      expect(guardada.elProyecto.intro).toBe('Introduccion nueva.');
+      expect(guardada.elProyecto.parrafoUno).toBe('Primer parrafo.');
+      expect(guardada.elProyecto.etapas).toEqual(['Etapa A', 'Etapa B', 'Etapa C']);
+      expect(guardada.elProyecto.entidades).toEqual([
+        'Universidad del Quindío',
+        'CEPAL — ILPES (acompañamiento técnico)',
+      ]);
+    });
+
+    it('guardar El proyecto no borra el resto de la portada', async () => {
+      const antes = await portadaPublica();
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { elProyecto: { titulo: 'Solo el titular' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.elProyecto.titulo).toBe('Solo el titular');
+      expect(guardada.elProyecto.entidades).toEqual(antes.elProyecto.entidades);
+      expect(guardada.hero).toEqual(antes.hero);
+    });
+
+    it.each([
+      ['un color que no está en la lista', { hero: { botonColor: 'blanco-neon' } }],
+      [
+        'un color del botón de las tarjetas que no está en la lista',
+        { proyecto: { botonColor: 'blanco-neon' } },
+      ],
+      [
+        'un color del botón de las noticias que no está en la lista',
+        { noticias: { tarjetaBotonColor: 'blanco-neon' } },
+      ],
+      [
+        // `lima` es un color **válido**, pero no para este botón: la caja de
+        // sugerencias es lima, y un botón lima encima de una caja lima es el
+        // mismo color con el mismo texto encima. El backend tiene que
+        // rechazarlo aunque la lista general lo admita.
+        'un color que se fundiría con el fondo del botón',
+        { hero: { cajaBotonColor: 'lima' } },
+      ],
+      ['una imagen que no es ruta ni http', { hero: { fondo: 'uploads/hero.jpg' } }],
+      ['un javascript: como imagen', { hero: { imagen: 'javascript:alert(1)' } }],
+      ['un campo de más dentro de una sección', { hero: { color: 'rojo' } }],
+      ['una sección que no existe', { pieDePagina: { titulo: 'X' } }],
+    ])('rechaza %s', async (_caso, home) => {
+      // El color de un botón es una lista cerrada a propósito: con un selector
+      // libre se podía elegir un fondo claro con la letra oscura encima y
+      // quedaba ilegible sin que nada lo avisara.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home })
+        .expect(400);
+    });
+
+    it('guarda los enlaces del pie en su orden', async () => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({
+          home: {
+            footer: {
+              enlaces: [
+                { label: 'Objetivo', href: '/proyecto/objetivo' },
+                { label: 'Gobernanza', href: '/proyecto/gobernanza' },
+              ],
+            },
+          },
+        })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.footer?.enlaces).toEqual([
+        { label: 'Objetivo', href: '/proyecto/objetivo' },
+        { label: 'Gobernanza', href: '/proyecto/gobernanza' },
+      ]);
+    });
+
+    it('deja vaciar la lista del pie sin llevarse el resto', async () => {
+      // Lista vacía significa "el sitio vuelve a sus páginas por defecto", igual
+      // que el menú del encabezado: es como el panel representa "no tocar esta
+      // parte". Por eso debe aceptarse, y además no puede llevarse las otras
+      // secciones de `home`.
+      const antes = await portadaPublica();
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { footer: { enlaces: [] } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.footer?.enlaces ?? []).toEqual([]);
+      expect(guardada.hero).toEqual(antes.hero);
+    });
+
+    it('rechaza más de seis enlaces en el pie', async () => {
+      // El tope es el del diseño: la columna del pie pinta máximo seis. Sin la
+      // validación, el panel dejaría añadir el séptimo y el guardado moriría
+      // con un 400 que no dice qué lista sobra.
+      const enlaces = Array.from({ length: 7 }, (_, i) => ({
+        label: `Enlace ${i + 1}`,
+        href: `/proyecto/pagina-${i + 1}`,
+      }));
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { footer: { enlaces } } })
+        .expect(400);
+    });
+
+    it('guarda el titular del hero y no lo pisa al guardar la portada', async () => {
+      // El titular vive en la columna `headline` de la fila, no dentro de `home`:
+      // se edita en Ajustes → Home pero viaja aparte, para que guardar una
+      // sección de la portada no tenga que reenviarlo.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ headline: ['Una línea'], home: { hero: { botonTexto: 'Otro texto' } } })
+        .expect(200);
+
+      const publica = (await request(app.getHttpServer()).get('/api/site').expect(200)).body
+        .site as SiteConfig;
+      expect(publica.headline).toEqual(['Una línea']);
+      expect(publica.home.hero.botonTexto).toBe('Otro texto');
     });
   });
 

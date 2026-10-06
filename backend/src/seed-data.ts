@@ -53,7 +53,6 @@ export type SeedSite = {
 };
 
 export type SeedStat = { value: string; label: string; subtext: string };
-export type SeedEntidad = { nombre: string };
 export type SeedMunicipio = { nombre: string; dato?: string; descripcion?: string };
 export type SeedTaller = { date: string; title: string; place: string; status: string };
 export type SeedDocCategoria = { slug: string; title: string; description: string; icon: string };
@@ -543,6 +542,136 @@ export const SEED_SITE: SeedSite = {
   ],
 };
 
+/**
+ * Contenido de la portada: el hero y las secciones que van desde ahí hasta antes
+ * del pie de página.
+ *
+ * Hasta ahora esto estaba escrito en el código del frontend. Es la **semilla**,
+ * no la fuente de verdad: el backoffice lo edita bloque a bloque en Ajustes, y el
+ * frontend guarda su propia copia como respaldo (`PORTADA`) para cuando la API
+ * falle o no haya nada guardado. Los dos tienen que decir lo mismo, pero no
+ *_read_ uno del otro: el frontend no puede importar del backend, ni al revés.
+ *
+ * Los valores vacíos son válidos y significan "usa el texto del sitio", nunca
+ * "sin texto". Ver la nota de `config_site.home`.
+ *
+ * **Las tres imágenes se siembran en `null`, no con la ruta del sitio.** Un
+ * `null` es "no hay imagen puesta": el sitio usa la suya (el respaldo `PORTADA`
+ * del frontend) y el panel muestra «La del sitio» sin botón de deshacer. Si en
+ * cambio se sembraran con `"/images/hero-city.jpg"` —que es literalmente la
+ * misma foto que trae el sitio—, el panel la mostraría como una imagen subida
+ * por el usuario, con su botón «Usar la del sitio» al lado; al pulsarlo se
+ * volvería a la misma foto y parecería que el botón no hace nada. Sembrar
+ * `null` deja las imágenes en el estado en el que de verdad son opcionales.
+ */
+export const SEED_HOME = {
+  hero: {
+    fondo: null,
+    imagen: null,
+    botonTexto: "Explorar más »",
+    botonColor: "lima" as const,
+    cajaTitulo: "¿Tienes alguna pregunta o quieres darnos una recomendación?",
+    // El «Enviar» va sobre la caja lima, así que no puede ser lima. `verde` es el
+    // color con el que estaba escrito en el código.
+    cajaBotonColor: "verde" as const,
+  },
+  proyecto: {
+    fondo: null,
+    titulo: "El proyecto",
+    texto:
+      "Un ejercicio participativo con catorce entidades y la CEPAL para construir la visión de largo plazo del departamento.",
+    tarjetaBoton: "Explorar más >>",
+    botonColor: "lima" as const,
+    dimsTitulo: "Las cuatro dimensiones",
+    dimsTexto:
+      "Cuatro lecturas del territorio que estructuran la lectura del Quindío. Toca una para desplegar su resumen.",
+    accionTitulo: "Del diagnóstico a la acción",
+  },
+  // La página «El proyecto» (/proyecto). Debe coincidir con `PORTADA.elProyecto`
+  // del frontend, igual que el resto de la portada.
+  elProyecto: {
+    fondo: null,
+    titulo: "Una visión compartida para el Quindío",
+    intro:
+      "Catorce entidades del departamento y la CEPAL construyen, entre 2026 y 2027, la hoja de ruta al 2050.",
+    parrafoUno:
+      "Horizonte Quindío es un ejercicio de prospectiva territorial. No predice el futuro: lo acuerda. Parte del diagnóstico de capacidades, construye escenarios con la gente del departamento e institucionaliza un observatorio para que la visión sobreviva a los ciclos políticos.",
+    parrafoDos:
+      "El 24 de marzo de 2026 se presentó en la Universidad del Quindío, con el acompañamiento del ILPES-CEPAL. Es el primer ejercicio de este tipo en el departamento en más de veinte años.",
+    etapas: [
+      "Diagnóstico y diseño metodológico",
+      "Escenarios y visión compartida",
+      "Institucionalización y observatorio",
+    ],
+    // CEPAL va en la lista —no aparte— porque desde el panel se reordena todo:
+    // es la entidad del acompañamiento técnico y en `/proyecto` sale pintada de
+    // lima por tener "CEPAL" en el nombre, sin importar el puesto.
+    entidades: [
+      "Gobernación del Quindío",
+      "Alcaldía de Armenia",
+      "Universidad del Quindío",
+      "Universidad La Gran Colombia",
+      "Cámara de Comercio de Armenia y del Quindío",
+      "Comité de Cafeteros del Quindío",
+      "Comité Intergremial del Quindío",
+      "Corporación Autónoma Regional del Quindío",
+      "ProQuindío",
+      "Comfenalco Quindío",
+      "Facilísimo",
+      "Empresa de Energía del Quindío",
+      "CEPAL — ILPES (acompañamiento técnico)",
+    ],
+  },
+  cobertura: {
+    titulo: "Todo el departamento participa",
+    texto:
+      "La visión del 2050 se construye para el Quindío completo, no solo para Armenia.",
+  },
+  documentos: {
+    titulo: "Documentos y publicaciones",
+    texto:
+      "Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y piezas de socialización. Explora cada categoría del repositorio.",
+    botonColor: "lima" as const,
+  },
+  noticias: {
+    titulo: "Noticias",
+    texto:
+      "Comunicados, talleres, convocatorias y avances del ejercicio de prospectiva territorial.",
+    botonTexto: "Ver todas",
+    botonColor: "lima" as const,
+    tarjetaBotonColor: "lima" as const,
+  },
+  contacto: {
+    titulo: "Contactos",
+    texto:
+      "Escríbenos para más información sobre el ejercicio de prospectiva, los talleres o las convocatorias abiertas del departamento.",
+    formTitulo: "Escríbenos para más información",
+    // El bloque de contacto es el único que **no** es lima: su botón del
+    // teléfono y su "Enviar" son de tinta, y sembrarlos en lima cambiaría el
+    // aspecto del sitio en una instalación nueva sin que nadie lo pidiera. Es
+    // el color con el que estaban escritos en el código.
+    botonColor: "tinta" as const,
+    enviarColor: "tinta" as const,
+  },
+  // La columna del pie que sí se elige desde el panel (las tarjetas de «El
+  // proyecto»). Vacía significa "el sitio muestra las suyas", así que en una
+  // base nueva se siembran las mismas seis páginas que trae el frontend por
+  // defecto (`FOOTER_PROYECTO_FALLBACK` en frontend/src/data/site.ts), para que
+  // el panel las muestre marcadas y ordenables, no vacío. Si cambia aquí o allá,
+  // hay que cambiarlo **en los dos sitios**: la semilla la usa la base nueva y
+  // el respaldo lo usa el frontend cuando la lista está vacía.
+  footer: {
+    enlaces: [
+      { label: "Qué es Horizonte Quindío 2050", href: "/proyecto/que-es" },
+      { label: "Contexto y justificación", href: "/proyecto/contexto" },
+      { label: "Objetivo", href: "/proyecto/objetivo" },
+      { label: "Gobernanza", href: "/proyecto/gobernanza" },
+      { label: "Principios y valores", href: "/proyecto/principios" },
+      { label: "Línea de tiempo", href: "/proyecto/linea-de-tiempo" },
+    ],
+  },
+};
+
 export const SEED_STATS: SeedStat[] = [
   { value: "11", label: "Entidades Aliadas", subtext: "Públicas, privadas y academia" },
   { value: "2050", label: "Visión de Futuro", subtext: "Horizonte temporal de región" },
@@ -552,24 +681,6 @@ export const SEED_STATS: SeedStat[] = [
     subtext: "Diagnóstico, escenarios e institucionalización",
   },
   { value: "60", label: "Años del Departamento", subtext: "Gobernanza y pertenencia territorial" },
-];
-
-export const SEED_ENTIDADES: SeedEntidad[] = [
-  // Los 14 aliados, con la denominación exacta del documento de arquitectura.
-  { nombre: "Universidad del Quindío" },
-  { nombre: "Universidad Gran Colombia" },
-  { nombre: "Institución Universitaria EAM" },
-  { nombre: "SUEJE" },
-  { nombre: "Comité de Cafeteros" },
-  { nombre: "Comité Intergremial" },
-  { nombre: "ProQuindío" },
-  { nombre: "Cámara de Comercio del Quindío y Armenia" },
-  { nombre: "Facilísimo" },
-  { nombre: "Comfanalco" },
-  { nombre: "EDEQ" },
-  { nombre: "Corporación Autónoma Regional del Quindío" },
-  { nombre: "Alcaldía de Armenia" },
-  { nombre: "Gobernación del Quindío" },
 ];
 
 /**

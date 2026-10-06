@@ -3,17 +3,27 @@ import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 
 /**
- * Aviso de Privacidad (Ley 1581 de 2012, Ley 1582 de 2012 y Decreto 1377 de 2013).
+ * Privacidad: una sola página con las tres piezas que la ley colombiana pide
+ * cuando un sitio recoge datos personales, y con el texto de cada una separado
+ * para que se lea como lo que es:
  *
- * Existe porque los cuatro formularios del sitio piden nombre y correo, y pedir
- * un dato personal sin decir para qué y con qué base legal es exactamente lo que
- * la ley prohíbe. La página no es adorno: es a lo que apunta el enlace de la
- * casilla de autorización, y sin ese enlace la autorización no es "informada".
+ *   1. **Aviso de privacidad (Ley 1581 de 2012)** — el texto breve que debe
+ *      acompañar la recogida: quién es el responsable, qué se pide, para qué,
+ *      con qué base legal y cuánto se guarda. Es al aviso al que apunta el
+ *      enlace de la casilla de autorización de los formularios; sin ese enlace
+ *      la autorización no es "informada".
+ *   2. **Política de tratamiento de datos** — el documento de fondo: quiénes
+ *      pueden ver los datos, con quiénes se comparten, cómo se protegen y cómo
+ *      se actualiza esta política.
+ *   3. **Derechos del titular (ARCO)** — qué puede pedir quien escribe y por
+ *      qué canal: acceso, rectificación, cancelación y oposición, con el plazo
+ *      de respuesta que fija la ley.
  *
- * Los dos `[PENDIENTE: …]` son deliberados y hay que resolverlos antes de
- * publicar el sitio. No se inventaron a propósito: el nombre del responsable y el
- * canal para ejercer los derechos son datos que solo tiene la organización, y
- * ponerlos a mano dejaría el aviso con datos falsos, que es peor que no tenerlo.
+ * Los valores que solo conoce la organización van **entre corchetes**: el
+ * nombre del responsable, el canal para ejercer los derechos, el plazo de
+ * conservación y quiénes acceden a los datos. No se inventan aquí porque
+ * ponerlos a mano dejaría el aviso con datos falsos, que es peor que no
+ * tenerlo. La nota discreta del final lo recuerda.
  */
 export function PrivacidadPage() {
   const { SITE } = useSite();
@@ -21,58 +31,46 @@ export function PrivacidadPage() {
   return (
     <>
       <PageHero
-        kicker="Aviso de privacidad"
+        kicker="Privacidad"
         title="Tratamiento de datos personales"
-        intro="Qué datos recogemos, para qué los usamos, cuánto tiempo los guardamos y cómo pedir su eliminación."
+        intro="El aviso, la política y tus derechos como titular: qué datos recogemos, para qué, cuánto tiempo los guardamos y cómo pedir su eliminación."
       />
 
       <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-        {/* Aviso a la vista, no escondido en el pie: si hay algo que completar,
-            se ve desde el principio. */}
-        <div className="mb-10 rounded-2xl border border-[#d9b64a] bg-[#fff8e2] p-5">
-          <p className="font-display text-sm font-bold text-ink">Antes de publicar: falta completar</p>
-          <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-xs leading-relaxed text-body">
-            <li>
-              <strong>[PENDIENTE: nombre o razón social del responsable del
-              tratamiento]</strong> y su identificación completa.
-            </li>
-            <li>
-              <strong>[PENDIENTE: canal para ejercer los derechos]</strong> —correo,
-              formulario o sede— donde el titular puede pedir el acceso, la
-              rectificación, la eliminación o la revocación de la autorización.
-            </li>
-          </ul>
-          <p className="mt-2 text-xs leading-relaxed text-body">
-            Los dos datos son de la organización y no se pueden deducir. Mientras no
-            estén, la página se publica pero <strong>no cumple la ley</strong>: el
-            responsable es identificable —Horizonte Quindío 2050— pero no hay a quién
-            dirigir una petición.
-          </p>
-        </div>
-
-        <article className="flex flex-col gap-8 text-sm leading-relaxed text-body">
-          <section>
-            <h2 className="font-display text-lg font-bold text-ink">1. Quién es el responsable</h2>
-            <p className="mt-2">
-              Horizonte Quindío 2050 es un ejercicio de prospectiva territorial
-              adelantado por catorce entidades del departamento del Quindío y
-              acompañado técnicamente por la Comisión Económica para América Latina y
-              el Caribe (CEPAL) a través del ILPES. La coordinación general del
-              ejercicio es la Gobernación del Quindío.
-            </p>
-            <p className="mt-2">
-              <strong>[PENDIENTE: razón social o nombre del responsable del
-              tratamiento, NIT, domicilio y datos de contacto del responsable.]</strong>
-            </p>
-          </section>
-
+        <article className="flex flex-col gap-10 text-sm leading-relaxed text-body">
+          {/* ---------------------------------------------------------------
+              1. Aviso de privacidad
+          ---------------------------------------------------------------- */}
           <section>
             <h2 className="font-display text-lg font-bold text-ink">
-              2. Qué datos recogemos y con qué finalidad
+              1. Aviso de privacidad (Ley 1581 de 2012)
             </h2>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Quién es el responsable
+            </h3>
             <p className="mt-2">
-              El sitio tiene cuatro formularios. Todos piden lo mismo y para lo mismo:
-              poder responder a quien escribe.
+              Horizonte Quindío 2050 es un ejercicio de prospectiva territorial
+              adelantado por entidades del departamento del Quindío y acompañado
+              técnicamente por la Comisión Económica para América Latina y el
+              Caribe (CEPAL) a través del ILPES.
+            </p>
+            <p className="mt-2">
+              El responsable del tratamiento de los datos que se recogen en este
+              sitio es{" "}
+              <strong>
+                [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — NIT]
+              </strong>
+              , con domicilio en{" "}
+              <strong>[CIUDAD Y DIRECCIÓN DEL RESPONSABLE]</strong>.
+            </p>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Qué datos recogemos y con qué finalidad
+            </h3>
+            <p className="mt-2">
+              El sitio tiene cuatro formularios, y cada uno pide nada más lo que
+              necesita para cumplir lo que ofrece:
             </p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
@@ -97,7 +95,7 @@ export function PrivacidadPage() {
                     <td className="py-2 pr-4 align-top">
                       Nombre, correo, asunto, mensaje
                     </td>
-                    <td className="py-2 align-top">Responder la consulta y dar seguimiento.</td>
+                    <td className="py-2 align-top">Responder la consulta y darle seguimiento.</td>
                   </tr>
                   <tr>
                     <th scope="row" className="py-2 pr-4 align-top font-medium text-ink">
@@ -105,7 +103,7 @@ export function PrivacidadPage() {
                     </th>
                     <td className="py-2 pr-4 align-top">Texto de la pregunta o recomendación</td>
                     <td className="py-2 align-top">
-                      Alimentar el canal abierto y el ejercicio. No se piden nombre ni
+                      Alimentar el canal abierto del ejercicio. No se piden nombre ni
                       correo.
                     </td>
                   </tr>
@@ -132,119 +130,164 @@ export function PrivacidadPage() {
             </div>
             <p className="mt-4">
               No se piden datos sensibles —salud, orientación sexual, religión,
-              afiliación sindical, datos de menores— ni se usan para perfilado ni
-              decisiones automatizadas. No hay cookies de seguimiento ni herramientas
-              de analítica en este sitio.
+              afiliación sindical, datos de menores— ni se usan los datos para
+              perfilado ni para decisiones automatizadas. No hay cookies de
+              seguimiento ni herramientas de analítica en este sitio.
             </p>
-          </section>
 
-          <section>
-            <h2 className="font-display text-lg font-bold text-ink">
-              3. Base legal y autorización
-            </h2>
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Base legal y autorización
+            </h3>
             <p className="mt-2">
               La base legal es el <strong>consentimiento expreso del titular</strong>{" "}
               (artículo 7 de la Ley 1581 de 2012, literales b y h): al marcar la
-              casilla de cada formulario. La autorización es opcional, pero sin ella el
-              formulario no se puede enviar: no hay ninguna otra forma de tratar esos
-              datos.
+              casilla de cada formulario. La autorización es opcional, pero sin
+              ella el formulario no se puede enviar, porque no hay ninguna otra
+              forma de tratar esos datos.
             </p>
             <p className="mt-2">
-              La autorización puede revocarse en cualquier momento, y la revocación
-              es tan sencilla como concedernos un correo. Revocar el consentimiento
-              detiene el tratamiento futuro, pero no afecta a lo que ya se hizo con
-              esos datos —que, para los que nos escribió, consiste únicamente en
-              responder el mensaje.
+              El consentimiento no es condición para acceder al sitio: se puede
+              leer todo el contenido —las páginas del proyecto, los documentos y
+              las noticias— sin marcar ninguna casilla.
             </p>
-            <p className="mt-2">
-              El consentimiento no es una condición para acceder al sitio: se puede
-              leer todo el contenido, las páginas del proyecto, los documentos y las
-              noticias sin marcar ninguna casilla.
-            </p>
-          </section>
 
-          <section>
-            <h2 className="font-display text-lg font-bold text-ink">
-              4. Cuánto tiempo guardamos los datos
-            </h2>
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Cuánto tiempo guardamos los datos
+            </h3>
             <p className="mt-2">
-              Los mensajes y las inscripciones se conservan{" "}
-              <strong>[PENDIENTE: plazo —por ejemplo, hasta dos años contados desde la
-              última interacción]</strong> y después se eliminan. La lista de
-              suscriptores al boletín se conserva mientras la suscripción esté
-              vigente; cancelar el boletín implica el borrado del correo.
+              Los mensajes y las inscripciones se conservan durante{" "}
+              <strong>[PLAZO DE CONSERVACIÓN]</strong> y después se eliminan. La
+              lista del boletín se conserva mientras la suscripción esté vigente;
+              cancelar la suscripción implica el borrado del correo.
             </p>
             <p className="mt-2">
               Los datos agregados —por ejemplo, cuántas personas de cada municipio
-              participaron en un taller— sí se conservan, porque no permiten identificar
+              participaron en un taller— sí se conservan: no permiten identificar
               a nadie y son el resultado público del ejercicio.
             </p>
           </section>
 
+          {/* ---------------------------------------------------------------
+              2. Política de tratamiento de datos
+          ---------------------------------------------------------------- */}
           <section>
             <h2 className="font-display text-lg font-bold text-ink">
-              5. Quiénes más acceden a los datos
+              2. Política de tratamiento de datos
             </h2>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Quiénes más acceden a los datos
+            </h3>
             <p className="mt-2">
-              El acceso está limitado al equipo de coordinación del ejercicio y a las
-              entidades que lo adelantan, cada una únicamente para la parte del
-              ejercicio que le corresponde.{" "}
+              El acceso está limitado a{" "}
               <strong>
-                [PENDIENTE: confirmar el listado nominal y dejar constancia del
-                acuerdo de confidencialidad, como exige el artículo 19.]
+                [QUIÉNES ACCEDEN A LOS DATOS — PUESTOS O ENTIDADES, Y SU ACUERDO
+                DE CONFIDENCIALIDAD]
               </strong>
+              . Cada persona o entidad accede únicamente a la parte del ejercicio
+              que le corresponde.
             </p>
             <p className="mt-2">
-              No se contrata a terceros para el tratamiento de datos ni se transfieren
-              datos fuera de Colombia. Si eso cambia, este aviso se actualiza antes de
-              hacerlo.
+              No se contrata a terceros para el tratamiento de los datos ni se
+              transfieren datos fuera de Colombia. Si eso cambia, esta política se
+              actualiza antes de hacerlo.
             </p>
-          </section>
 
-          <section>
-            <h2 className="font-display text-lg font-bold text-ink">
-              6. Derechos del titular
-            </h2>
-            <p className="mt-2">
-              Puede pedir, en cualquier momento y de forma gratuita: conocer qué datos
-              se tienen sobre usted, corregirlos cuando estén equivocados, pedir su
-              eliminación, revocar la autorización y revocar el consentimiento para
-              fines distintos, y pedir una copia de los datos en un formato
-              legible.
-            </p>
-            <p className="mt-2">
-              <strong>[PENDIENTE: indicar el canal —correo, formulario o sede— y el
-              plazo de respuesta, que la ley fija en diez días.]</strong>
-            </p>
-            <p className="mt-2">
-              Si la respuesta no convence, puede reclamar ante la autoridad de protección de datos personales.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="font-display text-lg font-bold text-ink">
-              7. Seguridad y cambios en este aviso
-            </h2>
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Seguridad
+            </h3>
             <p className="mt-2">
               El sitio se sirve por HTTPS y los datos de los formularios viajan
-              cifrados. El acceso interno al panel de administración es con usuario y
-              contraseña, y el acceso al formulario de contacto no es público.
+              cifrados. El acceso interno al panel de administración es con
+              usuario y contraseña, y los mensajes que llegan por los
+              formularios no son de acceso público.
+            </p>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Cambios en esta política
+            </h3>
+            <p className="mt-2">
+              Esta política se actualiza cuando cambia la finalidad del
+              tratamiento o el responsable. La fecha de la última actualización
+              aparece al final de la página, y cualquier cambio sustancial se
+              avisa en el sitio antes de aplicarlo.
+            </p>
+          </section>
+
+          {/* ---------------------------------------------------------------
+              3. Derechos del titular (ARCO)
+          ---------------------------------------------------------------- */}
+          <section>
+            <h2 className="font-display text-lg font-bold text-ink">
+              3. Derechos del titular (ARCO)
+            </h2>
+            <p className="mt-2">
+              Como titular de los datos puede pedir, en cualquier momento y de
+              forma gratuita, los derechos ARCO que reconoce la Ley 1581:
+            </p>
+            <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5">
+              <li>
+                <strong>Acceso:</strong> conocer qué datos suyos se tienen y
+                para qué se usan.
+              </li>
+              <li>
+                <strong>Rectificación:</strong> actualizar o corregir los datos
+                que estén equivocados o incompletos.
+              </li>
+              <li>
+                <strong>Cancelación:</strong> pedir la eliminación de los datos
+                cuando ya no se necesiten para la finalidad con la que se pidieron.
+              </li>
+              <li>
+                <strong>Oposición:</strong> revocar la autorización y pedir que
+                no se sigan tratando los datos.
+              </li>
+            </ul>
+            <p className="mt-3">
+              Revocar la autorización detiene el tratamiento futuro, pero no
+              afecta a lo que ya se hizo con esos datos —que, para quien nos
+              escribió, consiste únicamente en responder el mensaje—.
+            </p>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Cómo ejercer los derechos
+            </h3>
+            <p className="mt-2">
+              La solicitud se presenta por{" "}
+              <strong>[CORREO O CANAL PARA EJERCER LOS DERECHOS]</strong> y se
+              responde en un plazo máximo de diez días hábiles, prorrogable por
+              cinco más cuando la respuesta lo exija, como establece el
+              artículo 14 del Decreto 1377 de 2013.
             </p>
             <p className="mt-2">
-              Este aviso se actualiza cuando cambia la finalidad o el responsable. La
-              fecha de la última actualización aparece al final de la página, y
-              cualquier cambio sustancial se avisa en el sitio.
-            </p>
-            <p className="mt-2 text-xs text-muted">
-              Datos de contacto publicados en el sitio:{" "}
-              <a href={`mailto:${SITE.email}`} className="text-lime-ink underline">
-                {SITE.email}
-              </a>
-              {" · "}
-              {SITE.phone}
+              Si la respuesta no convence, puede reclamar ante la autoridad de
+              protección de datos personales (Superintendencia de Industria y
+              Comercio), que es la instancia que vigila el cumplimiento de la
+              Ley 1581.
             </p>
           </section>
         </article>
+
+        {/* La nota va al final y discreta, no en un recuadro amarillo a la
+            vista: lo que falta son datos que solo tiene la organización, y el
+            recordatorio alcanza con que esté en la página cuando alguien la
+            lea antes de publicar. */}
+        <p className="mt-10 rounded-2xl border border-stone bg-fog p-4 text-xs leading-relaxed text-muted">
+          Los datos entre corchetes de esta página los completa la organización
+          responsable antes de publicar: el nombre o razón social, el canal para
+          ejercer los derechos, el plazo de conservación y quiénes acceden a los
+          datos. Mientras estén entre corchetes, la página se publica pero{" "}
+          <strong>no cumple la ley</strong>.
+        </p>
+
+        <div className="mt-6 text-xs text-muted">
+          Datos de contacto publicados en el sitio:{" "}
+          <a href={`mailto:${SITE.email}`} className="underline">
+            {SITE.email}
+          </a>
+          {" · "}
+          {SITE.phone}
+        </div>
 
         <div className="mt-12 border-t border-stone pt-6">
           <Link

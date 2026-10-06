@@ -89,8 +89,11 @@ export const inputCls =
 export const textareaCls =
   "w-full resize-y rounded-lg border border-mist bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-muted/70 focus:border-lime-hot focus:ring-2 focus:ring-lime/40";
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={cn(inputCls, props.className)} />;
+export function Input({
+  ref,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement> & React.RefAttributes<HTMLInputElement>) {
+  return <input ref={ref} {...props} className={cn(inputCls, props.className)} />;
 }
 
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {

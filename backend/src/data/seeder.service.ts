@@ -5,7 +5,6 @@ import { Convocatoria } from '../entities/convocatoria.entity';
 import { Dimension } from '../entities/dimension.entity';
 import { DocCategoria } from '../entities/doc-categoria.entity';
 import { Documento } from '../entities/documento.entity';
-import { Entidad } from '../entities/entidad.entity';
 import { Mensaje } from '../entities/mensaje.entity';
 import { Municipio } from '../entities/municipio.entity';
 import { Noticia } from '../entities/noticia.entity';
@@ -19,7 +18,7 @@ import {
   SEED_CONVOCATORIAS,
   SEED_DIMENSIONES,
   SEED_DOCUMENTOS,
-  SEED_ENTIDADES,
+  SEED_HOME,
   SEED_MENSAJES,
   SEED_MUNICIPIOS,
   SEED_NOTICIAS,
@@ -62,7 +61,6 @@ export class SeederService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     if (this.sembrarContenido) {
       await this.seed(Stat, SEED_STATS);
-      await this.seed(Entidad, SEED_ENTIDADES);
       await this.seed(Municipio, SEED_MUNICIPIOS);
       await this.seed(Taller, SEED_TALLERES);
       await this.seed(DocCategoria, SEED_CATEGORIAS);
@@ -124,6 +122,11 @@ export class SeederService implements OnApplicationBootstrap {
     if (!existing.logoTitulo?.trim()) cambios.logoTitulo = SEED_SITE.logoTitulo;
     if (!existing.logoSubtitulo?.trim()) cambios.logoSubtitulo = SEED_SITE.logoSubtitulo;
     if (!existing.navLinks?.length) cambios.navLinks = SEED_SITE.navLinks;
+    // La portada se rellena entera y de una vez: son seis bloques de textos e
+    // imágenes que van juntos, y rellenarlos campo a campo dejaría la portada a
+    // medio camino —con un titular y sin imagen, o al revés— si el proceso se
+    // cortara a la mitad.
+    if (!Object.keys(existing.home ?? {}).length) cambios.home = SEED_HOME;
     if (Object.keys(cambios).length === 0) return;
 
     // Se modifica la entidad que ya se leyó en vez de armar un objeto con

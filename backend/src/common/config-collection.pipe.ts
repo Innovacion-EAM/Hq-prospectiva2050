@@ -5,8 +5,6 @@ import {
   DimensionPatchDto,
   DocCategoriaDto,
   DocCategoriaPatchDto,
-  EntidadDto,
-  EntidadPatchDto,
   MunicipioDto,
   MunicipioPatchDto,
   PaginaProyectoDto,
@@ -27,7 +25,6 @@ export type AnyDto = ClassConstructor<unknown>;
  */
 export const DTO_POR_COLECCION: Record<string, { create: AnyDto; patch: AnyDto }> = {
   stats: { create: StatDto, patch: StatPatchDto },
-  entidades: { create: EntidadDto, patch: EntidadPatchDto },
   municipios: { create: MunicipioDto, patch: MunicipioPatchDto },
   talleres: { create: TallerDto, patch: TallerPatchDto },
   'doc-categorias': { create: DocCategoriaDto, patch: DocCategoriaPatchDto },

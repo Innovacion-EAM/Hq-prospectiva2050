@@ -2,11 +2,12 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast, Toaster } from "sonner";
-import { FOOTER_COLS } from "@/data/site";
+import { type ColorBoton } from "@/data/site";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Logo, LogoMark } from "./logo";
+import { clasesBoton } from "./portada-colores";
 import { SearchDialog } from "./search-dialog";
 import { useSearchShortcut } from "@/hooks/use-search";
 import { Button } from "./ui/button";
@@ -227,7 +228,9 @@ function Footer() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [consentimiento, setConsentimiento] = useState(false);
-  const { SITE } = useSite();
+  // Las cuatro columnas del pie llegan de la base: tres son fijas y la de las
+  // tarjetas de «El proyecto» se elige en Ajustes → Footer (ver `pickFooter`).
+  const { SITE, FOOTER } = useSite();
 
   async function subscribe(e: FormEvent) {
     e.preventDefault();
@@ -251,7 +254,7 @@ function Footer() {
         <div>
           <p className="font-display text-sm font-semibold tracking-wide">Mapa del sitio</p>
           <div className="mt-5 grid gap-6 text-sm text-mist sm:grid-cols-3">
-            {FOOTER_COLS.map((col, i) => (
+            {FOOTER.map((col, i) => (
               <ul key={i} className="flex flex-col gap-2">
                 {col.links.map((link) => (
                   <li key={link.href + link.label}>
@@ -338,7 +341,13 @@ function Footer() {
       </div>
       <div className="border-t border-paper/10 px-4 py-4 text-center text-xs text-mist flex flex-col sm:flex-row items-center justify-between gap-2 max-w-6xl mx-auto">
         <span>Horizonte Quindío 2050 — Todos los derechos reservados</span>
-        <span>Protección y Tratamiento de Datos Personales (Ley 1581 de 2012)</span>
+        {/* Enlace y no texto plano: es la política de tratamiento de datos, y
+            está en la misma página que el aviso al que apunta la casilla de
+            autorización de los formularios. El texto queda fijo —es la
+            identidad del sitio—, pero el clic tiene que llegar a la política. */}
+        <Link to="/privacidad" className="text-mist no-underline transition-colors hover:text-lime">
+          Protección y Tratamiento de Datos Personales (Ley 1581 de 2012)
+        </Link>
       </div>
     </footer>
   );
@@ -381,15 +390,19 @@ export function PageHero({
   kicker,
   title,
   intro,
+  fondo,
 }: {
   kicker?: string;
   title: string;
   intro?: string;
+  /** Imagen de fondo del hero. La pone solo `/proyecto`, que es donde se edita
+   *  desde el panel; el resto de páginas siguen con la del sitio. */
+  fondo?: string;
 }) {
   return (
     <section className="relative overflow-hidden bg-ink text-paper">
       <div className="pointer-events-none absolute inset-0 opacity-35">
-        <img src="/images/hero-city.jpg" alt="" className="h-full w-full object-cover" />
+        <img src={fondo ?? "/images/hero-city.jpg"} alt="" className="h-full w-full object-cover" />
       </div>
       <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40" />
       <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
@@ -407,20 +420,37 @@ export function PageHero({
   );
 }
 
+/**
+ * El botón-verde de "Explorar más" que aparece en las tarjetas.
+ *
+ * `color` es opcional a propósito: si no se pasa, sale el lima de siempre, que es
+ * lo que usan las páginas que no son la portada y no tienen su color editable.
+ * En la portada se pasa `PORTADA.proyecto.botonColor`, que es donde se edita desde
+ * el panel.
+ *
+ * Cuando sí se pasa el color, **todas** las clases de fondo y de texto las pone
+ * `clasesBoton` y aquí no se repite ninguna. Si se dejara el `bg-lime` de la
+ * versión fija, el color elegido nunca ganaría: en Tailwind gana la clase que
+ * aparece más tarde en el CSS generado, no la que va más tarde en el atributo, y
+ * dos `bg-*` declarados en sitios distintos no se pueden ordenar a gusto.
+ */
 export function LimeCta({
   to,
   children,
   className,
+  color,
 }: {
   to: string;
   children: ReactNode;
   className?: string;
+  color?: ColorBoton;
 }) {
   return (
     <Link
       to={to}
       className={cn(
-        "inline-flex items-center gap-1 rounded-pill bg-lime px-4 py-2 font-display text-xs font-semibold text-lime-fg no-underline tap-scale hover:bg-lime-deep",
+        "inline-flex items-center gap-1 rounded-pill px-4 py-2 font-display text-xs font-semibold no-underline tap-scale",
+        color ? clasesBoton(color) : "bg-lime text-lime-fg hover:bg-lime-deep",
         className,
       )}
     >

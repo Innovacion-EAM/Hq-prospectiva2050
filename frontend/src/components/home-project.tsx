@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSite } from "@/data/site-context";
@@ -6,46 +5,8 @@ import { cn } from "@/lib/utils";
 import { DimensionDetail, DimensionGrid } from "./dimension-panel";
 import { LimeCta } from "./site-shell";
 
-const CAROUSEL_CARDS = [
-  {
-    slug: "que-es",
-    title: "¿Qué es Horizonte Quindío 2050?",
-    image: "/images/card-que-es.jpg",
-    excerpt:
-      "Un ejercicio colectivo de prospectiva territorial para trazar la visión compartida del departamento.",
-  },
-  {
-    slug: "contexto",
-    title: "Contexto y justificación",
-    image: "/images/card-contexto.jpg",
-    excerpt:
-      "Tras más de veinte años sin un ejercicio de futuro, el departamento retoma la prospectiva como herramienta de gobierno.",
-  },
-  {
-    slug: "objetivo",
-    title: "Objetivo",
-    image: "/images/card-objetivo.jpg",
-    excerpt:
-      "Construir una visión compartida al 2050 e institucionalizar la prospectiva en la toma de decisiones públicas.",
-  },
-  {
-    slug: "gobernanza",
-    title: "Gobernanza",
-    image: "/images/hero-city.jpg",
-    excerpt:
-      "Catorce entidades y la CEPAL conforman el arreglo institucional que sostiene el ejercicio.",
-  },
-  {
-    slug: "principios",
-    title: "Principios y valores",
-    image: "/images/cocora.jpg",
-    excerpt:
-      "Intergeneracionalidad, inclusión, evidencia y sentido de pertenencia territorial.",
-  },
-];
-
 export function HomeProject() {
-  const { DIMENSIONS } = useSite();
+  const { DIMENSIONS, PORTADA, PROJECT_PAGES } = useSite();
   const [slide, setSlide] = useState(0);
   // El documento de arquitectura define 4 dimensiones de análisis; el resto de
   // entradas son bloques de apoyo (misiones, retos, iniciativas, hallazgos).
@@ -58,17 +19,35 @@ export function HomeProject() {
   // una, que es lo que la gente espera de un desplegable.
   const [dim, setDim] = useState<string | null>(null);
   const active = visibles.find((d) => d.slug === dim) ?? visibles[0];
-  const max = CAROUSEL_CARDS.length;
+  /*
+   * Las tarjetas del carrusel son las páginas del proyecto, no una lista aparte.
+   *
+   * Antes había un arreglo propio (`CAROUSEL_CARDS`) con los mismos cinco
+   * títulos, imágenes y resúmenes que las páginas de `/proyecto`, y ya se habían
+   * separado: la tarjeta «Gobernanza» decía «Catorce entidades» mientras la
+   * página decía «Once». Dos copias del mismo dato divergen solas; aquí solo hay
+   * una, la de Configuración → Proyecto, que es donde ya se editaban las
+   * páginas. Añadir o quitar una página ahí ahora también la añade o la quita del
+   * carrusel, sin tocar código.
+   *
+   * La lista nunca llega vacía: `pickPaginas` devuelve las páginas de respaldo
+   * cuando la base no trae ninguna. Eso es lo que permite dividir por `max` sin
+   * miedo a un NaN en el módulo.
+   */
+  const tarjetas = PROJECT_PAGES;
+  const max = tarjetas.length;
 
   const visible = useMemo(() => {
-    return [0, 1, 2].map((i) => CAROUSEL_CARDS[(slide + i) % max]);
-  }, [slide, max]);
+    return [0, 1, 2].map((i) => tarjetas[(slide + i) % max]);
+  }, [slide, max, tarjetas]);
 
   return (
     <section className="relative bg-ink">
-      {/* Background aerial cityscape photo with dark overlay */}
+      {/* Fondo de la sección. Editable en Ajustes → Home; el `grayscale` y el 60%
+          de opacidad son los que permiten que la tarjeta blanca de dentro se lea
+          encima sin quedar suelta. */}
       <img
-        src="/images/city-aerial.jpg"
+        src={PORTADA.proyecto.fondo}
         alt=""
         className="absolute inset-0 h-full w-full object-cover opacity-60 grayscale"
       />
@@ -80,11 +59,11 @@ export function HomeProject() {
           {/* SECTION 1: EL PROYECTO */}
           <div id="proyecto">
             <h2 className="text-center font-display text-section font-bold text-ink">
-              El proyecto
+              {PORTADA.proyecto.titulo}
             </h2>
-            
+
             <p className="mx-auto mt-3 max-w-4xl text-center text-xs text-muted sm:text-sm font-medium truncate">
-              Un ejercicio participativo con catorce entidades y la CEPAL para construir la visión de largo plazo del departamento.
+              {PORTADA.proyecto.texto}
             </p>
 
             {/* Carousel Container */}
@@ -124,8 +103,16 @@ export function HomeProject() {
                       <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted">
                         {card.excerpt}
                       </p>
-                      <LimeCta to={`/proyecto/${card.slug}`} className="mt-4 self-start">
-                        Explorar más {">"}{">"}
+                      {/* El color lo elige el panel (Ajustes → Home). Sin
+                          `clasesBoton` el `bg-lime` fijo de `LimeCta` le ganaría
+                          siempre: en Tailwind manda el orden del CSS generado,
+                          no el del atributo. */}
+                      <LimeCta
+                        to={`/proyecto/${card.slug}`}
+                        className="mt-4 self-start"
+                        color={PORTADA.proyecto.botonColor}
+                      >
+                        {PORTADA.proyecto.tarjetaBoton}
                       </LimeCta>
                     </div>
                   </article>
@@ -154,7 +141,7 @@ export function HomeProject() {
 
               {/* Pagination Dots */}
               <div className="mt-6 flex justify-center gap-1.5">
-                {CAROUSEL_CARDS.map((p, i) => (
+                {tarjetas.map((p, i) => (
                   <button
                     key={p.slug}
                     type="button"
@@ -174,11 +161,10 @@ export function HomeProject() {
           <div id="dimensiones" className="mt-14 border-t border-stone/60 pt-10">
             <div>
               <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
-                Las cuatro dimensiones
+                {PORTADA.proyecto.dimsTitulo}
               </h2>
               <p className="mt-2 text-xs text-muted sm:text-sm">
-                Cuatro lecturas del territorio que estructuran la lectura del Quindío.{" "}
-                Toca una para desplegar su resumen.
+                {PORTADA.proyecto.dimsTexto}
               </p>
             </div>
 
@@ -201,7 +187,7 @@ export function HomeProject() {
               {bloques.length > 0 ? (
                 <div className="mt-8 rounded-2xl border border-stone/70 bg-fog/30 p-5 sm:p-6">
                   <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
-                    Del diagnóstico a la acción
+                    {PORTADA.proyecto.accionTitulo}
                   </p>
                   <ul className="mt-3 grid gap-2 sm:grid-cols-2">
                     {bloques.map((b) => (
@@ -225,25 +211,5 @@ export function HomeProject() {
         </div>
       </div>
     </section>
-  );
-}
-
-export function ProjectStrip() {
-  return (
-    <div className="grid gap-5 md:grid-cols-3">
-      {CAROUSEL_CARDS.slice(0, 3).map((card) => (
-        <Link
-          key={card.slug}
-          to={`/proyecto/${card.slug}`}
-          className="overflow-hidden rounded-2xl border border-stone bg-paper no-underline shadow-xs transition-transform duration-200 hover:-translate-y-0.5"
-        >
-          <img src={card.image} alt="" className="h-40 w-full object-cover" />
-          <div className="p-4">
-            <h3 className="font-display font-bold text-ink">{card.title}</h3>
-            <p className="mt-2 text-sm text-muted">{card.excerpt}</p>
-          </div>
-        </Link>
-      ))}
-    </div>
   );
 }

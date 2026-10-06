@@ -18,7 +18,7 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 - **Ciclo de atención de los mensajes**: cada mensaje se puede mover por los estados *nuevo → en revisión → respondido / archivado* y lleva una nota interna de a quién se le respondió y por qué canal. El sistema **no envía correos** (requiere SMTP/hosting); el registro es interno.
 - **Bandeja que se refresca sola** y con **contador de sin leer** en el menú, como el globito de WhatsApp: la lista se vuelve a pedir cada 30 segundos y el número baja cuando el mensaje se marca como leído, no al archivarlo.
 - **Backoffice** con sesión y dos roles para todo el contenido: noticias, documentos, convocatorias, mensajes, configuración editorial (incluida la de municipios), usuarios y galería de archivos.
-- **Ajustes del sitio sin tocar código**: el encabezado se edita desde el panel —logo, los textos que van al lado y el **orden de los enlaces del menú**, que se mueve con las flechas de cada fila. Del menú solo se cambia el orden, que es lo único que hace falta; si la lista llega a quedar vacía, el sitio no se queda sin barra (usa el menú de respaldo) y el panel ofrece **«Poner el menú del sitio»** para reponerla con un clic.
+- **Ajustes del sitio sin tocar código**: el encabezado se edita desde el panel —logo, los textos que van al lado y el **orden de los enlaces del menú**, que se mueve con las flechas de cada fila. Del menú solo se cambia el orden, que es lo único que hace falta; si la lista llega a quedar vacía, el sitio no se queda sin barra (usa el menú de respaldo) y el panel ofrece **«Poner el menú del sitio»** para reponerla con un clic. También se editan **el titular del hero** (Ajustes → Home, renglón por renglón) y **la columna de «El proyecto» del pie** (Ajustes → Footer: hasta seis páginas elegidas de Configuración → Proyecto, con su orden; sin ninguna elegida, el pie muestra las suyas). El resto de rótulos de bloque son fijos y las demás columnas del pie también.
 
 ### Datos personales
 
@@ -26,7 +26,7 @@ Los cuatro formularios públicos piden nombre y correo (o un texto libre que pue
 
 - Cada uno tiene una **casilla de autorización obligatoria** que enlaza al Aviso de Privacidad (`/privacidad`). Sin marcar, el botón no se envía.
 - El backend **también la exige**: `POST /api/forms/*` responde `400` si el campo no llega o llega en `false`. Una casilla que solo vive en el navegador se puede saltar con una petición hecha a mano, y entonces no sería prueba de nada. La fila guardada lleva `consentimiento`, que es lo que el backoffice muestra como «Sin constancia» en los mensajes anteriores al aviso.
-- ⚠️ **El aviso tiene dos `[PENDIENTE]` visibles** que hay que completar antes de publicar: el nombre o razón social del responsable y el canal para ejercer los derechos. Son datos de la organización, no se deducen. Está en `frontend/src/pages/PrivacidadPage.tsx`.
+- ⚠️ **El aviso (`/privacidad`) es una sola página con tres secciones** —Aviso de privacidad (Ley 1581), Política de tratamiento y Derechos del titular (ARCO)— y los datos que solo conoce la organización van **entre corchetes `[ … ]`**: nombre o razón social del responsable, canal para ejercer los derechos, plazo de conservación y quiénes acceden. Se rellenan **antes de publicar**; mientras quede un corchete, la página se publica pero no cumple la ley. Está en `frontend/src/pages/PrivacidadPage.tsx`.
 - La caja del hero guarda el correo **solo si lo dejan**: la columna es nullable y el backoffice muestra «Sin contacto» en lugar de una dirección inventada.
 
 ### Roles
@@ -38,7 +38,7 @@ Los cuatro formularios públicos piden nombre y correo (o un texto libre que pue
 | Galería: ver y subir | ✅ | ✅ |
 | Galería: eliminar | ✅ | ❌ |
 | Usuarios | ✅ | ❌ |
-| Ajustes del sitio (por módulos: Header, General) | ✅ | ❌ |
+| Ajustes del sitio (por módulos, uno por bloque del sitio) | ✅ | ❌ |
 
 La primera cuenta se siembra sola: `admin@prospectiva.com` / `Admin123*`. **Cámbiala antes de salir de desarrollo** (o edita `SEED_USERS` en `backend/src/seed-data.ts`).
 
@@ -74,6 +74,6 @@ make doctor        # diagnóstico del entorno
 - **SSL/TLS** en Traefik.
 - **Despliegue automatizado**: la CI (`.github/workflows/deploy.yml`) valida lint, typecheck, build y e2e en cada push, pero el `make deploy` sigue siendo manual.
 - **Los e2e corren contra la base de desarrollo** (`.env.e2e`) y borran lo que crean. `make test-e2e` fija `APP_ENV=e2e` a propósito, pero invocar `npm run test:e2e` a mano con otro `APP_ENV` haría que los tests apuntaran a esa base y borraran datos reales.
-- **⚠️ Los dos `[PENDIENTE]` del Aviso de Privacidad** (nombre del responsable y canal de peticiones). Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
+- **⚠️ Los corchetes del Aviso de Privacidad** (nombre del responsable, canal para ejercer los derechos, plazo de conservación y quiénes acceden), en `frontend/src/pages/PrivacidadPage.tsx`. Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
 - **⚠️ `noticias.slug` y `users.email` son UNIQUE sin mirar la columna de borrado lógico.** Consecuencia: un slug que se borró queda ocupado para siempre y la siguiente noticia con ese slug se come un 500 en vez de un «ese slug ya existe». Se detectó al hacer repetible la suite e2e. Afecta también a los correos de usuarios dados de baja.
 - **12 fotos de municipios por subir**: el sistema de imágenes ya guarda la URL relativa (`/uploads/…`), deja quitar la imagen y permite asignarla en lote, pero las fotos no están.

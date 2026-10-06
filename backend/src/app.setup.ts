@@ -36,7 +36,23 @@ export function configureApp(app: INestApplication): void {
     origin: corsOrigins,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
-  app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
+  // El prefijo global es `api`, y las rutas internas no lo repiten: el
+  // controlador de mensajes escucha en `/mensajes` y públicalmente responde en
+  // `/api/mensajes`. El frontend SIEMPRE pide con `/api` delante —`site-context`
+  // hace `fetch("${API_BASE}/api/site")`, las listas `${API_BASE}/api/noticias`,
+  // los formularios `${API_BASE}/api/forms/...` y los archivos
+  // `${API_BASE}/api/uploads/...`—, así que `API_BASE` es el origen (sin `/api`)
+  // y **Traefik NO quita el prefijo** (ver `infra/traefik/dynamic/routes.yml`).
+  // Quitar este prefijo y confiar en un middleware que recorte `/api` habría
+  // dejado el sitio con el contenido de respaldo: las peticiones al panel de
+  // configuración llegaban a una ruta que no existía y el front tenía que
+  // mostrar lo que trae por defecto.
+  //
+  // El health también queda bajo el prefijo (`/api/health` y `/api/health/db`),
+  // sin exclusiones: es la URL pública que documenta el proyecto (`smoke.sh` y
+  // `make prod-smoke` la comprueban por `traefik`, y el healthcheck del
+  // contenedor llama a `http://127.0.0.1:3000/api/health` directo al backend).
+  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -13,6 +13,7 @@ export function sinCamposProtegidos<T extends object>(data: DeepPartial<T>): Dee
   const limpio: Record<string, unknown> = {};
   for (const [clave, valor] of Object.entries(data as Record<string, unknown>)) {
     if (CAMPOS_PROTEGIDOS.has(clave)) continue;
+    if (valor === undefined) continue;
     limpio[clave] = valor;
   }
   return limpio as DeepPartial<T>;

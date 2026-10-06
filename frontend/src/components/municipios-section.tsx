@@ -60,7 +60,7 @@ export function MunicipiosSection({ className }: { className?: string }) {
 }
 
 export function MunicipiosStrip({ className }: { className?: string }) {
-  const { MUNICIPIOS } = useSite();
+  const { MUNICIPIOS, PORTADA } = useSite();
 
   if (MUNICIPIOS.length === 0) return null;
 
@@ -69,12 +69,9 @@ export function MunicipiosStrip({ className }: { className?: string }) {
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h2 className="font-display text-sm font-bold text-ink">
-            Todo el departamento participa
+            {PORTADA.cobertura.titulo}
           </h2>
-          <p className="text-xs text-muted">
-            La visión del 2050 se construye para el Quindío completo, no solo para
-            Armenia.
-          </p>
+          <p className="text-xs text-muted">{PORTADA.cobertura.texto}</p>
         </div>
         <ul className="mt-4 flex flex-wrap gap-1.5">
           {MUNICIPIOS.map((m) => (

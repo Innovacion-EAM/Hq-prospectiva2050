@@ -1,3 +1,5 @@
+import type { ColorBoton, ColorBotonSobreLima } from "./portada";
+
 export type Noticia = {
   id: number;
   slug: string;
@@ -72,6 +74,136 @@ export type SiteSettings = {
   logoTitulo: string;
   logoSubtitulo: string;
   navLinks: NavLink[];
+  /**
+   * El contenido de la portada: el hero y las secciones que van desde ahí hasta
+   * antes del pie de página. Cada sección se edita en su módulo de Ajustes (Home,
+   * El proyecto, Dimensiones, Documentos, Noticias, Participa, Contáctanos).
+   *
+   * Es un objeto y no texto suelto, así que hay que clonarlo al copiar el
+   * `value` al formulario (igual que `navLinks`): sin clonar, el formulario y la
+   * fila que vino de la API serían el mismo objeto y editar uno editaría el otro.
+   */
+  home: PortadaSettings;
+};
+
+/** Un bloque de titular y párrafo de la portada. */
+export type SeccionPortada = {
+  titulo: string;
+  texto: string;
+};
+
+export type HeroPortada = {
+  /**
+   * Ruta de la imagen de fondo. `null` = la que trae el sitio.
+   *
+   * La API devuelve `null` (y no `""`) cuando en el panel se pulsa «Usar la del
+   * sitio», porque es el valor que el backend sí escribe y el que el sitio lee
+   * como respaldo. El formulario lo convierte a `""` al cargar
+   * (`conImagenesEnCadena` en `AjustesPage`), de modo que aquí se declara
+   * `string | null` para no mentir sobre lo que llega del servidor.
+   */
+  fondo: string | null;
+  imagen: string | null;
+  botonTexto: string;
+  botonColor: ColorBoton;
+  cajaTitulo: string;
+  /**
+   * El color del «Enviar» de esa caja.
+   *
+   * Es `ColorBotonSobreLima` y no `ColorBoton` porque la caja es lima: un botón
+   * lima encima de una caja lima no se ve. La lista corta la fija el backend, no
+   * el panel.
+   */
+  cajaBotonColor: ColorBotonSobreLima;
+};
+
+export type ProyectoPortada = SeccionPortada & {
+  /** Como `HeroPortada.fondo`: `null` = la imagen que trae el sitio. */
+  fondo: string | null;
+  tarjetaBoton: string;
+  /** El color del botón «Explorar más» de las tarjetas del carrusel. */
+  botonColor: ColorBoton;
+  dimsTitulo: string;
+  dimsTexto: string;
+  accionTitulo: string;
+};
+
+/**
+ * La página «El proyecto» (`/proyecto`): el hero, los dos párrafos, las tres
+ * etapas y las entidades aliadas.
+ *
+ * Vive en `home` como una sección más porque ahí viven las secciones editables
+ * del sitio; el módulo «El proyecto» del panel la edita con el mismo guardado
+ * que el resto. `titulo` aquí **sí** se edita, a diferencia de los rótulos de
+ * la portada: es el titular de la página, no parte del diseño fijo.
+ */
+export type ElProyectoPortada = {
+  /** Como `HeroPortada.fondo`: `null` = la imagen que trae el sitio. */
+  fondo: string | null;
+  titulo: string;
+  intro: string;
+  parrafoUno: string;
+  parrafoDos: string;
+  /** Las tres etapas, en orden; el «01/02/03» lo pone el diseño. */
+  etapas: string[];
+  /** Las entidades aliadas, en el orden en que se ven. */
+  entidades: string[];
+};
+
+/**
+ * El bloque de documentos, con el color de su botón «Ver más».
+ *
+ * Antes era un `SeccionPortada` pelado. Al darle color necesita tipo propio: si
+ * se dejara como `SeccionPortada`, el campo del color no estaría declarado y el
+ * formulario lo perdería al guardar.
+ */
+export type DocumentosPortada = SeccionPortada & {
+  botonColor: ColorBoton;
+};
+
+export type NoticiasPortada = SeccionPortada & {
+  botonTexto: string;
+  /** El color del botón «Ver todas». */
+  botonColor: ColorBoton;
+  /**
+   * El color del «Ver más» de cada tarjeta.
+   *
+   * Va aparte del de «Ver todas» porque los dos botones no se parecen: el
+   * primero es un botón de la página y el segundo va **encima** de la foto de la
+   * noticia. Con uno solo habría que elegir cuál de los dos se entera del color.
+   */
+  tarjetaBotonColor: ColorBoton;
+};
+
+export type ContactoPortada = SeccionPortada & {
+  formTitulo: string;
+  /** El color del botón del teléfono, que es un enlace `tel:` y no un "enviar". */
+  botonColor: ColorBoton;
+  /** El color del botón «Enviar» del formulario. */
+  enviarColor: ColorBoton;
+};
+
+/**
+ * El pie de página: la única columna de enlaces que se elige desde el panel.
+ *
+ * La lista es de máximo seis porque así es como pinta el pie la columna de las
+ * tarjetas de «El proyecto», y se elige de las páginas que ya existen en
+ * Configuración → Proyecto, no escribiéndola a mano: un href mal escrito no da
+ * ningún error hasta que alguien pulsa y no llega a ninguna parte.
+ */
+export type FooterPortada = {
+  enlaces: NavLink[];
+};
+
+export type PortadaSettings = {
+  hero: HeroPortada;
+  proyecto: ProyectoPortada;
+  elProyecto: ElProyectoPortada;
+  cobertura: SeccionPortada;
+  documentos: DocumentosPortada;
+  noticias: NoticiasPortada;
+  contacto: ContactoPortada;
+  footer: FooterPortada;
 };
 
 export type Stat = {
@@ -79,13 +211,6 @@ export type Stat = {
   value: string;
   label: string;
   subtext: string;
-  /** Fecha de baja lógica; `null` mientras el registro está vigente. */
-  eliminadoAt?: string | null;
-};
-
-export type Entidad = {
-  id: number;
-  nombre: string;
   /** Fecha de baja lógica; `null` mientras el registro está vigente. */
   eliminadoAt?: string | null;
 };

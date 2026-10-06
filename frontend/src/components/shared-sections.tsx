@@ -14,8 +14,24 @@ import { toast } from "sonner";
 import type { DocCategory } from "@/data/site";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { ConsentCheckbox } from "./consent-checkbox";
+import { adornoBoton, clasesBoton } from "./portada-colores";
 import { Button } from "./ui/button";
+
+/**
+ * Un bloque de titular y párrafo de la portada.
+ *
+ * Se resuelve campo a campo en `pickPortada`, así que aquí solo hay que imprimir.
+ */
+function TituloSeccion({ titulo, texto }: { titulo: string; texto: string }) {
+  return (
+    <>
+      <h2 className="font-display text-section font-bold text-ink">{titulo}</h2>
+      <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted sm:text-sm">{texto}</p>
+    </>
+  );
+}
 
 export function HomeStats() {
   const { STATS } = useSite();
@@ -52,16 +68,15 @@ const DOC_ICONS: Record<DocCategory["icon"], typeof FileText> = {
 };
 
 export function HomeDocuments() {
-  const { DOC_CATEGORIES } = useSite();
+  const { DOC_CATEGORIES, PORTADA } = useSite();
   return (
     <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <h2 className="text-center font-display text-section font-bold text-ink">
-          Documentos y publicaciones
+          {PORTADA.documentos.titulo}
         </h2>
         <p className="mx-auto mt-4 max-w-3xl text-center text-xs leading-relaxed text-muted sm:text-sm">
-          Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y
-          piezas de socialización. Explora cada categoría del repositorio.
+          {PORTADA.documentos.texto}
         </p>
         {/* La barra por fin tiene aire por dentro. Antes las 6 celdas iban de
             borde a borde del contenedor oscuro con px-4: el texto de la primera
@@ -86,9 +101,15 @@ export function HomeDocuments() {
                   <p className="flex-1 text-[0.72rem] leading-relaxed text-mist">
                     {cat.description}
                   </p>
+                  {/* El color sale de la lista cerrada con su texto ya
+                      emparejado (ver `portada-colores.ts`), no de un color
+                      libre. Se edita en Ajustes → Home. */}
                   <Link
                     to={`/documentos/${cat.slug}`}
-                    className="rounded-pill bg-lime px-3 py-1 font-display text-[0.68rem] font-semibold text-lime-fg no-underline hover:bg-lime-deep"
+                    className={cn(
+                      "rounded-pill px-3 py-1 font-display text-[0.68rem] font-semibold no-underline",
+                      clasesBoton(PORTADA.documentos.botonColor),
+                    )}
                   >
                     Ver más
                   </Link>
@@ -128,6 +149,7 @@ const FALLBACK_NEWS = [
 ];
 
 export function HomeNews({ news }: { news?: { slug: string; title: string; category: string; date: string; image: string; overlay?: "convoca" }[] }) {
+  const { PORTADA } = useSite();
   const items = (news && news.length > 0 ? news : FALLBACK_NEWS).slice(0, 3);
 
   return (
@@ -135,15 +157,15 @@ export function HomeNews({ news }: { news?: { slug: string; title: string; categ
       <div className="pointer-events-none absolute -left-20 top-4 h-56 w-56 rounded-full border border-stone/60" />
       <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[0.6fr_1.8fr]">
         <div>
-          <h2 className="font-display text-section font-bold text-ink">Noticias</h2>
-          <p className="mt-3 max-w-xs text-xs leading-relaxed text-muted sm:text-sm">
-            Comunicados, talleres, convocatorias y avances del ejercicio de prospectiva territorial.
-          </p>
+          <TituloSeccion titulo={PORTADA.noticias.titulo} texto={PORTADA.noticias.texto} />
           <Link
             to="/noticias"
-            className="mt-4 inline-flex rounded-pill bg-lime px-4 py-2 font-display text-sm font-semibold text-lime-fg no-underline hover:bg-lime-deep"
+            className={cn(
+              "mt-4 inline-flex rounded-pill px-4 py-2 font-display text-sm font-semibold no-underline",
+              clasesBoton(PORTADA.noticias.botonColor),
+            )}
           >
-            Ver todas
+            {PORTADA.noticias.botonTexto}
           </Link>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2">
@@ -169,7 +191,16 @@ export function HomeNews({ news }: { news?: { slug: string; title: string; categ
               )}
               <div className="absolute inset-x-3 bottom-3 rounded-xl bg-[#0c272e]/90 p-3 text-paper backdrop-blur-xs">
                 <h3 className="font-display text-xs font-bold text-paper">{n.category}</h3>
-                <span className="mt-2 inline-flex items-center gap-1 rounded-pill bg-paper/20 px-3 py-1 font-display text-[0.68rem] font-semibold text-paper hover:bg-paper/30">
+                {/* Va **encima** de la foto, así que tiene color propio: el
+                    mismo que se lea bien sobre el papel no siempre se lee bien
+                    sobre una imagen. Por eso `noticias` tiene dos colores y no
+                    uno (ver `NoticiasPortada`). */}
+                <span
+                  className={cn(
+                    "mt-2 inline-flex items-center gap-1 rounded-pill px-3 py-1 font-display text-[0.68rem] font-semibold",
+                    clasesBoton(PORTADA.noticias.tarjetaBotonColor),
+                  )}
+                >
                   Ver más {">"}
                 </span>
               </div>
@@ -184,7 +215,7 @@ export function HomeNews({ news }: { news?: { slug: string; title: string; categ
 
 
 export function HomeContact() {
-  const { SITE } = useSite();
+  const { SITE, PORTADA } = useSite();
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
@@ -223,11 +254,7 @@ export function HomeContact() {
     <section className="bg-fog px-4 py-14 sm:px-6 sm:py-18">
       <div className="mx-auto grid max-w-6xl gap-10 rounded-3xl bg-paper p-6 shadow-sm sm:p-10 lg:grid-cols-2">
         <div>
-          <h2 className="font-display text-section font-bold text-ink">Contactos</h2>
-          <p className="mt-3 max-w-md text-xs leading-relaxed text-muted sm:text-sm">
-            Escríbenos para más información sobre el ejercicio de prospectiva, los talleres o las
-            convocatorias abiertas del departamento.
-          </p>
+          <TituloSeccion titulo={PORTADA.contacto.titulo} texto={PORTADA.contacto.texto} />
           <ul className="mt-6 flex flex-col gap-3 text-xs text-muted sm:text-sm">
             <li className="flex items-center gap-3">
               <IconBubble>
@@ -247,11 +274,24 @@ export function HomeContact() {
             </li>
           </ul>
 
+          {/* Este botón es un enlace `tel:`, no un "enviar": por eso lleva
+              color propio y no comparte el del formulario. */}
           <a
             href={SITE.phoneHref}
-            className="mt-6 inline-flex items-center gap-2 rounded-pill bg-[#0c272e] px-5 py-2.5 font-display text-sm font-bold text-paper no-underline shadow-xs hover:bg-ink"
+            className={cn(
+              "mt-6 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 font-display text-sm font-bold no-underline shadow-xs",
+              clasesBoton(PORTADA.contacto.botonColor),
+            )}
           >
-            <span className="grid size-5 place-items-center rounded-full bg-lime text-ink text-xs font-extrabold">
+            {/* El círculo del icono se pone del color contrario al del botón:
+                si no, elegir `lima` para el botón lo dejaba lima sobre lima y
+                el icono desaparecía. */}
+            <span
+              className={cn(
+                "grid size-5 place-items-center rounded-full text-xs font-extrabold",
+                adornoBoton(PORTADA.contacto.botonColor),
+              )}
+            >
               📱
             </span>
             {SITE.phone}
@@ -260,7 +300,7 @@ export function HomeContact() {
 
         <form onSubmit={send} className="flex flex-col gap-3">
           <p className="font-display text-base font-bold text-ink sm:text-lg">
-            Escríbenos para más información
+            {PORTADA.contacto.formTitulo}
           </p>
           <Field
             label="Nombre"
@@ -297,9 +337,11 @@ export function HomeContact() {
           <div className="flex justify-end">
             <Button
               type="submit"
-              variant="ink"
+              variant="pintado"
               size="sm"
-              className="bg-[#0c272e] px-6 text-paper"
+              // Sin color en la variante: el fondo, el texto y el hover los pone
+              // `clasesBoton` con el color que se elige en Ajustes → Home.
+              className={cn("px-6", clasesBoton(PORTADA.contacto.enviarColor))}
               // Sin la casilla no se envía. Deshabilitarlo explica el motivo en
               // la propia pantalla; dejarlo activo convertiría cada intento en
               // un 400 del servidor.

@@ -4,15 +4,18 @@ import { toast } from "sonner";
 import { useSite } from "@/data/site-context";
 import { postForm } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { clasesBoton } from "./portada-colores";
 import { Button } from "./ui/button";
 
 export function HomeHero() {
-  const { SITE } = useSite();
+  const { SITE, PORTADA } = useSite();
   return (
     <section className="relative isolate overflow-hidden bg-ink text-paper pb-24 sm:pb-32 lg:pb-40">
-      {/* Background aerial city image */}
+      {/* Fondo del hero. Se ve con `grayscale` y al 45% porque el titular va en
+          blanco encima: a plena saturación el texto perdía legibilidad. Editable
+          en Ajustes → Home. */}
       <img
-        src="/images/hero-city.jpg"
+        src={PORTADA.hero.fondo}
         alt=""
         className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
       />
@@ -35,11 +38,16 @@ export function HomeHero() {
             ))}
           </h1>
           <div className="mt-8 flex justify-start">
+            {/* El color sale de una lista cerrada con su texto ya emparejado, no
+                de un color libre: ver `COLOR_BOTON` en `portada-colores.ts`. */}
             <Link
               to="/proyecto"
-              className="inline-flex items-center gap-1.5 rounded-pill bg-lime px-6 py-3.5 font-display text-sm font-bold text-lime-fg no-underline tap-scale hover:bg-lime-deep shadow-lg transition-transform"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-pill px-6 py-3.5 font-display text-sm font-bold no-underline tap-scale shadow-lg transition-transform",
+                clasesBoton(PORTADA.hero.botonColor),
+              )}
             >
-              Explorar más »
+              {PORTADA.hero.botonTexto}
             </Link>
           </div>
         </div>
@@ -62,7 +70,7 @@ export function HomeHero() {
               }}
             >
               <img
-                src="/images/hero-people.jpg"
+                src={PORTADA.hero.imagen}
                 alt="Talento local del Quindío: jóvenes profesionales del territorio"
                 className="w-full h-[18rem] sm:h-[22rem] lg:h-[26rem] object-cover object-[center_20%]"
                 style={{
@@ -128,6 +136,7 @@ export function SuggestForm({
   inputId?: string;
   emailId?: string;
 }) {
+  const { PORTADA } = useSite();
   const [text, setText] = useState("");
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
@@ -179,7 +188,7 @@ export function SuggestForm({
       )}
     >
       <label htmlFor={inputId} className="font-display text-xs leading-snug font-extrabold sm:text-sm">
-        ¿Tienes alguna pregunta o quieres darnos una recomendación?
+        {PORTADA.hero.cajaTitulo}
       </label>
       {/* Antes era un `<input>` de una línea con el placeholder "escribe tu res...",
           que además estaba cortado a la mitad. Una recomendación no cabe en una
@@ -229,9 +238,16 @@ export function SuggestForm({
       </label>
       <Button
         type="submit"
-        variant="hot"
+        variant="pintado"
         size="sm"
-        className="mt-2 w-full text-xs py-1.5 font-bold uppercase tracking-wider"
+        // `variant="pintado"` no pone ningún color a propósito: el fondo, el texto
+        // y el hover los pone `clasesBoton`, que es lo que se elige en Ajustes →
+        // Home. El color sale de `cajaBotonColor`, cuya lista es corta porque esta
+        // caja es lima y un botón lima encima de una caja lima no se vería.
+        className={cn(
+          "mt-2 w-full px-6 py-1.5 text-xs font-bold uppercase tracking-wider",
+          clasesBoton(PORTADA.hero.cajaBotonColor),
+        )}
         disabled={!puedeEnviar}
       >
         {sending ? "Enviando…" : "Enviar"}

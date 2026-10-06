@@ -183,23 +183,23 @@ export async function fetchNoticias(params?: {
   p.set("page", String(params?.page ?? 1));
   p.set("perPage", String(params?.perPage ?? 20));
   return get<{ data: ApiNoticia[]; meta: { total: number; page: number; perPage: number } }>(
-    `/api/noticias?${p.toString()}`
+    `/noticias?${p.toString()}`
   );
 }
 
 export async function fetchNoticia(slug: string) {
-  return get<ApiNoticia>(`/api/noticias/${encodeURIComponent(slug)}`);
+  return get<ApiNoticia>(`/noticias/${encodeURIComponent(slug)}`);
 }
 
 export async function fetchDocumentos(params?: { tipo?: string; delimitacion?: string }) {
   const p = new URLSearchParams();
   if (params?.tipo) p.set("tipo", params.tipo);
   if (params?.delimitacion) p.set("delimitacion", params.delimitacion);
-  return get<{ data: ApiDocumento[] }>(`/api/documentos?${p.toString()}`);
+  return get<{ data: ApiDocumento[] }>(`/documentos?${p.toString()}`);
 }
 
 export async function fetchConvocatorias() {
-  return get<ApiConvocatoria[]>("/api/convocatorias");
+  return get<ApiConvocatoria[]>(`/convocatorias`);
 }
 
 /**

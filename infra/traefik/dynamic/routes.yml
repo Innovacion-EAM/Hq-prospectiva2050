@@ -28,13 +28,12 @@ http:
         - web
       service: backoffice
 
-    # /api → backend (el middleware strip-api le quita /api)
+    # /api → backend (el backend responde bajo su prefijo global /api, así que
+    # aquí la petición se pasa tal cual; ver backend/src/app.setup.ts)
     api:
       rule: "Host(`localhost`) && PathPrefix(`/api`)"
       entryPoints:
         - web
-      middlewares:
-        - strip-api
       service: api
 
     # ╔══════════════════════════════════════════════════════════════════╗
@@ -46,7 +45,7 @@ http:
     # ║                                  http://backoffice.localhost      ║
     # ║  Los navegadores resuelven *.localhost → 127.0.0.1;               ║
     # ║  si no, agrega 2 líneas a /etc/hosts.                             ║
-    # ║  ⚠ NO usa middleware strip-api (aquí la API va en su propio host) ║
+    # ║ ⚠ Ninguna variante usa middleware: el prefijo /api lo pone el    ║
     # ╚══════════════════════════════════════════════════════════════════╝
     # frontend:
     #   rule: "Host(`localhost`)"

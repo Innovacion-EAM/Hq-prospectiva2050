@@ -67,12 +67,6 @@ const MODULOS: Modulo[] = [
     subtituloDe: (i) => textoDe(i as never, "short"),
   },
   {
-    clave: "entidades",
-    etiqueta: "Entidades aliadas",
-    crud: collections.entidades() as Crud<ConBorradoLogico>,
-    tituloDe: (i) => textoDe(i as never, "nombre"),
-  },
-  {
     clave: "municipios",
     etiqueta: "Municipios",
     crud: collections.municipios() as Crud<ConBorradoLogico>,
