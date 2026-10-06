@@ -23,10 +23,15 @@ export class AuthController {
   ) {}
 
   /**
-   * Login: 5 intentos cada 15 minutos.
-   *
-   * La clave de conteo NO es solo la IP, sino el correo normalizado. Es la
-   * diferencia entre frenar el ataque y solo molestarlo:
+ * Login: 5 intentos cada 15 minutos.
+ *
+ * El contador `login` tiene que existir también en `throttler.ts`, porque el
+ * guard solo recorre los contadores declarados ahí. Este decorador pone sus
+ * números y, sobre todo, la clave de conteo; los del módulo son el suelo por si
+ * alguien quita el decorador.
+ *
+ * La clave NO es solo la IP, sino el correo normalizado. Es la diferencia
+ * entre frenar el ataque y solo molestarlo:
    *
    *   - por IP, un atacante con una máquina reintenta 5 veces, espera 15
    *     minutos y vuelve. Son unas 480 intentos al día contra una cuenta, y

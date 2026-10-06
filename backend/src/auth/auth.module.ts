@@ -30,7 +30,7 @@ import { UsersService } from './users.service';
         return {
           secret,
           signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '12h') },
-        };
+        } as any;
       },
     }),
   ],

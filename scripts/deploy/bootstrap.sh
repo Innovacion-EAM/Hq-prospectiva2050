@@ -154,14 +154,17 @@ DB_SYNCHRONIZE=false
 UPLOAD_DIR=uploads
 JWT_SECRET=$(secret)
 JWT_EXPIRES_IN=12h
-# Techo general de peticiones a la API (60 s, 120 peticiones), en segundos.
-# Los límites de login y de los formularios NO están aquí a propósito: viven en
-# los decoradores @Throttle de sus controladores, que es donde la librería
-# aplica la clave por (correo, IP) y por IP respectivamente. Si se metieran
-# aquí no tendrían efecto: en un decorador siempre gana lo que pone el
-# decorador. Ver backend/src/auth/throttler.ts.
+# Límites de peticiones (TTL en segundos). Los tres contadores deben estar
+# declarados: el guard solo recorre los del módulo backend/src/auth/throttler.ts,
+# y un contador que no exista ahí no se aplica aunque su ruta lleve @Throttle.
+# Los valores buenos de login y forms están en los decoradores de sus
+# controladores; estos son los de arranque. Ver backend/src/auth/throttler.ts.
 THROTTLE_TTL_DEFAULT=60
 THROTTLE_LIMIT_DEFAULT=120
+THROTTLE_TTL_LOGIN=900
+THROTTLE_LIMIT_LOGIN=5
+THROTTLE_TTL_FORMS=3600
+THROTTLE_LIMIT_FORMS=3
 EOF
   chmod 600 "$APP_DIR/backend/.env.prod"
 else
