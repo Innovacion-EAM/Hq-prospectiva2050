@@ -175,3 +175,95 @@ export type Media = {
   size: number;
   createdAt: string;
 };
+
+// ── Repositorio de información ──────────────────────────────────────────────
+// La cuarta app (/repo) cataloga los 297 documentos de referencia. Esta tabla es
+// independiente de `Documento` (las piezas del sitio principal): otra colección,
+// otra semilla, otros colores. La dimensión guarda el slug de `config_dimensiones`
+// y `codigo` es el "No." original del Excel, único.
+
+export type RepositorioItem = {
+  id: number;
+  codigo: number;
+  titulo: string;
+  autor: string | null;
+  anio: number | null;
+  tipo: string;
+  delimitacion: string | null;
+  formato: string;
+  dimension: string | null;
+  link: string | null;
+  resumen: string | null;
+  publicado: boolean;
+  publicadoEn: string | null;
+  creadoEn: string | null;
+  actualizadoEn: string | null;
+};
+
+export type RepositorioGrupo = {
+  clave: string | number | null;
+  etiqueta?: string | null;
+  count: number;
+};
+
+export type RepositorioStats = {
+  total: number;
+  conEnlace: number;
+  sinEnlace: number;
+  porDimension: RepositorioGrupo[];
+  porTipo: RepositorioGrupo[];
+  porDelimitacion: RepositorioGrupo[];
+  porFormato: RepositorioGrupo[];
+  porAnio: RepositorioGrupo[];
+  topAutores: RepositorioGrupo[];
+};
+
+export type RepositorioFacetas = {
+  dimensiones: RepositorioGrupo[];
+  tipos: RepositorioGrupo[];
+  delimitaciones: RepositorioGrupo[];
+  formatos: RepositorioGrupo[];
+  anios: RepositorioGrupo[];
+};
+
+export type ImportarResultado = {
+  creados: number;
+  actualizados: number;
+  errores: { fila: number; motivo: string }[];
+};
+
+/** Las 4 dimensiones del proceso con su color del dashboard de /repo. */
+export const DIMENSIONES_REPO = [
+  { slug: "fisico-ambiental", title: "Físico-ambiental", color: "#34d399" },
+  { slug: "economica-productiva", title: "Económico-productivo", color: "#fbbf24" },
+  { slug: "politico-institucional", title: "Político-institucional", color: "#60a5fa" },
+  { slug: "socio-cultural", title: "Socio-cultural", color: "#f472b6" },
+] as const;
+
+export function dimRepoColor(slug: string | null): string | null {
+  if (!slug) return null;
+  return DIMENSIONES_REPO.find((d) => d.slug === slug)?.color ?? null;
+}
+
+/** Los 17 tipos del inventario original (columna "Tipo de documento"). */
+export const TIPOS_REPO = [
+  "Informe General o de Gestión",
+  "Artículo Científico o Revista",
+  "Investigación Académica / Tesis",
+  "Plan de Desarrollo o Plan Estratégico",
+  "Acuerdo",
+  "Política Pública",
+  "Base de Datos",
+  "Guía Metodológica o Técnica",
+  "Consultoría",
+  "Plan Maestro",
+  "Cartografía SIG",
+  "Plan de Gestión",
+  "Decreto",
+  "Normatividad Técnica",
+  "Ley Nacional",
+  "Resolución",
+  "Libro",
+] as const;
+
+export const FORMATOS_REPO = ["PDF", "Excel", "Dirección web", "Power Point"] as const;

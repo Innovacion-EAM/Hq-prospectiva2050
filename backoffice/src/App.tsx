@@ -7,6 +7,7 @@ import { MediaPage } from "@/pages/MediaPage";
 import { MensajesPage } from "@/pages/MensajesPage";
 import { NoticiaFormPage, NoticiasListPage } from "@/pages/NoticiasPage";
 import { DocumentoFormPage, DocumentosListPage } from "@/pages/DocumentosPage";
+import { RepositorioPage } from "@/pages/RepositorioPage";
 import { ConvocatoriaFormPage, ConvocatoriasListPage } from "@/pages/ConvocatoriasPage";
 import { ProyectoFormPage, ProyectoListPage } from "@/pages/ProyectoPages";
 import { DimensionFormPage, DimensionesListPage } from "@/pages/DimensionesPage";
@@ -42,6 +43,8 @@ export default function App() {
         <Route path="/documentos" element={<DocumentosListPage />} />
         <Route path="/documentos/nuevo" element={<DocumentoFormPage />} />
         <Route path="/documentos/:id" element={<DocumentoFormPage />} />
+
+        <Route path="/repositorio" element={<RepositorioPage />} />
 
         <Route path="/convocatorias" element={<ConvocatoriasListPage />} />
         <Route path="/convocatorias/nuevo" element={<ConvocatoriaFormPage />} />

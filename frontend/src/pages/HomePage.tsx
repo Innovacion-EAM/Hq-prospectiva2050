@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { HomeHero } from "@/components/home-hero";
 import { HomeProject } from "@/components/home-project";
+import { HomeRepo } from "@/components/home-repo";
 import { HomeContact, HomeDocuments, HomeNews, HomeStats } from "@/components/shared-sections";
 import { fetchNoticias, toNewsItem, type NewsItem } from "@/lib/api";
 
@@ -19,6 +20,7 @@ export function HomePage() {
       <HomeStats />
       <HomeProject />
       <HomeDocuments />
+      <HomeRepo />
       <HomeNews news={news} />
       <HomeContact />
     </>

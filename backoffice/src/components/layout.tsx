@@ -4,6 +4,7 @@ import {
   BookOpen,
   Boxes,
   CalendarDays,
+  Database,
   FileStack,
   FolderOpen,
   Home,
@@ -53,6 +54,7 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
       items: [
         { to: "/noticias", label: "Noticias", icon: Newspaper },
         { to: "/documentos", label: "Documentos", icon: FileStack },
+        { to: "/repositorio", label: "Repositorio", icon: Database },
         { to: "/convocatorias", label: "Convocatorias", icon: Megaphone },
       ],
     },

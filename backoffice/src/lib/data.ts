@@ -5,10 +5,14 @@ import type {
   DocCategoria,
   Documento,
   Entidad,
+  ImportarResultado,
   Media,
   Mensaje,
   Noticia,
   PaginaProyecto,
+  RepositorioFacetas,
+  RepositorioItem,
+  RepositorioStats,
   Role,
   SiteSettings,
   Stat,
@@ -185,6 +189,71 @@ export const collections = {
 };
 
 export { API_BASE, http };
+
+export type RepositorioListaParams = {
+  page?: number;
+  perPage?: number;
+  q?: string;
+  dimension?: string;
+  tipo?: string;
+  delimitacion?: string;
+  formato?: string;
+  anio?: string;
+  orden?: "recientes" | "antiguos" | "titulo";
+};
+
+/**
+ * Repositorio de información: un CRUD normal (crear/editar/borrar) más sus
+ * endpoints propios (importar CSV, publicar todo, estadísticas y facetas).
+ *
+ * La lista lee `/api/repositorio/panel` —que incluye borradores— y no el
+ * endpoint público, que solo devuelve lo publicado. Escribir va al path normal
+ * de la colección, porque ya exige sesión por el guard de roles.
+ */
+export const repositorio = {
+  list: (params: RepositorioListaParams = {}) => {
+    const p = new URLSearchParams();
+    p.set("page", String(params.page ?? 1));
+    p.set("perPage", String(params.perPage ?? 50));
+    if (params.q) p.set("q", params.q);
+    if (params.dimension) p.set("dimension", params.dimension);
+    if (params.tipo) p.set("tipo", params.tipo);
+    if (params.delimitacion) p.set("delimitacion", params.delimitacion);
+    if (params.formato) p.set("formato", params.formato);
+    if (params.anio) p.set("anio", params.anio);
+    if (params.orden) p.set("orden", params.orden);
+    return http<{ data: RepositorioItem[]; meta: { total: number; page: number; perPage: number } }>(
+      `/api/repositorio/panel?${p.toString()}`,
+    );
+  },
+  create: (item: Omit<RepositorioItem, "id">) =>
+    http<RepositorioItem>("/api/repositorio", { method: "POST", body: JSON.stringify(item) }),
+  update: (id: number, patch: Partial<RepositorioItem>) =>
+    http<RepositorioItem>(`/api/repositorio/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  remove: (id: number) => http<void>(`/api/repositorio/${id}`, { method: "DELETE" }),
+  importar: async (file: File): Promise<ImportarResultado> => {
+    const form = new FormData();
+    form.append("file", file);
+    const headers: Record<string, string> = {};
+    const token = getToken();
+    if (token) headers.authorization = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/api/repositorio/importar`, {
+      method: "POST",
+      body: form,
+      headers,
+    });
+    if (res.status === 401) {
+      clearSession();
+      gotoLogin();
+    }
+    if (!res.ok) throw new Error(await errorMessage(res, "/api/repositorio/importar"));
+    return res.json() as Promise<ImportarResultado>;
+  },
+  publicarTodos: () =>
+    http<{ actualizados: number }>("/api/repositorio/publicar-todos", { method: "POST" }),
+  estadisticas: () => http<RepositorioStats>("/api/repositorio/estadisticas"),
+  facetas: () => http<RepositorioFacetas>("/api/repositorio/facetas"),
+};
 
 export type ConfigBackend<C> = {
   get(): Promise<C>;

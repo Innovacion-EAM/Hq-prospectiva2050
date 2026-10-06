@@ -26,6 +26,7 @@ export const NAV = [
   { label: "El proyecto", href: "/proyecto", match: "/proyecto" },
   { label: "Dimensiones", href: "/dimensiones", match: "/dimensiones" },
   { label: "Documentos", href: "/documentos", match: "/documentos" },
+  { label: "Repositorio", href: "/repo", match: "/repo" },
   { label: "Noticias", href: "/noticias", match: "/noticias" },
   { label: "Participa", href: "/participa", match: "/participa" },
   { label: "Contáctanos", href: "/contactos", match: "/contactos" },

@@ -137,3 +137,30 @@ export async function fetchDocumentos(params?: { tipo?: string; delimitacion?: s
 export async function fetchConvocatorias() {
   return get<ApiConvocatoria[]>("/api/convocatorias");
 }
+
+// ── Repositorio de información ──────────────────────────────────────────────
+// La portada consume un solo endpoint público del repositorio
+// (`/api/repositorio/estadisticas`): así las mini-gráficas de las 4 dimensiones
+// dicen exactamente lo mismo que el dashboard de /repo, con la misma fuente.
+
+export type ApiRepositorioGrupo = {
+  clave: string | number | null;
+  etiqueta?: string | null;
+  count: number;
+};
+
+export type ApiRepositorioStats = {
+  total: number;
+  conEnlace: number;
+  sinEnlace: number;
+  porDimension: ApiRepositorioGrupo[];
+  porTipo: ApiRepositorioGrupo[];
+  porDelimitacion: ApiRepositorioGrupo[];
+  porFormato: ApiRepositorioGrupo[];
+  porAnio: ApiRepositorioGrupo[];
+  topAutores: ApiRepositorioGrupo[];
+};
+
+export async function fetchRepositorioEstadisticas() {
+  return get<ApiRepositorioStats>("/api/repositorio/estadisticas");
+}
