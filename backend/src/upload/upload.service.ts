@@ -59,7 +59,21 @@ export class UploadService implements OnModuleInit {
     return path.join(this.dir, filename);
   }
 
-  async save(file: Express.Multer.File, baseUrl: string): Promise<Media> {
+  /**
+   * Guarda un archivo y devuelve su fila.
+   *
+   * El campo `url` guarda SOLO el path (`/api/uploads/nombre.png`), sin
+   * dominio. Antes se guardaba la URL absoluta del momento de la subida, y
+   * eso era una bomba de relojería: el día que la web pase de
+   * `http://3.231.164.130` a `https://dominio.com`, todas las imágenes ya
+   * subidas seguirían apuntando a la IP, en http, que a la vez ya no es el
+   * sitio. Y el arreglo obligaba a editar fila por fila en la base de datos.
+   *
+   * Guardando el path, el mismo registro sirve para la IP, para el dominio y
+   * para http o https. El que compone la URL es quien la muestra, y para eso
+   * está `absoluteUrl()`.
+   */
+  async save(file: Express.Multer.File): Promise<Media> {
     const mime = file.mimetype;
     const ext = EXTENSIONS[mime] ?? path.extname(file.originalname ?? '').toLowerCase();
     const allowed =
@@ -76,13 +90,38 @@ export class UploadService implements OnModuleInit {
 
     const entity = this.repo.create({
       filename,
-      url: `${baseUrl}/api/uploads/${filename}`,
+      url: this.publicPath(filename),
       mime,
       size: file.size,
     });
     const saved = await this.repo.save(entity);
     this.logger.log(`Guardado archivo ${filename} (${file.size} bytes)`);
-    return saved;
+    return this.toDto(saved);
+  }
+
+  /** Path público de un fichero, tal y como lo consume el navegador. */
+  private publicPath(filename: string): string {
+    return `/api/uploads/${filename}`;
+  }
+
+  /**
+   * Convierte una fila de `media` en lo que ve el panel, con la URL ya
+   * absoluta respecto al host de la petición.
+   *
+   * Sin esto, un `<img src="/api/uploads/x.png">` en el panel apuntaría al
+   * origen del panel (`/admin`) y no a la API. Como las dos cosas están bajo
+   * el mismo dominio en producción, basta con el origen de la petición.
+   */
+  absoluteUrl(media: Media, origin: string): Media {
+    return {
+      ...media,
+      url: media.url.startsWith('/') ? `${origin}${media.url}` : media.url,
+    };
+  }
+
+  async list(origin: string): Promise<Media[]> {
+    const items = await this.repo.find({ order: { createdAt: 'DESC' } });
+    return items.map((item) => this.absoluteUrl(item, origin));
   }
 
   async list(): Promise<Media[]> {

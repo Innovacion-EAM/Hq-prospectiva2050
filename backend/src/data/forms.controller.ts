@@ -1,4 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { MensajesService } from './mensajes.service';
 import { Public } from '../auth/public.decorator';
 
@@ -32,7 +33,19 @@ export class FormsController {
     return this.mensajes.create(data);
   }
 
+  /**
+   * 3 envíos por hora desde la misma IP.
+   *
+   * Estos dos endpoints escriben filas en `mensajes` sin pedir autenticación,
+   * así que son la vía más barata para llenar la tabla de spam. Tres por hora
+   * no estorba a nadie real: quien rellena un formulario de contacto lo hace
+   * una vez. Un bot que repita se encuentra con un 429 enseguida.
+   *
+   * La clave es por IP (el `default` de la librería) porque un formulario no
+   * tiene cuenta a la que atribuir el intento.
+   */
   @Post('contacto')
+  @Throttle({ forms: { limit: 3, ttl: 60 * 60 * 1000 } })
   contacto(@Body() body: ContactoBody) {
     const data: DeepPartialMensaje = {
       nombre: body.nombre ?? '',
@@ -47,6 +60,7 @@ export class FormsController {
   }
 
   @Post('inscripciones')
+  @Throttle({ forms: { limit: 3, ttl: 60 * 60 * 1000 } })
   inscripciones(@Body() body: InscripcionBody) {
     const data: DeepPartialMensaje = {
       nombre: body.nombre ?? '',

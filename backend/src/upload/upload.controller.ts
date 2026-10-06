@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -23,6 +24,17 @@ interface UploadRequest extends Request {
 export class UploadController {
   constructor(private readonly uploads: UploadService) {}
 
+  /**
+   * Origen de la petición, tal y como lo vio el cliente.
+   *
+   * `protocol` y `host` llegan correctos gracias al `trust proxy` de
+   * `main.ts`: si faltara, saldría `http` y la IP del contenedor de Traefik,
+   * que es justo el bug que se arregló con el path relativo.
+   */
+  private origin(req: UploadRequest): string {
+    return `${req.protocol}://${req.get('host')}`;
+  }
+
   @Post('uploads')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -30,20 +42,19 @@ export class UploadController {
       limits: { fileSize: 20 * 1024 * 1024 },
     }),
   )
-  uploadFile(
-    @UploadedFile() file: Express.Multer.File,
-    @Req() req: UploadRequest,
-  ) {
+  uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
-      throw new Error('Archivo requerido');
+      // BadRequest y no `Error`: un `Error` suelto lo convierte Nest en un
+      // 500, y un archivo ausente es un 400. Antes el cliente recibía un error
+      // de servidor por un fallo de su propia petición.
+      throw new BadRequestException('Archivo requerido');
     }
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    return this.uploads.save(file, baseUrl);
+    return this.uploads.save(file);
   }
 
   @Get()
-  list() {
-    return this.uploads.list();
+  list(@Req() req: UploadRequest) {
+    return this.uploads.list(this.origin(req));
   }
 
   @Delete(':id')

@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Convocatoria } from '../entities/convocatoria.entity';
@@ -27,6 +28,26 @@ import {
   SEED_TALLERES,
   SEED_USERS,
 } from '../seed-data';
+
+/**
+ * Longitud de las contraseñas iniciales generadas. 20 caracteres de un
+ * alfabeto de 56 dan ~117 bits de entropía, de sobra para una cuenta que se
+ * cambia en el primer uso.
+ */
+const SEED_PASSWORD_LENGTH = 20;
+
+/**
+ * alfabeto sin caracteres ambiguos: sin 0/O ni 1/l/I. Quien lea la contraseña
+ * de un log o se la dicten por teléfono no tiene que adivinar si es una "O"
+ * mayúscula o un cero, que es la causa habitual de un ticket de soporte en el
+ * momento más tonto.
+ *
+ * El sorteo usa randomInt() y NO `byte % longitud`: el módulo sobre 256
+ * reparte los restos de forma desigual, y con un alfabeto de 57 caracteres los
+ * primeros 28 saldrían un 11% más veces que el resto. En una contraseña de un
+ * solo uso es irrelevante, pero es un sesgo gratis de quitar.
+ */
+const PASSWORD_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 @Injectable()
 export class SeederService implements OnApplicationBootstrap {
@@ -67,20 +88,70 @@ export class SeederService implements OnApplicationBootstrap {
     }
   }
 
+  /** Genera una contraseña aleatoria legible (ver PASSWORD_ALPHABET). */
+  private generatePassword(): string {
+    let out = '';
+    for (let i = 0; i < SEED_PASSWORD_LENGTH; i += 1) {
+      out += PASSWORD_ALPHABET[randomInt(PASSWORD_ALPHABET.length)];
+    }
+    return out;
+  }
+
+  /**
+   * Siembra la cuenta de administrador la PRIMERA vez, y solo si la tabla está
+   * vacía: en cuanto existe una cuenta, la semilla no vuelve a tocar los
+   * usuarios, así que cambiar la contraseña desde el panel no se deshace al
+   * redesplegar.
+   *
+   * Cuando la semilla pide una contraseña generada (password: null), se crea
+   * una aleatoria y se imprime UNA vez en el log. Esos logs solo los ve quien
+   * tiene acceso al servidor; nadie más puede conocerla nunca, porque en la
+   * base de datos solo queda el hash bcrypt.
+   */
   private async seedUsers(): Promise<void> {
     const repo = this.dataSource.getRepository(User);
     const count = await repo.count();
-    if (count === 0) {
-      for (const seed of SEED_USERS) {
-        await repo.save(
-          repo.create({
-            email: seed.email,
-            passwordHash: await bcrypt.hash(seed.password, 12),
-            role: seed.role,
-          }),
-        );
+    if (count > 0) {
+      return;
+    }
+
+    const generated: { email: string; password: string }[] = [];
+
+    for (const seed of SEED_USERS) {
+      const password = seed.password ?? this.generatePassword();
+      if (seed.password === null) {
+        generated.push({ email: seed.email, password });
       }
-      this.logger.log(`Sembradas ${SEED_USERS.length} cuentas de usuario`);
+      await repo.save(
+        repo.create({
+          email: seed.email,
+          passwordHash: await bcrypt.hash(password, 12),
+          role: seed.role,
+        }),
+      );
+    }
+
+    this.logger.log(`Sembradas ${SEED_USERS.length} cuentas de usuario`);
+
+    if (generated.length > 0) {
+      // A un panel de texto le cuesta un sobre todo que este bloque quede
+      // separado del resto del log: es la única vez que estas claves existen
+      // en claro en algún sitio, y tiene que ser fácil de encontrar.
+      this.logger.warn(
+        [
+          '',
+          '╔══════════════════════════════════════════════════════════════╗',
+          '║  CONTRASEÑAS INICIALES (se muestran UNA sola vez)             ║',
+          '╚══════════════════════════════════════════════════════════════╝',
+          ...generated.map(
+            (g) => `║  ${g.email.padEnd(28)} ${g.password.padEnd(22)} ║`,
+          ),
+          '║                                                              ║',
+          '║  Cámbialas desde el panel: Ajustes → Mi cuenta.             ║',
+          '╚══════════════════════════════════════════════════════════════╝',
+          '',
+        ].join('\n'),
+      );
     }
   }
 }

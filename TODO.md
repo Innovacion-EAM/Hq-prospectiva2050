@@ -50,26 +50,58 @@
 
 ## Pendiente de seguridad (detectado al preparar el despliegue)
 
-- [ ] **`JWT_SECRET` con fallback** — `backend/src/auth/auth.module.ts` usa
-      `'dev-secret'` si la variable no está definida. El bootstrap siempre la
-      genera, pero un arranque manual sin ella deja los tokens firmados con una
-      clave pública del repo. Debería fallar al arrancar.
-- [ ] **`isAdmin()` en rutas `@Public()`** — `data/noticias.controller.ts` verifica
-      el JWT a mano en `GET /api/noticias` y `GET /api/noticias/:slug`, que son
-      públicas. Acepta también el rol `editor`, así que un editor lee noticias no
-      publicadas saltándose el guard. Necesita un endpoint autenticado aparte.
-- [ ] **Sin rate limiting en los formularios** — `POST /api/forms/contacto` y
-      `POST /api/forms/inscripciones` no validan ni limitan. Con el sitio
-      público, cualquiera puede llenar `mensajes` de spam. Resolver con
-      `@nestjs/throttler`.
-- [ ] **URLs de media fijadas con el host** — `upload/upload.service.ts` guarda
-      la URL absoluta del momento de la subida. Cambiar de dominio o pasar a
-      HTTPS invalida todo lo ya subido. Debería guardar solo el path y
-      componerlo en el cliente.
-- [ ] **`trust proxy` sin activar** — `main.ts` no lo configura, así que detrás
-      de Traefik con TLS `req.protocol` devuelve `http`. Afecta al punto anterior.
-- [ ] **Credenciales de la semilla** — `admin@prospectiva.com` / `Admin123*`
-      vienen en el repo. Hay que forzar el cambio en el primer acceso.
+Resuelto el 2026-10-05, tras la primera puesta en producción:
+
+- [x] **`JWT_SECRET` con fallback** — `auth.module.ts` ya no tiene `'dev-secret'`
+      como valor por defecto: si falta la variable, el arranque falla con un
+      mensaje que dice cómo generarla. Con fallback, un arranque manual sin la
+      variable firmaba todos los tokens con una clave publicada en el repo.
+- [x] **`isAdmin()` en rutas `@Public()`** — era un agujero real: las rutas
+      públicas de noticias verificaban el JWT a mano y aceptaban el rol
+      `editor`, así que un editor leía borradores sin pasar por el guard.
+      Ahora son dos superficies distintas: `GET /noticias` y
+      `GET /noticias/:slug` son públicas y no miran el token;
+      `GET /noticias/panel` y `GET /noticias/panel/:slug` exigen sesión y
+      devuelven también lo no publicado. El backoffice lista desde `/panel`.
+- [x] **Sin rate limiting** — `@nestjs/throttler`, con tres contadores
+      (general, login y formularios) configurables por variable de entorno. El
+      del login cuenta por (correo, IP): por IP sola un atacante podía
+      reintentar cada 15 minutos; por cuenta sola, un atacante podía bloquearle
+      el login a otra persona. Ver `backend/src/auth/throttler.ts`.
+- [x] **URLs de media fijadas con el host** — `media.url` guarda ahora solo el
+      path (`/api/uploads/x.png`) y el panel recibe la URL ya compuesta contra
+      el origen de la petición. Cambiar de dominio o pasar a HTTPS ya no
+      invalida lo subido. La tabla estaba vacía, así que no hubo que migrar.
+- [x] **`trust proxy` sin activar** — `main.ts` hace `app.set('trust proxy', 1)`.
+      Sin esto, el rate limiting contaba todas las peticiones como si vinieran
+      de la IP de Traefik (y bloquearía a todo el mundo a la vez), y `req.protocol`
+      se quedaba en `http` con TLS delante. Se usa `1` y no `true` para no
+      confiar en la `X-Forwarded-For` que envíe el cliente.
+- [x] **Credenciales de la semilla** — `Admin123*` estaba en el repo, que es
+      público, y entraba como administrador en producción. La semilla ya no
+      lleva contraseña: genera una aleatoria de 20 caracteres y la imprime una
+      sola vez en el log del arranque, que solo ve quien tiene acceso al
+      servidor. En la base de datos solo queda el hash bcrypt.
+- [x] **Cambio de contraseña desde el panel** — `POST /api/auth/password` pide la
+      contraseña actual, así que tener un token robado no basta para quedarse
+      con la cuenta. Interfaz en Ajustes → Mi cuenta, para admin y editor.
+
+### Lo que sigue abierto de seguridad
+
+- [ ] **No se puede recuperar una contraseña olvidada** — a propósito: el sistema
+      guarda solo el hash bcrypt, que no se puede deshacer, así que no existe
+      "ver la contraseña actual". Tampoco hay correo configurado, de modo que no
+      hay flujo de "olvidé mi contraseña". Hoy la única salida es que un admin
+      la restablezca desde Usuarios, o borrar el usuario y volver a sembrarlo.
+      Montarlo de verdad requiere un proveedor de correo y tokens de un solo uso.
+- [ ] **Sin rate limiting en la instancia** — lo de arriba protege la API, pero
+      no el puerto 22. Si se deja abierto a un rango amplio, conviene fail2ban.
+- [ ] **Los tokens no se revocan al cambiar la contraseña** — el JWT dura 12h y
+      es sin estado: cambiar la contraseña no invalida los tokens ya emitidos.
+      Un cierre completo necesita un registro de tokens revocados o, más simple,
+      versionar la contraseña (`tokenVersion` en el claim) y compararla con la
+      columna en cada petición.
+- [ ] **Migraciones de esquema** (ver arriba, en "Hecho"): sigue sin haberlas.
 
 ## Pendiente de operación
 

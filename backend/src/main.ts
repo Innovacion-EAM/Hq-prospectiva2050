@@ -32,6 +32,19 @@ async function bootstrap() {
   app.enableCors({ origin: corsOrigins });
   app.setGlobalPrefix('api', { exclude: ['health', 'health/(.*)'] });
 
+  // Traefik es el único proxy delante del backend y corre en la red de Docker.
+  // Sin esto, Express toma la IP del contenedor de Traefik como IP del
+  // cliente, y eso rompe dos cosas a la vez: el rate limiting (contaría todas
+  // las peticiones como si vinieran de la misma IP, o sea que bloquearía a
+  // todo el mundo a la vez) y `req.protocol`, que se quedaría en http aunque
+  // haya TLS delante.
+  //
+  // Se pone `1` y no `true` a propósito: `true` haría caso de la cabecera
+  // X-Forwarded-For que envíe el cliente, y entonces bastaría con mandar esa
+  // cabecera para inventarse la IP y esquivar los límites. Con `1` solo se
+  // confía en el primer salto, que es Traefik.
+  app.set('trust proxy', 1);
+
   await app.listen(config.get<number>('PORT') ?? 3000);
 }
 void bootstrap();

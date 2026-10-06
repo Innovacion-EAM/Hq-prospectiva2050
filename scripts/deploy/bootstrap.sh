@@ -153,6 +153,15 @@ CORS_ORIGINS=https://$HQ_SITE_HOST
 DB_SYNCHRONIZE=false
 UPLOAD_DIR=uploads
 JWT_SECRET=$(secret)
+JWT_EXPIRES_IN=12h
+# Techo general de peticiones a la API (60 s, 120 peticiones), en segundos.
+# Los límites de login y de los formularios NO están aquí a propósito: viven en
+# los decoradores @Throttle de sus controladores, que es donde la librería
+# aplica la clave por (correo, IP) y por IP respectivamente. Si se metieran
+# aquí no tendrían efecto: en un decorador siempre gana lo que pone el
+# decorador. Ver backend/src/auth/throttler.ts.
+THROTTLE_TTL_DEFAULT=60
+THROTTLE_LIMIT_DEFAULT=120
 EOF
   chmod 600 "$APP_DIR/backend/.env.prod"
 else

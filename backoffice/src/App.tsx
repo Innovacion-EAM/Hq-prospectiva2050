@@ -12,6 +12,7 @@ import { ProyectoFormPage, ProyectoListPage } from "@/pages/ProyectoPages";
 import { DimensionFormPage, DimensionesListPage } from "@/pages/DimensionesPage";
 import { AjustesPage } from "@/pages/AjustesPage";
 import { UsuariosPage } from "@/pages/UsuariosPage";
+import { MiCuentaPage } from "@/pages/MiCuentaPage";
 import {
   CategoriasPage,
   EntidadesPage,
@@ -53,6 +54,8 @@ export default function App() {
         <Route path="/dimensiones" element={<DimensionesListPage />} />
         <Route path="/dimensiones/nuevo" element={<DimensionFormPage />} />
         <Route path="/dimensiones/:id" element={<DimensionFormPage />} />
+
+        <Route path="/mi-cuenta" element={<MiCuentaPage />} />
 
         <Route path="/configuracion" element={<AjustesPage />} />
         <Route path="/configuracion/estadisticas" element={<EstadisticasPage />} />

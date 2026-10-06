@@ -75,9 +75,35 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     clearSession();
     gotoLogin();
   }
-  if (!res.ok) throw new Error(`API ${path} respondió ${res.status}`);
+  if (!res.ok) throw new Error(await errorMessage(res, path));
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
+}
+
+/**
+ * Extrae el motivo real de un error del backend.
+ *
+ * Nest manda `{ statusCode, message, error }`, y `message` puede ser un texto
+ * o una lista de textos (así responde la validación de class-validator).
+ * Antes se tiraba todo y se decía `API /x respondió 400`, que no ayuda a
+ * nadie: el usuario ve "algo salió mal" cuando el servidor le estaba diciendo
+ * exactamente qué corregir.
+ */
+async function errorMessage(res: Response, path: string): Promise<string> {
+  const fallback = `API ${path} respondió ${res.status}`;
+  try {
+    const body = await res.json();
+    const message = body?.message;
+    if (typeof message === "string" && message) return message;
+    if (Array.isArray(message) && message.length > 0) {
+      return message.filter((m) => typeof m === "string").join(" ");
+    }
+    return fallback;
+  } catch {
+    // Sin JSON (error de proxy, HTML de error...). El texto genérico es lo
+    // único que se puede decir.
+    return fallback;
+  }
 }
 
 export async function loginRequest(email: string, password: string) {
@@ -106,10 +132,24 @@ function normalizeList<T>(raw: HttpList<T>): T[] {
   return Array.isArray(raw) ? raw : raw.data ?? [];
 }
 
-function httpCrud<T extends { id: number }>(path: string): Crud<T> {
+/**
+ * CRUD sobre una colección.
+ *
+ * `listPath` existe porque no todas las colecciones leen y escriben en la
+ * misma URL. En `noticias`, el sitio público lee `/api/noticias` (que solo
+ * devuelve lo publicado) y el panel lee `/api/noticias/panel` (que incluye
+ * borradores). Escribir sigue siendo en el path normal, porque crear y
+ * modificar ya exigen sesión por el guard.
+ *
+ * Si no se pasa `listPath`, se usa `path`, que es el caso de todo lo demás.
+ */
+function httpCrud<T extends { id: number }>(
+  path: string,
+  listPath: string = path,
+): Crud<T> {
   return {
     async list() {
-      return normalizeList<T>(await http<HttpList<T>>(path));
+      return normalizeList<T>(await http<HttpList<T>>(listPath));
     },
     async create(item) {
       return http<T>(path, { method: "POST", body: JSON.stringify(item) });
@@ -124,7 +164,7 @@ function httpCrud<T extends { id: number }>(path: string): Crud<T> {
 }
 
 export const collections = {
-  noticias: () => httpCrud<Noticia>("/api/noticias"),
+  noticias: () => httpCrud<Noticia>("/api/noticias", "/api/noticias/panel"),
   documentos: () => httpCrud<Documento>("/api/documentos"),
   convocatorias: () => httpCrud<Convocatoria>("/api/convocatorias"),
   stats: () => httpCrud<Stat>("/api/config/stats"),
