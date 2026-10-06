@@ -24,8 +24,16 @@ services:
       context: ../../backend
     container_name: hq-backend
     restart: unless-stopped
+    # `required: false` NO es opcional: el overlay de producción declara
+    # `env_file: ../../backend/.env.prod` y Compose CONCATENA las listas de
+    # `env_file` en vez de reemplazarlas. Con la forma corta, producción
+    # heredaría también esta entrada y el despliegue moriría al arrancar con
+    # "env file ../../backend/.env.docker not found" (ese fichero solo existe
+    # en el entorno de desarrollo). La forma larga con `required: false` hace
+    # que este fichero se cargue en local y se ignore, sin error, en producción.
     env_file:
-      - ../../backend/.env.docker
+      - path: ../../backend/.env.docker
+        required: false
     environment:
       APP_ENV: docker
     depends_on:

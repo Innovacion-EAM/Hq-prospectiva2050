@@ -34,8 +34,9 @@
 
 - [ ] **SSL / TLS en Traefik** — bloqueado a la espera del dueño del dominio
       (falta el registro DNS y el certificado). Decidido y preparado: el resolver
-      de Let's Encrypt está escrito en `infra/traefik/dynamic/tls-letsencrypt.yml`
-      (inerte hasta que un router lo use), el volumen `certs/` ya está montado, y
+      de Let's Encrypt está escrito y comentado en `infra/traefik/traefik.yml`
+      (config estática: en `dynamic/` haría que Traefik descartara el fichero
+      entero y se quedara sin routers), el volumen `certs/` ya está montado, y
       la redirección http→https está en `redirect.yml` lista para descomentar.
       Pasos exactos para el dominio y para nosotros en
       [`docs/dominio-y-ssl.md`](docs/dominio-y-ssl.md). Mientras tanto el panel

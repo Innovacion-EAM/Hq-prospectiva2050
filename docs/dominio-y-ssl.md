@@ -135,9 +135,15 @@ del bundle** en el momento del build: no se pueden cambiar en caliente.
 
 ## B.2 Emitir el certificado (Opción 1, automática)
 
-1. Editar `infra/traefik/dynamic/tls-letsencrypt.yml` y poner un email real
-   (donde pone `cambia-este-email@ejemplo.com`). Let's Encrypt avisa por ahí
-   antes de que caduque.
+1. Editar `infra/traefik/traefik.yml`, **quitar las comillas del bloque `tls:`
+   del final** y poner un email real (donde pone
+   `pon-aqui-tu-email-real@example.com`). Let's Encrypt avisa por ahí antes de
+   que caduque.
+
+   > Ojo: el resolver va en la config **estática** (`traefik.yml`), no en
+   > `dynamic/`. `certificatesResolvers` no es válido en los ficheros
+   > dinámicos: si se pone ahí, Traefik descarta ese fichero entero y se queda
+   > **sin ningún router**, con todo el sitio en 404.
 
 2. Si usáis un CDN por delante, o el puerto 80 no se puede usar, cambiar
    `httpChallenge` por `dnsChallenge` y pegar el token. El fichero trae
@@ -226,7 +232,8 @@ usando la IP. Es una medida provisional para poder probar el sistema; en cuanto
 el dominio esté listo, se cambia a `https://` y la IP deja de usarse como
 dirección pública del sitio.
 
-La configuración de TLS que está en el repositorio **ya está escrita y probada**:
-el resolver de Let's Encrypt (`tls-letsencrypt.yml`), el volumen de certificados,
-la redirección de http a https y la instrucción de activar el bloque `tls:` en los
+La configuración de TLS que está en el repositorio **ya está escrita**: el
+resolver de Let's Encrypt (en `traefik.yml`, la config estática, y comentado
+hasta que haya dominio), el volumen de certificados, la redirección de http a
+https y la instrucción de activar el bloque `tls:` en los
 routers. Está todo listo para cuando llegue el DNS.

@@ -6,16 +6,18 @@
 # ─────────────────────────────────────────────────────────────────────
 # VÍA 1 — Let's Encrypt automático (recomendada)
 # ─────────────────────────────────────────────────────────────────────
-# El resolver YA está escrito y activo en tls-letsencrypt.yml. Es inerte: un
-# certificatesResolvers al que ningún router referencia no hace nada por sí solo,
-# así que dejarlo definido no rompe el sitio mientras siga en HTTP.
+# El resolver de ACME va en la config ESTÁTICA (infra/traefik/traefik.yml),
+# porque `certificatesResolvers` no es válido en dynamic/: si se pone aquí,
+# Traefik descarta el fichero entero y se queda sin routers (todo 404).
+# Está escrito y COMENTADO en traefik.yml: no hace nada hasta que lo actives.
 #
-# Para activarlo: pon tu email real en tls-letsencrypt.yml y añade el bloque
-# `tls:` a los tres routers de routes.yml. Está todo escrito y comentado allí.
+# Para activarlo: quita las comillas del bloque `tls:` de traefik.yml, pon tu
+# email real, y añade `certResolver: letsencrypt` a los tres routers de
+# routes.yml. Los pasos están comentados en ambos ficheros.
 #
-# Ojo con el orden: no actives el bloque `tls:` hasta que el registro A del
-# dominio apunte a la instancia Y el puerto 80 esté abierto desde internet, o el
-# challenge de Let's Encrypt fallará.
+# Ojo con el orden: no actives nada hasta que el registro A del dominio apunte
+# a la instancia Y el puerto 80 esté abierto desde internet, o el challenge de
+# Let's Encrypt fallará.
 #
 # ─────────────────────────────────────────────────────────────────────
 # VÍA 2 — certificados que entrega el dueño del dominio
