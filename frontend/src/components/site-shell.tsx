@@ -374,18 +374,19 @@ function Footer() {
         </div>
         {/* Atribución al laboratorio donde se desarrolló el sitio. No es editable
             desde el panel: es parte de la identidad de quien lo entregó. El logo
-            es negro sobre transparente, así que sobre el pie oscuro se invierte
-            a blanco. */}
-        <div className="mx-auto mt-4 flex max-w-6xl items-center justify-center gap-2.5">
+            viene en negro sobre transparente y **recortado** (sin el margen
+            enorme que traía el archivo original, que lo dejaba en ~13 px sobre el
+            pie); sobre el fondo oscuro se invierte a blanco. */}
+        <div className="mx-auto mt-5 flex max-w-6xl items-center justify-center gap-3">
           <span className="text-[0.68rem] uppercase tracking-widest text-mist/70">
             Elaborado por
           </span>
           <img
             src="/images/logo-innovacion-eam.png"
             alt="Laboratorio de Innovación EAM"
-            className="h-7 w-7 shrink-0 object-contain invert"
+            className="h-10 w-10 shrink-0 object-contain invert"
           />
-          <span className="font-display text-xs font-semibold text-paper">
+          <span className="font-display text-sm font-semibold text-paper">
             Laboratorio de Innovación EAM
           </span>
         </div>
