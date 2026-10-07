@@ -752,6 +752,36 @@ export class NoticiasPortadaDto extends SeccionDto {
   tarjetaBotonColor?: ColorBotonDto;
 }
 
+/**
+ * La sección «Repositorio de información» de la portada.
+ *
+ * Como `DocumentosPortadaDto`, no es un `SeccionDto` pelado porque lleva dos
+ * botones con su propio color. El párrafo admite el marcador `{total}`: el sitio
+ * lo sustituye por el número real de documentos, así que el texto se puede
+ * editar sin que la cifra se quede congelada en el valor de un día.
+ */
+export class RepositorioPortadaDto extends SeccionDto {
+  /** Texto del botón que lleva al dashboard del repositorio. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  dashboardBoton?: string;
+
+  @EsColorBoton()
+  dashboardColor?: ColorBotonDto;
+
+  /**
+   * Texto del botón secundario que lleva al catálogo.
+   *
+   * Sin color propio: es el botón de contorno del bloque oscuro, y darle fondo
+   * rompería el contraste con el botón principal (que sí es de color).
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  catalogoBoton?: string;
+}
+
 /** La sección de contacto. */
 export class ContactoPortadaDto extends SeccionDto {
   @IsOptional()
@@ -838,6 +868,11 @@ export class HomeDto {
   @ValidateNested()
   @Type(() => DocumentosPortadaDto)
   documentos?: DocumentosPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RepositorioPortadaDto)
+  repositorio?: RepositorioPortadaDto;
 
   @IsOptional()
   @ValidateNested()

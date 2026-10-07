@@ -261,6 +261,30 @@ export type NoticiasPortada = SeccionPortada & {
   tarjetaBotonColor?: ColorBoton;
 };
 
+/**
+ * La sección «Repositorio de información» de la portada.
+ *
+ * Reúne el reclamo de la sección (título y párrafo) y los dos botones que llevan
+ * al dashboard y al catálogo de `/repo`. El párrafo admite el marcador `{total}`,
+ * que el sitio sustituye por el número real de documentos, para que la cifra que
+ * se anuncia nunca quede desactualizada respecto al repositorio.
+ */
+export type RepositorioPortada = {
+  titulo: string;
+  texto: string;
+  /** Texto del botón que lleva al dashboard del repositorio. */
+  dashboardBoton: string;
+  /** Opcional por lo mismo que `ProyectoPortada.botonColor`. */
+  dashboardColor?: ColorBoton;
+  /**
+   * Texto del botón secundario que lleva al catálogo.
+   *
+   * Sin color propio: es el botón de contorno del bloque oscuro, y darle fondo
+   * rompería el contraste con el botón principal, que sí es de color.
+   */
+  catalogoBoton: string;
+};
+
 /** La sección de contacto, con el botón del teléfono y el del formulario. */
 export type ContactoPortada = SeccionPortada & {
   formTitulo: string;
@@ -307,6 +331,8 @@ export type Portada = {
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;
   noticias: NoticiasPortada;
+  /** La sección «Repositorio de información» de la portada. */
+  repositorio: RepositorioPortada;
   contacto: ContactoPortada;
   /** El pie de página: solo la columna que se puede elegir. */
   footer?: FooterPortada;

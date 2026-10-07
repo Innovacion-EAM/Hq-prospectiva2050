@@ -150,8 +150,8 @@ function pickNav(raw: RawSiteConfig): NavLink[] {
 /**
  * Las columnas del pie de página.
  *
- * Tres de las cuatro son fijas y salen del código (`FOOTER_COLS`): el menú del
- * sitio, las dimensiones y el aviso legal son el temario del sitio entero y no
+ * Dos de las tres columnas son fijas y salen del código (`FOOTER_COLS`): el
+ * menú del sitio y las dimensiones son el temario del sitio entero y no
  * cambian según quien administre. La segunda —las tarjetas de «El proyecto»— sí
  * se elige desde **Ajustes → Footer**, con un tope de seis, y es la única que
  * se lee del dato.
@@ -335,6 +335,7 @@ function pickPortada(home: unknown): Portada {
   const elProyecto = b("elProyecto");
   const cobertura = b("cobertura");
   const documentos = b("documentos");
+  const repositorio = b("repositorio");
   const noticias = b("noticias");
   const contacto = b("contacto");
 
@@ -385,6 +386,21 @@ function pickPortada(home: unknown): Portada {
       titulo: fijoPortada("documentos", "titulo"),
       texto: textoO(documentos.texto, FALLBACK_PORTADA.documentos.texto),
       botonColor: colorO(documentos.botonColor, FALLBACK_PORTADA.documentos.botonColor),
+    },
+    repositorio: {
+      // El título de esta sección **sí** se edita, a diferencia de los rótulos
+      // fijos de la portada: es el reclamo del repositorio y el panel lo ofrece.
+      titulo: textoO(repositorio.titulo, FALLBACK_PORTADA.repositorio.titulo),
+      texto: textoO(repositorio.texto, FALLBACK_PORTADA.repositorio.texto),
+      dashboardBoton: textoO(
+        repositorio.dashboardBoton,
+        FALLBACK_PORTADA.repositorio.dashboardBoton,
+      ),
+      dashboardColor: colorO(
+        repositorio.dashboardColor,
+        FALLBACK_PORTADA.repositorio.dashboardColor,
+      ),
+      catalogoBoton: textoO(repositorio.catalogoBoton, FALLBACK_PORTADA.repositorio.catalogoBoton),
     },
     noticias: {
       titulo: fijoPortada("noticias", "titulo"),

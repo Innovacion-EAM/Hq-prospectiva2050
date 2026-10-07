@@ -75,7 +75,7 @@ export function ModuloHome({
 }) {
   const editar = useEditarPortada(form, commit);
 
-  const { hero, proyecto, cobertura, documentos, noticias, contacto } = form.home;
+  const { hero, proyecto, cobertura, documentos, repositorio, noticias, contacto } = form.home;
 
   return (
     <div className="space-y-6">
@@ -262,6 +262,57 @@ export function ModuloHome({
             valor={documentos.botonColor}
             onChange={(botonColor) => editar("documentos", "botonColor", botonColor)}
           />
+        </div>
+      </ModuloCard>
+
+      <ModuloCard
+        titulo="Repositorio de información"
+        descripcion="El bloque oscuro que invita a entrar al repositorio (/repo). Los documentos en sí, con su importador y sus estadísticas, se administran en Repositorio."
+      >
+        <div className="space-y-4">
+          <Field label="Título">
+            <Input
+              value={repositorio.titulo}
+              onChange={(e) => editar("repositorio", "titulo", e.target.value)}
+              placeholder="El inventario documental del territorio"
+            />
+          </Field>
+          <Field
+            label="Texto"
+            hint="Puedes escribir {total} y el sitio pondrá el número real de documentos del repositorio, así no se queda desactualizado."
+          >
+            <TextArea
+              rows={3}
+              value={repositorio.texto}
+              onChange={(e) => editar("repositorio", "texto", e.target.value)}
+            />
+          </Field>
+          <FormGrid>
+            <Field label="Texto del botón del dashboard">
+              <Input
+                value={repositorio.dashboardBoton}
+                onChange={(e) => editar("repositorio", "dashboardBoton", e.target.value)}
+                placeholder="Dashboard del repositorio"
+              />
+            </Field>
+            <SelectorColor
+              etiqueta="Color de ese botón"
+              valor={repositorio.dashboardColor}
+              onChange={(dashboardColor) =>
+                editar("repositorio", "dashboardColor", dashboardColor)
+              }
+            />
+          </FormGrid>
+          <Field
+            label="Texto del botón del catálogo"
+            hint="Es el botón secundario de contorno, por eso no lleva color propio."
+          >
+            <Input
+              value={repositorio.catalogoBoton}
+              onChange={(e) => editar("repositorio", "catalogoBoton", e.target.value)}
+              placeholder="Explorar al catálogo"
+            />
+          </Field>
         </div>
       </ModuloCard>
 

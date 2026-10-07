@@ -494,7 +494,7 @@ describe('API pública y validación (e2e)', () => {
       return (res.body.site as SiteConfig).home;
     }
 
-    it('guarda el hero y las seis secciones', async () => {
+    it('guarda el hero y las siete secciones', async () => {
       const home = {
         hero: {
           fondo: '/uploads/hero.jpg',
@@ -516,6 +516,13 @@ describe('API pública y validación (e2e)', () => {
         },
         cobertura: { titulo: 'Los doce municipios', texto: 'Todo el departamento.' },
         documentos: { titulo: 'Documentos', texto: 'Convenios e informes.', botonColor: 'convoca' },
+        repositorio: {
+          titulo: 'El inventario documental',
+          texto: 'Más de {total} documentos del territorio.',
+          dashboardBoton: 'Abrir el dashboard',
+          dashboardColor: 'verde',
+          catalogoBoton: 'Ver el catálogo',
+        },
         noticias: {
           titulo: 'Actualidad',
           texto: 'Comunicados del proceso.',
@@ -545,6 +552,9 @@ describe('API pública y validación (e2e)', () => {
       expect(guardada.proyecto.dimsTitulo).toBe('Las dimensiones');
       expect(guardada.cobertura.titulo).toBe('Los doce municipios');
       expect(guardada.documentos.texto).toBe('Convenios e informes.');
+      expect(guardada.repositorio.titulo).toBe('El inventario documental');
+      expect(guardada.repositorio.dashboardColor).toBe('verde');
+      expect(guardada.repositorio.catalogoBoton).toBe('Ver el catálogo');
       expect(guardada.noticias.botonTexto).toBe('Ver todo');
       expect(guardada.contacto.formTitulo).toBe('Cuéntanos');
     });

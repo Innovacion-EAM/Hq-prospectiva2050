@@ -125,7 +125,7 @@ Estructura de rutas (SPA con `basename /repo`):
 
 | Ruta | Qué muestra |
 |---|---|
-| `/repo/` | **Dashboard**: números gigantes (total, con/sin enlace), donut por dimensión, barras por tipo/formato/delimitación, serie de años. |
+| `/repo/` | **Dashboard**: números gigantes (total, con enlace, dimensiones), donut por dimensión, barras por tipo/formato/delimitación, serie de años. El conteo de **sin enlace** ya **no** aparece aquí: es una alerta de gestión y vive solo en el backoffice (ver más abajo). |
 | `/repo/catalogo` | **Catálogo**: tarjetas con filtros (búsqueda, dimensión, tipo, delimitación, formato, rango de años, orden) + búsqueda `?q=` |
 | `/repo/documento/:id` | **Ficha** de un documento (autor, año, tipo, delimitación, formato, dimensión, enlace de descarga). |
 
@@ -200,7 +200,9 @@ panel muestra al instante.
 - **Importar**: subida del CSV, reporte de creados/actualizados/errores y botón
   "Publicar todos los borradores".
 - **Estadísticas**: totales y barras CSS (sin recharts en el panel) por dimensión,
-  formato, tipo y año.
+  formato, tipo y año, más la **alerta de «Enlace pendiente»** (los documentos sin
+  `link`). Esa alerta vive **solo aquí**: el dashboard público de `/repo` ya no
+  muestra los sin enlace.
 
 Pueden publicar **admin y editor**. La escritura está protegida por
 `@Roles('admin','editor')`, igual que noticias.

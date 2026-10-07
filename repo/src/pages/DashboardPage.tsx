@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, FileText, Globe, Link2Off } from "lucide-react";
+import { ArrowRight, FileText, Globe } from "lucide-react";
 import { DimensionDonut, HBarList, YearChart } from "@/components/charts";
 import { BigNumber, Card, ErrorState, Spinner } from "@/components/ui";
 import { fetchRepositorioEstadisticas, type Estadisticas } from "@/lib/api";
@@ -56,11 +56,11 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {/* Números gigantes */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Números gigantes. «Sin enlace» no aparece: es una alerta de gestión y
+          vive solo en el backoffice del repositorio, no en la cara al público. */}
+      <section className="grid gap-4 sm:grid-cols-3">
         <BigNumber value={nf(stats.total)} label="Documentos publicados" color="var(--color-neon)" />
         <BigNumber value={nf(stats.conEnlace)} label="Con enlace de descarga" color="#34d399" />
-        <BigNumber value={nf(stats.sinEnlace)} label="Enlace pendiente" color="#f472b6" />
         <BigNumber value={nf(stats.porDimension.length)} label="Dimensiones" color="#60a5fa" />
       </section>
 
@@ -103,7 +103,6 @@ export function DashboardPage() {
             {[
               { icon: FileText, label: "Formatos", value: stats.porFormato.length, color: "#34d399" },
               { icon: Globe, label: "Ámbitos territoriales", value: stats.porDelimitacion.length, color: "#60a5fa" },
-              { icon: Link2Off, label: "Sin enlace (pendiente)", value: stats.sinEnlace, color: "#f472b6" },
             ].map((row) => {
               const Icon = row.icon;
               return (

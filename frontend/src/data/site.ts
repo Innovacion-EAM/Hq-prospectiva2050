@@ -205,6 +205,16 @@ export const PORTADA = {
       "Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y piezas de socialización. Explora cada categoría del repositorio.",
     botonColor: "lima" as ColorBoton,
   },
+  repositorio: {
+    titulo: "El inventario documental del territorio",
+    // `{total}` lo sustituye el sitio por el número real de documentos del
+    // repositorio, para que la cifra no se quede congelada en el Panel.
+    texto:
+      "Más de {total} documentos de referencia sobre el Quindío: planes, informes, acuerdos, boletines y piezas de socialización, agrupados en las cuatro dimensiones del proceso.",
+    dashboardBoton: "Dashboard del repositorio",
+    dashboardColor: "lima" as ColorBoton,
+    catalogoBoton: "Explorar al catálogo",
+  },
   noticias: {
     titulo: "Noticias",
     texto:
@@ -643,11 +653,16 @@ export const WORKSHOPS = [
 
 export const FOOTER_COLS = [
   {
+    // La columna del mapa del sitio: reprodujo el menú del encabezado y no se
+    // elige desde el panel —es el temario del sitio entero—. Los ocho enlaces
+    // (Inicio incluido) son fijos y salen del código, igual que las dimensiones.
     title: "Mapa del sitio",
     links: [
+      { label: "Inicio", href: "/" },
       { label: "El proyecto", href: "/proyecto" },
       { label: "Dimensiones", href: "/dimensiones" },
       { label: "Documentos", href: "/documentos" },
+      { label: "Repositorio", href: "/repositorio" },
       { label: "Noticias", href: "/noticias" },
       { label: "Participa", href: "/participa" },
       { label: "Contáctanos", href: "/contactos" },
@@ -677,24 +692,14 @@ export const FOOTER_COLS = [
       { label: "Hallazgos y tendencias", href: "/dimensiones/hallazgos" },
     ],
   },
-  {
-    // El Aviso de Privacidad es un enlace legal, no una página de contenido: va
-    // en una columna propia y con su propio rótulo, para que se lea como lo que
-    // es y no se confunda con el temario del ejercicio.
-    title: "Legal",
-    links: [
-      { label: "Aviso de privacidad", href: "/privacidad" },
-      { label: "Términos y condiciones", href: "/terminos" },
-    ],
-  },
 ];
 
 /**
  * La columna del pie que sí se elige desde el panel: las tarjetas de «El
  * proyecto».
  *
- * Las otras tres columnas son fijas y salen de `FOOTER_COLS`: son el temario
- * del sitio entero (menú, dimensiones) y el aviso legal, no contenido que
+ * Las otras dos columnas son fijas y salen de `FOOTER_COLS`: son el temario
+ * del sitio entero (el mapa de páginas y las dimensiones), no contenido que
  * cambie según quien administre. Esta, en cambio, se edita en **Ajustes →
  * Footer** y vive en `home.footer.enlaces`; lo que hay aquí es solo su
  * respaldo —lo que se ve si nunca se ha guardado nada—, igual que `NAV` frente

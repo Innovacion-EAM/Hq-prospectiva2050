@@ -668,6 +668,16 @@ export const SEED_HOME = {
       "Acceso público a los documentos del proceso: convenios, informes, memorias, boletines y piezas de socialización. Explora cada categoría del repositorio.",
     botonColor: "lima" as const,
   },
+  // La sección oscura del repositorio en la portada. `{total}` lo sustituye el
+  // sitio por el número real de documentos publicados.
+  repositorio: {
+    titulo: "El inventario documental del territorio",
+    texto:
+      "Más de {total} documentos de referencia sobre el Quindío: planes, informes, acuerdos, boletines y piezas de socialización, agrupados en las cuatro dimensiones del proceso.",
+    dashboardBoton: "Dashboard del repositorio",
+    dashboardColor: "lima" as const,
+    catalogoBoton: "Explorar al catálogo",
+  },
   noticias: {
     titulo: "Noticias",
     texto:

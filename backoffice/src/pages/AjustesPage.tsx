@@ -224,6 +224,7 @@ export function AjustesPage() {
           },
           cobertura: { ...PORTADA_VACIA.cobertura, ...(value.home?.cobertura ?? {}) },
           documentos: { ...PORTADA_VACIA.documentos, ...(value.home?.documentos ?? {}) },
+          repositorio: { ...PORTADA_VACIA.repositorio, ...(value.home?.repositorio ?? {}) },
           noticias: { ...PORTADA_VACIA.noticias, ...(value.home?.noticias ?? {}) },
           contacto: { ...PORTADA_VACIA.contacto, ...(value.home?.contacto ?? {}) },
           // Copia de la lista, como con `navLinks`: el editor del pie reordena

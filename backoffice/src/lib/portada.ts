@@ -127,6 +127,13 @@ export const PORTADA_VACIA = {
   },
   cobertura: { titulo: "", texto: "" },
   documentos: { titulo: "", texto: "", botonColor: COLOR_POR_DEFECTO },
+  repositorio: {
+    titulo: "",
+    texto: "",
+    dashboardBoton: "",
+    dashboardColor: COLOR_POR_DEFECTO,
+    catalogoBoton: "",
+  },
   noticias: {
     titulo: "",
     texto: "",

@@ -139,7 +139,7 @@ export class ConfigService {
         JSON.stringify(guardada),
       );
       for (const [seccion, campos] of Object.entries(entrante)) {
-        // `class-transformer` crea una instancia de las **seis** secciones
+        // `class-transformer` crea una instancia de las **siete** secciones
         // siempre que viene `home`, y las que no se mandaron quedan como
         // `undefined`. Sin esta comprobación, `Object.entries(undefined)` lanza
         // `TypeError` y la petición moría con un `500` —que es lo que pasaba

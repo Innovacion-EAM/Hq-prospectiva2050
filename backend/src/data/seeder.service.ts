@@ -146,11 +146,21 @@ if (this.sembrarContenido) {
     if (!existing.logoTitulo?.trim()) cambios.logoTitulo = SEED_SITE.logoTitulo;
     if (!existing.logoSubtitulo?.trim()) cambios.logoSubtitulo = SEED_SITE.logoSubtitulo;
     if (!existing.navLinks?.length) cambios.navLinks = SEED_SITE.navLinks;
-    // La portada se rellena entera y de una vez: son seis bloques de textos e
+    // La portada se rellena entera y de una vez: son siete bloques de textos e
     // imágenes que van juntos, y rellenarlos campo a campo dejaría la portada a
     // medio camino —con un titular y sin imagen, o al revés— si el proceso se
     // cortara a la mitad.
-    if (!Object.keys(existing.home ?? {}).length) cambios.home = SEED_HOME;
+    //
+    // Si la portada ya existe pero le falta una sección añadida después —como
+    // «Repositorio de información»—, se rellena **solo esa**: la fila de una
+    // base que ya estaba no la tiene, y sin esto el módulo Home del panel
+    // abriría con esos campos en blanco aunque el sitio los muestre por su
+    // respaldo. No se pisa nada de lo que ya hubiera.
+    if (!Object.keys(existing.home ?? {}).length) {
+      cambios.home = SEED_HOME;
+    } else if (!Object.keys((existing.home as Record<string, unknown>).repositorio ?? {}).length) {
+      cambios.home = { ...existing.home, repositorio: SEED_HOME.repositorio };
+    }
     // Los datos legales, igual: la columna nueva cae con `{}` en la fila que ya
     // estaba, y sin esto el módulo Legal del panel abriría sin la estructura.
     if (!Object.keys(existing.legal ?? {}).length) cambios.legal = SEED_SITE.legal;

@@ -179,6 +179,23 @@ export type DocumentosPortada = SeccionPortada & {
   botonColor: ColorBoton;
 };
 
+/**
+ * La sección «Repositorio de información» de la portada.
+ *
+ * Los dos botones llevan a la app de /repo (dashboard y catálogo). El párrafo
+ * admite el marcador `{total}`, que el sitio sustituye por el número real de
+ * documentos; el rótulo «Repositorio de información» que va encima del título es
+ * fijo del diseño, y por eso no se edita.
+ */
+export type RepositorioPortada = SeccionPortada & {
+  /** Texto del botón que lleva al dashboard del repositorio. */
+  dashboardBoton: string;
+  /** Color de ese botón. */
+  dashboardColor: ColorBoton;
+  /** Texto del botón que lleva al catálogo del repositorio. */
+  catalogoBoton: string;
+};
+
 export type NoticiasPortada = SeccionPortada & {
   botonTexto: string;
   /** El color del botón «Ver todas». */
@@ -219,6 +236,7 @@ export type PortadaSettings = {
   elProyecto: ElProyectoPortada;
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;
+  repositorio: RepositorioPortada;
   noticias: NoticiasPortada;
   contacto: ContactoPortada;
   footer: FooterPortada;
