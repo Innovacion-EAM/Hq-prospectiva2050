@@ -138,7 +138,7 @@ function Header({
     <header className="sticky top-0 z-40 bg-ink text-paper">
       <div className="mx-auto flex h-[4.5rem] max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo variant="light" />
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Principal">
+        <nav className="hidden items-center gap-0.5 lg:flex xl:gap-1" aria-label="Principal">
           {NAV.map((item) => {
             const active = estaEn(item.href, pathname);
             return (
@@ -151,7 +151,7 @@ function Header({
                 href={item.href}
                 activo={active}
                 className={cn(
-                  "rounded-pill px-4 py-2 font-display text-[0.8rem] font-semibold tracking-wide no-underline transition-colors duration-200",
+                  "whitespace-nowrap rounded-pill px-2.5 py-2 font-display text-[0.8rem] font-semibold tracking-wide no-underline transition-colors duration-200 xl:px-4",
                   active ? "bg-lime text-lime-fg" : "text-paper hover:bg-paper/10",
                 )}
               >
