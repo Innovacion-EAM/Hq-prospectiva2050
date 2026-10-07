@@ -58,6 +58,22 @@ export type SeedSite = {
   logoTitulo: string;
   logoSubtitulo: string;
   navLinks: SeedNavLink[];
+  /**
+   * Datos legales editables (módulo "Legal"). Van vacíos a propósito: el
+   * responsable, su NIT, el canal de derechos ARCO y el plazo de conservación
+   * solo los conoce la organización. Mientras estén vacíos, el aviso de
+   * privacidad muestra un marcador visible en cada hueco.
+   */
+  legal: {
+    responsable: string;
+    nit: string;
+    direccion: string;
+    ciudad: string;
+    correoArco: string;
+    plazoConservacion: string;
+    quienesAcceden: string;
+    actualizado: string;
+  };
 };
 
 export type SeedStat = { value: string; label: string; subtext: string };
@@ -549,6 +565,16 @@ export const SEED_SITE: SeedSite = {
     { label: "Participa", href: "/participa" },
     { label: "Contáctanos", href: "/contactos" },
   ],
+  legal: {
+    responsable: "",
+    nit: "",
+    direccion: "",
+    ciudad: "",
+    correoArco: "",
+    plazoConservacion: "",
+    quienesAcceden: "",
+    actualizado: "",
+  },
 };
 
 /**

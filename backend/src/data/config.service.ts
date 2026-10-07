@@ -4,7 +4,7 @@ import { Dimension } from '../entities/dimension.entity';
 import { DocCategoria } from '../entities/doc-categoria.entity';
 import { Municipio } from '../entities/municipio.entity';
 import { PaginaProyecto } from '../entities/pagina-proyecto.entity';
-import { SiteConfig, type Portada } from '../entities/site-config.entity';
+import { SiteConfig, type LegalConfig, type Portada } from '../entities/site-config.entity';
 import { Stat } from '../entities/stat.entity';
 import { Taller } from '../entities/taller.entity';
 import { sinCamposProtegidos } from '../common/crud.service';
@@ -113,6 +113,10 @@ export class ConfigService {
     // pasaría a ser `guardada`, con lo que la fusión no tendría los valores
     // antiguos y se llevaría por delante todo lo que no venía en el PUT.
     const guardada: Portada = JSON.parse(JSON.stringify(row.home ?? {}));
+    // Los datos legales también se clonan por el mismo motivo: `row` **es**
+    // `existing`, y asignar el objeto entrante sin una copia dejaría a la fusión
+    // sin los valores antiguos.
+    const guardadaLegal: LegalConfig = JSON.parse(JSON.stringify(row.legal ?? {}));
 
     Object.assign(row, limpio);
 
@@ -162,6 +166,21 @@ export class ConfigService {
         fusionada[seccion] = actuales;
       }
       row.home = fusionada as Portada;
+    }
+
+    if ('legal' in limpio) {
+      // Igual que `home`, pero a un solo nivel: los datos legales son un objeto
+      // plano de cadenas. Sin esta fusión, un `PUT { legal: { nit: 'x' } }` —una
+      // escritura parcial válida— borraría el responsable, el canal ARCO y todo
+      // lo demás, y el aviso de privacidad volvería a mostrar sus marcadores de
+      // PENDIENTE sin que nadie hubiera tocado esos campos.
+      const entrante = (limpio.legal ?? {}) as Record<string, unknown>;
+      const actuales: Record<string, unknown> = JSON.parse(JSON.stringify(guardadaLegal));
+      for (const [k, v] of Object.entries(entrante)) {
+        if (v === undefined) continue;
+        actuales[k] = v;
+      }
+      row.legal = actuales as LegalConfig;
     }
 
     return repo.save(row);

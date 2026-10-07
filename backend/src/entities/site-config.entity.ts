@@ -83,7 +83,47 @@ export class SiteConfig {
    */
   @Column({ type: 'jsonb', default: () => "'{}'" })
   home: Portada;
+
+  /**
+   * Datos legales editables (módulo "Legal" de los ajustes): el responsable del
+   * tratamiento de datos, su NIT y dirección, el canal para ejercer los derechos
+   * ARCO, el plazo de conservación y quiénes acceden a los datos.
+   *
+   * Va aparte de `home` porque no es contenido de una página del sitio: lo usan
+   * el aviso de privacidad y los términos de uso, que son páginas legales. El
+   * texto de fondo de esas páginas queda en el código (es redacción jurídica
+   * estandarizada); aquí solo viven los **datos que cambian** con la
+   * organización. Un campo vacío significa "todavía sin definir": la página
+   * muestra entonces un marcador visible para que nadie publique el aviso a
+   * medias creyendo que ya está completo.
+   */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  legal: LegalConfig;
 }
+
+/**
+ * Los datos legales que la organización sí conoce y puede cambiar sin tocar
+ * código. Todos son cadenas vacías por defecto: la página los sustituye por un
+ * marcador entre corchetes mientras sigan sin llenarse.
+ */
+export type LegalConfig = {
+  /** Nombre o razón social del responsable del tratamiento. */
+  responsable: string;
+  /** NIT del responsable. */
+  nit: string;
+  /** Dirección del responsable. */
+  direccion: string;
+  /** Ciudad del responsable. */
+  ciudad: string;
+  /** Correo para ejercer los derechos ARCO (acceso, rectificación, cancelación, oposición). */
+  correoArco: string;
+  /** Cuánto tiempo se conservan los mensajes y las inscripciones. */
+  plazoConservacion: string;
+  /** Quiénes (puestos o entidades) acceden a los datos y con qué acuerdo. */
+  quienesAcceden: string;
+  /** Fecha de la última actualización de las políticas. */
+  actualizado: string;
+};
 
 /** Un enlace del menú de navegación del encabezado. */
 export type NavLink = {

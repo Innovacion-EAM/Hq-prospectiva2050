@@ -10,7 +10,7 @@ import { UsersService } from './../src/auth/users.service';
 import { Mensaje } from './../src/entities/mensaje.entity';
 import { Noticia } from './../src/entities/noticia.entity';
 import { Dimension } from './../src/entities/dimension.entity';
-import { SiteConfig, type Portada } from './../src/entities/site-config.entity';
+import { SiteConfig, type LegalConfig, type Portada } from './../src/entities/site-config.entity';
 
 /**
  * Todos los correos que usan los tests de formularios. Se borran al terminar
@@ -848,6 +848,58 @@ describe('API pública y validación (e2e)', () => {
         .site as SiteConfig;
       expect(publica.headline).toEqual(['Una línea']);
       expect(publica.home.hero.botonTexto).toBe('Otro texto');
+    });
+  });
+
+  // ── Datos legales: el módulo "Legal" de los ajustes ───────────────────────
+  describe('datos legales', () => {
+    let configRepo: Repository<SiteConfig>;
+    let original: SiteConfig | null = null;
+
+    beforeAll(async () => {
+      configRepo = app.get<Repository<SiteConfig>>(getRepositoryToken(SiteConfig));
+      original = await configRepo.findOne({ where: { id: 1 } });
+    });
+
+    afterAll(async () => {
+      if (original) await configRepo.save(original);
+    });
+
+    /** Lo que ve un visitante, no lo que se envió. */
+    async function legalPublica(): Promise<LegalConfig> {
+      const res = await request(app.getHttpServer()).get('/api/site').expect(200);
+      return (res.body.site as SiteConfig).legal;
+    }
+
+    it('guarda los datos y un guardado parcial no borra los demás', async () => {
+      // El panel manda el bloque entero, pero un `curl` o un script pueden
+      // mandar solo el campo que cambia. Sin la fusión campo a campo, ese PUT
+      // parcial borraría el resto y el aviso de privacidad volvería a mostrar
+      // sus marcadores de PENDIENTE sin que nadie hubiera tocado esos campos.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ legal: { responsable: 'Gobernación del Quindío', nit: '890000000-0' } })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ legal: { correoArco: 'datos@quindio.gov.co' } })
+        .expect(200);
+
+      const legal = await legalPublica();
+      expect(legal.correoArco).toBe('datos@quindio.gov.co');
+      expect(legal.responsable).toBe('Gobernación del Quindío');
+      expect(legal.nit).toBe('890000000-0');
+    });
+
+    it('rechaza un correo ARCO que no es válido', async () => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ legal: { correoArco: 'no-es-un-correo' } })
+        .expect(400);
     });
   });
 

@@ -8,6 +8,7 @@ import {
   DIMENSIONS as FALLBACK_DIMENSIONS,
   DOC_CATEGORIES as FALLBACK_CATEGORIES,
   FOOTER_COLS as FALLBACK_FOOTER_COLS,
+  LEGAL as FALLBACK_LEGAL,
   LOGO as FALLBACK_LOGO,
   NAV as FALLBACK_NAV,
   PORTADA as FALLBACK_PORTADA,
@@ -19,6 +20,7 @@ import {
   type ColorBotonSobreLima,
   type Dimension,
   type DocCategory,
+  type Legal,
   type Portada,
   type ProjectPage,
   type SearchHit,
@@ -52,6 +54,7 @@ type RawSiteConfig = {
   logoSubtitulo?: string | null;
   navLinks?: unknown;
   home?: unknown;
+  legal?: unknown;
 };
 
 type RawStat = { value: string; label: string; subtext: string | null };
@@ -172,6 +175,29 @@ function pickFooter(raw: RawSiteConfig): { title: string; links: NavLink[] }[] {
 
   const enlaces = lista.length ? lista : FALLBACK_FOOTER_COLS[1].links;
   return FALLBACK_FOOTER_COLS.map((col, i) => (i === 1 ? { ...col, links: enlaces } : col));
+}
+
+/**
+ * Los datos legales editables (Ajustes → Legal).
+ *
+ * A diferencia del resto del contenido, un valor vacío **no** cae al respaldo:
+ * significa "todavía pendiente" y las páginas legales lo muestran como un
+ * marcador visible. Aquí solo se normaliza a cadena para que un `null` de la
+ * base no rompa el render.
+ */
+function pickLegal(raw: unknown): Legal {
+  const l = (raw ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : "");
+  return {
+    responsable: str(l.responsable),
+    nit: str(l.nit),
+    direccion: str(l.direccion),
+    ciudad: str(l.ciudad),
+    correoArco: str(l.correoArco),
+    plazoConservacion: str(l.plazoConservacion),
+    quienesAcceden: str(l.quienesAcceden),
+    actualizado: str(l.actualizado),
+  };
 }
 
 /**
@@ -468,6 +494,8 @@ type SiteBundle = {
   FOOTER: { title: string; links: NavLink[] }[];
   /** El hero y las secciones de la portada, editables desde Ajustes, bloque a bloque. */
   PORTADA: Portada;
+  /** Datos legales editables (Ajustes → Legal): privacidad y términos de uso. */
+  LEGAL: Legal;
   STATS: Stat[];
   ENTITIES: string[];
   MUNICIPIOS: Municipio[];
@@ -487,6 +515,7 @@ function fallbackBundle(): SiteBundle {
     NAV: [...FALLBACK_NAV],
     FOOTER: FALLBACK_FOOTER_COLS.map((col) => ({ ...col, links: [...col.links] })),
     PORTADA: FALLBACK_PORTADA,
+    LEGAL: { ...FALLBACK_LEGAL },
     STATS: FALLBACK_STATS as unknown as Stat[],
     ENTITIES: FALLBACK_PORTADA.elProyecto.entidades,
     MUNICIPIOS: MUNICIPIOS_QUINDIO.map((nombre) => ({ nombre, dato: "", descripcion: "" })),
@@ -520,6 +549,7 @@ function buildBundle(raw: RawSite | null): SiteBundle {
     NAV: pickNav(raw.site),
     FOOTER: pickFooter(raw.site),
     PORTADA: portada,
+    LEGAL: pickLegal(raw.site.legal),
     STATS: pickStats(raw.stats),
     ENTITIES: portada.elProyecto.entidades,
     MUNICIPIOS: municipios,

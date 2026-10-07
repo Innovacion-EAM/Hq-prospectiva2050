@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { HomeContact } from "@/components/shared-sections";
 import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
@@ -22,6 +23,17 @@ export function ContactosPage() {
             src="https://maps.google.com/maps?q=Armenia%20Quindio%20Colombia&t=&z=13&ie=UTF8&iwloc=&output=embed"
           />
         </div>
+        {/* El mapa es un servicio de Google: al cargarse, el navegador habla con
+            sus servidores. Se avisa aquí, junto al propio mapa, para que quien
+            navega lo sepa sin tener que buscar la política. */}
+        <p className="mt-2 text-xs text-muted">
+          Este mapa es un servicio de Google Maps. Al mostrarse, tu navegador se
+          conecta con Google. Más información en{" "}
+          <Link to="/privacidad" className="underline">
+            la política de privacidad
+          </Link>
+          .
+        </p>
         <p className="mt-4 text-sm text-muted">
           {SITE.address}, {SITE.city}. Atención de lunes a viernes, 8:00 a. m. a 5:00 p. m.
         </p>

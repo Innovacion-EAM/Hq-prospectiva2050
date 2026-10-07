@@ -84,6 +84,24 @@ export type SiteSettings = {
    * fila que vino de la API serían el mismo objeto y editar uno editaría el otro.
    */
   home: PortadaSettings;
+  /**
+   * Datos legales editables en Ajustes → Legal. Los usan el aviso de privacidad
+   * y los términos de uso. Un campo vacío significa "pendiente" y la página lo
+   * muestra como marcador.
+   */
+  legal: LegalSettings;
+};
+
+/** Datos legales editables (módulo "Legal" de Ajustes). */
+export type LegalSettings = {
+  responsable: string;
+  nit: string;
+  direccion: string;
+  ciudad: string;
+  correoArco: string;
+  plazoConservacion: string;
+  quienesAcceden: string;
+  actualizado: string;
 };
 
 /** Un bloque de titular y párrafo de la portada. */

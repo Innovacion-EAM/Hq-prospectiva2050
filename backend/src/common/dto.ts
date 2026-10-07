@@ -855,6 +855,64 @@ export class HomeDto {
   footer?: FooterPortadaDto;
 }
 
+/**
+ * Datos legales editables (módulo "Legal" de los ajustes).
+ *
+ * Todos los campos son opcionales: el aviso de privacidad y los términos de uso
+ * se publican igual mientras la organización no los complete, mostrando un
+ * marcador visible en cada hueco. Se valida anidado, como `HomeDto`, para que
+ * class-transformer instancie la clase y no se salte el interior.
+ */
+export class LegalDto {
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  responsable?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(40)
+  nit?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  direccion?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(200)
+  ciudad?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsEmail({}, { message: 'El correo para derechos ARCO no es válido' })
+  @MaxLength(180)
+  correoArco?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(300)
+  plazoConservacion?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(500)
+  quienesAcceden?: string;
+
+  @IsOptional()
+  @VacioOpcional()
+  @IsString()
+  @MaxLength(100)
+  actualizado?: string;
+}
+
 export class SiteConfigDto {
   @IsString()
   @MinLength(1, { message: 'El nombre es obligatorio' })
@@ -982,6 +1040,15 @@ export class SiteConfigDto {
   @ValidateNested()
   @Type(() => HomeDto)
   home?: HomeDto;
+
+  /**
+   * Datos legales editables (responsable, NIT, canal ARCO, retención…). El
+   * texto de las políticas vive en el frontend; aquí solo los datos variables.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LegalDto)
+  legal?: LegalDto;
 }
 
 export class StatDto {

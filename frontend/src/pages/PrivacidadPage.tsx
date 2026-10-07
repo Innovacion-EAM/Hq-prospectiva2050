@@ -1,11 +1,11 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 
 /**
- * Privacidad: una sola página con las tres piezas que la ley colombiana pide
- * cuando un sitio recoge datos personales, y con el texto de cada una separado
- * para que se lea como lo que es:
+ * Privacidad: las piezas que la ley colombiana pide cuando un sitio recoge datos
+ * personales, con el texto de cada una separado para que se lea como lo que es:
  *
  *   1. **Aviso de privacidad (Ley 1581 de 2012)** — el texto breve que debe
  *      acompañar la recogida: quién es el responsable, qué se pide, para qué,
@@ -15,18 +15,20 @@ import { useSite } from "@/data/site-context";
  *   2. **Política de tratamiento de datos** — el documento de fondo: quiénes
  *      pueden ver los datos, con quiénes se comparten, cómo se protegen y cómo
  *      se actualiza esta política.
- *   3. **Derechos del titular (ARCO)** — qué puede pedir quien escribe y por
+ *   3. **Cookies y terceros** — qué servicios externos carga el sitio (Google
+ *      Fonts y Google Maps) y qué implican para quien navega.
+ *   4. **Derechos del titular (ARCO)** — qué puede pedir quien escribe y por
  *      qué canal: acceso, rectificación, cancelación y oposición, con el plazo
  *      de respuesta que fija la ley.
  *
- * Los valores que solo conoce la organización van **entre corchetes**: el
- * nombre del responsable, el canal para ejercer los derechos, el plazo de
- * conservación y quiénes acceden a los datos. No se inventan aquí porque
- * ponerlos a mano dejaría el aviso con datos falsos, que es peor que no
- * tenerlo. La nota discreta del final lo recuerda.
+ * Los datos que solo conoce la organización (responsable, NIT, canal para los
+ * derechos, plazo de conservación y quiénes acceden) **no** están escritos aquí:
+ * se editan en **Ajustes → Legal** y llegan por `/api/site`. Mientras sigan sin
+ * llenarse, la página muestra un marcador visible en cada hueco para que nadie
+ * dé por completo el aviso sin estarlo.
  */
 export function PrivacidadPage() {
-  const { SITE } = useSite();
+  const { SITE, LEGAL } = useSite();
 
   return (
     <>
@@ -51,119 +53,78 @@ export function PrivacidadPage() {
             </h3>
             <p className="mt-2">
               Horizonte Quindío 2050 es un ejercicio de prospectiva territorial
-              adelantado por entidades del departamento del Quindío y acompañado
-              técnicamente por la Comisión Económica para América Latina y el
-              Caribe (CEPAL) a través del ILPES.
+              liderado por entidades del departamento del Quindío, con el
+              acompañamiento técnico de CEPAL/ILPES. El responsable del
+              tratamiento de los datos personales que se recogen en este sitio
+              es:
             </p>
-            <p className="mt-2">
-              El responsable del tratamiento de los datos que se recogen en este
-              sitio es{" "}
-              <strong>
-                [NOMBRE O RAZÓN SOCIAL DEL RESPONSABLE — NIT]
-              </strong>
-              , con domicilio en{" "}
-              <strong>[CIUDAD Y DIRECCIÓN DEL RESPONSABLE]</strong>.
-            </p>
+            <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5">
+              <li>
+                <strong>Responsable:</strong>{" "}
+                <DatoLegal valor={LEGAL.responsable} pendiente="nombre o razón social" />
+              </li>
+              <li>
+                <strong>NIT:</strong>{" "}
+                <DatoLegal valor={LEGAL.nit} pendiente="NIT del responsable" />
+              </li>
+              <li>
+                <strong>Domicilio:</strong>{" "}
+                <DatoLegal
+                  valor={[LEGAL.direccion, LEGAL.ciudad].filter(Boolean).join(", ")}
+                  pendiente="dirección y ciudad"
+                />
+              </li>
+            </ul>
 
             <h3 className="mt-4 font-display text-sm font-semibold text-ink">
-              Qué datos recogemos y con qué finalidad
+              Qué datos recogemos y para qué
             </h3>
             <p className="mt-2">
-              El sitio tiene cuatro formularios, y cada uno pide nada más lo que
-              necesita para cumplir lo que ofrece:
+              Este sitio recoge datos personales solo en cuatro formularios, y
+              cada uno pide lo mínimo para cumplir su finalidad:
             </p>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full border-collapse text-left text-xs">
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-stone">
-                    <th scope="col" className="py-2 pr-4 font-display font-semibold text-ink">
-                      Formulario
-                    </th>
-                    <th scope="col" className="py-2 pr-4 font-display font-semibold text-ink">
-                      Datos pedidos
-                    </th>
-                    <th scope="col" className="py-2 font-display font-semibold text-ink">
-                      Para qué se usan
-                    </th>
+                  <tr className="border-b border-stone text-left">
+                    <th className="py-2 pr-3 font-display font-semibold text-ink">Formulario</th>
+                    <th className="py-2 pr-3 font-display font-semibold text-ink">Datos que pide</th>
+                    <th className="py-2 font-display font-semibold text-ink">Para qué</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone">
-                  <tr>
-                    <th scope="row" className="py-2 pr-4 align-top font-medium text-ink">
-                      Contacto
-                    </th>
-                    <td className="py-2 pr-4 align-top">
-                      Nombre, correo, asunto, mensaje
-                    </td>
-                    <td className="py-2 align-top">Responder la consulta y darle seguimiento.</td>
+                <tbody>
+                  <tr className="border-b border-stone/60 align-top">
+                    <td className="py-2 pr-3 font-semibold text-ink">Contacto</td>
+                    <td className="py-2 pr-3">Nombre, correo, asunto y mensaje.</td>
+                    <td className="py-2">Responder la solicitud y hacer seguimiento.</td>
                   </tr>
-                  <tr>
-                    <th scope="row" className="py-2 pr-4 align-top font-medium text-ink">
-                      Sugerencias
-                    </th>
-                    <td className="py-2 pr-4 align-top">Texto de la pregunta o recomendación</td>
-                    <td className="py-2 align-top">
-                      Alimentar el canal abierto del ejercicio. No se piden nombre ni
-                      correo.
+                  <tr className="border-b border-stone/60 align-top">
+                    <td className="py-2 pr-3 font-semibold text-ink">Sugerencias</td>
+                    <td className="py-2 pr-3">
+                      Pregunta o recomendación, y <strong>correo (opcional)</strong>.
+                    </td>
+                    <td className="py-2">
+                      Alimentar el canal abierto del ejercicio. El correo solo se
+                      usa si la persona pide que le respondan.
                     </td>
                   </tr>
-                  <tr>
-                    <th scope="row" className="py-2 pr-4 align-top font-medium text-ink">
-                      Inscripción a talleres
-                    </th>
-                    <td className="py-2 pr-4 align-top">
-                      Nombre, correo, taller, municipio, perfil
-                    </td>
-                    <td className="py-2 align-top">
-                      Registrar la asistencia y leer quién participa en cada territorio.
-                    </td>
+                  <tr className="border-b border-stone/60 align-top">
+                    <td className="py-2 pr-3 font-semibold text-ink">Inscripción a talleres</td>
+                    <td className="py-2 pr-3">Nombre, correo, municipio, perfil y taller.</td>
+                    <td className="py-2">Registrar y gestionar la participación en los talleres.</td>
                   </tr>
-                  <tr>
-                    <th scope="row" className="py-2 pr-4 align-top font-medium text-ink">
-                      Boletín
-                    </th>
-                    <td className="py-2 pr-4 align-top">Correo</td>
-                    <td className="py-2 align-top">Enviar las novedades del ejercicio.</td>
+                  <tr className="align-top">
+                    <td className="py-2 pr-3 font-semibold text-ink">Boletín</td>
+                    <td className="py-2 pr-3">Correo.</td>
+                    <td className="py-2">Enviar el canal de noticias del ejercicio.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <p className="mt-4">
-              No se piden datos sensibles —salud, orientación sexual, religión,
-              afiliación sindical, datos de menores— ni se usan los datos para
-              perfilado ni para decisiones automatizadas. No hay cookies de
-              seguimiento ni herramientas de analítica en este sitio.
-            </p>
-
-            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
-              Base legal y autorización
-            </h3>
-            <p className="mt-2">
-              La base legal es el <strong>consentimiento expreso del titular</strong>{" "}
-              (artículo 7 de la Ley 1581 de 2012, literales b y h): al marcar la
-              casilla de cada formulario. La autorización es opcional, pero sin
-              ella el formulario no se puede enviar, porque no hay ninguna otra
-              forma de tratar esos datos.
-            </p>
-            <p className="mt-2">
-              El consentimiento no es condición para acceder al sitio: se puede
-              leer todo el contenido —las páginas del proyecto, los documentos y
-              las noticias— sin marcar ninguna casilla.
-            </p>
-
-            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
-              Cuánto tiempo guardamos los datos
-            </h3>
-            <p className="mt-2">
-              Los mensajes y las inscripciones se conservan durante{" "}
-              <strong>[PLAZO DE CONSERVACIÓN]</strong> y después se eliminan. La
-              lista del boletín se conserva mientras la suscripción esté vigente;
-              cancelar la suscripción implica el borrado del correo.
-            </p>
-            <p className="mt-2">
-              Los datos agregados —por ejemplo, cuántas personas de cada municipio
-              participaron en un taller— sí se conservan: no permiten identificar
-              a nadie y son el resultado público del ejercicio.
+            <p className="mt-3">
+              No se piden datos sensibles ni de menores de edad. En los
+              formularios de <strong>Sugerencias</strong> y <strong>Contacto</strong>{" "}
+              el texto libre es opcional y su envío no depende de él.
             </p>
           </section>
 
@@ -176,50 +137,113 @@ export function PrivacidadPage() {
             </h2>
 
             <h3 className="mt-4 font-display text-sm font-semibold text-ink">
-              Quiénes más acceden a los datos
+              Finalidad del tratamiento
             </h3>
             <p className="mt-2">
-              El acceso está limitado a{" "}
-              <strong>
-                [QUIÉNES ACCEDEN A LOS DATOS — PUESTOS O ENTIDADES, Y SU ACUERDO
-                DE CONFIDENCIALIDAD]
-              </strong>
-              . Cada persona o entidad accede únicamente a la parte del ejercicio
-              que le corresponde.
+              Los datos se usan <strong>únicamente</strong> para las finalidades
+              descritas en la tabla anterior: responder mensajes, gestionar la
+              participación en talleres y enviar el boletín. No se usan para
+              publicidad de terceros ni se venden ni se ceden con fines distintos
+              a los aquí informados.
+            </p>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Quién más puede acceder
+            </h3>
+            <p className="mt-2">
+              <DatoLegal
+                valor={LEGAL.quienesAcceden}
+                pendiente="quiénes acceden a los datos (puestos o entidades aliadas)"
+              />
+            </p>
+
+            <h3 className="mt-4 font-display text-sm font-semibold text-ink">
+              Tiempo de conservación
+            </h3>
+            <p className="mt-2">
+              Los mensajes e inscripciones se conservan durante{" "}
+              <DatoLegal
+                valor={LEGAL.plazoConservacion}
+                pendiente="plazo de conservación de los mensajes e inscripciones"
+              />{" "}
+              y después se eliminan. Los correos del boletín se conservan mientras
+              la suscripción siga vigente; quien la cancele puede pedir el borrado
+              de su correo.
             </p>
             <p className="mt-2">
-              No se contrata a terceros para el tratamiento de los datos ni se
-              transfieren datos fuera de Colombia. Si eso cambia, esta política se
-              actualiza antes de hacerlo.
+              Los datos agregados —por ejemplo, cuántas personas de cada municipio
+              participaron en un taller— sí se conservan: no permiten identificar
+              a nadie y son el resultado público del ejercicio.
             </p>
 
             <h3 className="mt-4 font-display text-sm font-semibold text-ink">
               Seguridad
             </h3>
             <p className="mt-2">
-              El sitio se sirve por HTTPS y los datos de los formularios viajan
-              cifrados. El acceso interno al panel de administración es con
-              usuario y contraseña, y los mensajes que llegan por los
-              formularios no son de acceso público.
+              Este sitio se sirve por HTTPS y los datos de los formularios viajan
+              cifrados. El acceso interno a los datos está restringido al personal
+              autorizado del ejercicio.
             </p>
 
             <h3 className="mt-4 font-display text-sm font-semibold text-ink">
-              Cambios en esta política
+              Vigencia y cambios
             </h3>
             <p className="mt-2">
-              Esta política se actualiza cuando cambia la finalidad del
-              tratamiento o el responsable. La fecha de la última actualización
-              aparece al final de la página, y cualquier cambio sustancial se
-              avisa en el sitio antes de aplicarlo.
+              Esta política rige desde su publicación. Cualquier cambio sustancial
+              se avisa en el sitio antes de aplicarlo. Última actualización:{" "}
+              <strong>{LEGAL.actualizado.trim() || "por definir"}</strong>.
             </p>
           </section>
 
           {/* ---------------------------------------------------------------
-              3. Derechos del titular (ARCO)
+              3. Cookies y terceros
           ---------------------------------------------------------------- */}
           <section>
             <h2 className="font-display text-lg font-bold text-ink">
-              3. Derechos del titular (ARCO)
+              3. Cookies y terceros
+            </h2>
+            <p className="mt-2">
+              Este sitio <strong>no instala cookies propias</strong> ni usa
+              herramientas de analítica, publicidad o seguimiento. Sin embargo,
+              carga dos servicios de Google que pueden recibir la dirección IP de
+              quien navega:
+            </p>
+            <ul className="mt-3 flex list-disc flex-col gap-1.5 pl-5">
+              <li>
+                <strong>Google Fonts:</strong> las tipografías del sitio se
+                cargan desde los servidores de Google en todas las páginas.
+              </li>
+              <li>
+                <strong>Google Maps:</strong> el mapa de la página{" "}
+                <Link to="/contactos" className="underline">
+                  Contáctanos
+                </Link>{" "}
+                es un mapa incrustado de Google. Se carga solo al abrir esa página
+                y aparece con un aviso junto al mapa.
+              </li>
+            </ul>
+            <p className="mt-3">
+              Estos servicios se rigen por la política de privacidad de Google,
+              disponible en{" "}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                policies.google.com/privacy
+              </a>
+              . Si prefieres no cargarlos, puedes bloquear las cookies de terceros
+              en tu navegador; el contenido del sitio seguirá siendo accesible.
+            </p>
+          </section>
+
+          {/* ---------------------------------------------------------------
+              4. Derechos del titular (ARCO)
+          ---------------------------------------------------------------- */}
+          <section>
+            <h2 className="font-display text-lg font-bold text-ink">
+              4. Derechos del titular (ARCO)
             </h2>
             <p className="mt-2">
               Como titular de los datos puede pedir, en cualquier momento y de
@@ -254,9 +278,12 @@ export function PrivacidadPage() {
             </h3>
             <p className="mt-2">
               La solicitud se presenta por{" "}
-              <strong>[CORREO O CANAL PARA EJERCER LOS DERECHOS]</strong> y se
-              responde en un plazo máximo de diez días hábiles, prorrogable por
-              cinco más cuando la respuesta lo exija, como establece el
+              <DatoLegal
+                valor={LEGAL.correoArco}
+                pendiente="correo o canal para ejercer los derechos"
+              />{" "}
+              y se responde en un plazo máximo de diez días hábiles, prorrogable
+              por cinco más cuando la respuesta lo exija, como establece el
               artículo 14 del Decreto 1377 de 2013.
             </p>
             <p className="mt-2">
@@ -268,15 +295,14 @@ export function PrivacidadPage() {
           </section>
         </article>
 
-        {/* La nota va al final y discreta, no en un recuadro amarillo a la
-            vista: lo que falta son datos que solo tiene la organización, y el
-            recordatorio alcanza con que esté en la página cuando alguien la
-            lea antes de publicar. */}
+        {/* La nota va al final y discreta: lo que falta son datos que solo tiene
+            la organización, y se completan desde Ajustes → Legal del panel. */}
         <p className="mt-10 rounded-2xl border border-stone bg-fog p-4 text-xs leading-relaxed text-muted">
-          Los datos entre corchetes de esta página los completa la organización
-          responsable antes de publicar: el nombre o razón social, el canal para
+          Los datos marcados como <strong>PENDIENTE</strong> de esta página los
+          completa la organización responsable en el panel de administración
+          (Ajustes → Legal): el nombre o razón social, el NIT, el canal para
           ejercer los derechos, el plazo de conservación y quiénes acceden a los
-          datos. Mientras estén entre corchetes, la página se publica pero{" "}
+          datos. Mientras sigan sin llenarse, la página se publica pero{" "}
           <strong>no cumple la ley</strong>.
         </p>
 
@@ -289,7 +315,13 @@ export function PrivacidadPage() {
           {SITE.phone}
         </div>
 
-        <div className="mt-12 border-t border-stone pt-6">
+        <div className="mt-12 flex flex-wrap gap-3 border-t border-stone pt-6">
+          <Link
+            to="/terminos"
+            className="inline-flex items-center gap-2 rounded-pill border border-mist px-5 py-2.5 font-display text-sm font-bold text-ink no-underline"
+          >
+            Términos y condiciones
+          </Link>
           <Link
             to="/participa"
             className="inline-flex items-center gap-2 rounded-pill bg-ink px-5 py-2.5 font-display text-sm font-bold text-paper no-underline"
@@ -299,5 +331,21 @@ export function PrivacidadPage() {
         </div>
       </section>
     </>
+  );
+}
+
+/**
+ * Un dato legal que la organización completa desde Ajustes → Legal.
+ *
+ * Si está lleno, se muestra en negrita. Si no, se muestra un marcador visible
+ * —y no un texto inventado—: un aviso incompleto es peor que uno que se ve a
+ * medias, porque nadie se da cuenta de que falta.
+ */
+function DatoLegal({ valor, pendiente }: { valor: string; pendiente: string }): ReactNode {
+  if (valor.trim()) return <strong>{valor}</strong>;
+  return (
+    <strong className="rounded bg-lime/40 px-1 font-semibold text-ink">
+      [PENDIENTE: {pendiente}]
+    </strong>
   );
 }

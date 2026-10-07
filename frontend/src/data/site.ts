@@ -14,6 +14,37 @@ export const SITE = {
   },
 };
 
+/**
+ * Datos legales editables (Ajustes → Legal). Viven en la fila de configuración
+ * del sitio y los usan el aviso de privacidad y los términos de uso.
+ *
+ * Van vacíos a propósito: el responsable, su NIT, el canal de derechos ARCO y el
+ * plazo de conservación solo los conoce la organización. Mientras sigan así, la
+ * página muestra un marcador entre corchetes en cada hueco para que nadie dé por
+ * completo el aviso sin estarlo. Este objeto es el respaldo cuando la API falla.
+ */
+export type Legal = {
+  responsable: string;
+  nit: string;
+  direccion: string;
+  ciudad: string;
+  correoArco: string;
+  plazoConservacion: string;
+  quienesAcceden: string;
+  actualizado: string;
+};
+
+export const LEGAL: Legal = {
+  responsable: "",
+  nit: "",
+  direccion: "",
+  ciudad: "",
+  correoArco: "",
+  plazoConservacion: "",
+  quienesAcceden: "",
+  actualizado: "",
+};
+
 export const STATS = [
   { value: "11", label: "Entidades Aliadas", subtext: "Públicas, privadas y academia" },
   { value: "2050", label: "Visión de Futuro", subtext: "Horizonte temporal de región" },
@@ -651,7 +682,10 @@ export const FOOTER_COLS = [
     // en una columna propia y con su propio rótulo, para que se lea como lo que
     // es y no se confunda con el temario del ejercicio.
     title: "Legal",
-    links: [{ label: "Aviso de privacidad", href: "/privacidad" }],
+    links: [
+      { label: "Aviso de privacidad", href: "/privacidad" },
+      { label: "Términos y condiciones", href: "/terminos" },
+    ],
   },
 ];
 

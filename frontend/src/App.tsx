@@ -14,6 +14,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ParticipaPage } from "@/pages/ParticipaPage";
 import { ProyectoDetailPage } from "@/pages/ProyectoDetailPage";
 import { PrivacidadPage } from "@/pages/PrivacidadPage";
+import { TerminosPage } from "@/pages/TerminosPage";
 import { ProyectoPage } from "@/pages/ProyectoPage";
 import { RepositorioPage } from "@/pages/RepositorioPage";
 
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/participa" element={<ParticipaPage />} />
           <Route path="/contactos" element={<ContactosPage />} />
           <Route path="/privacidad" element={<PrivacidadPage />} />
+          <Route path="/terminos" element={<TerminosPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </SiteShell>

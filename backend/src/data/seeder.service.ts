@@ -151,6 +151,9 @@ if (this.sembrarContenido) {
     // medio camino —con un titular y sin imagen, o al revés— si el proceso se
     // cortara a la mitad.
     if (!Object.keys(existing.home ?? {}).length) cambios.home = SEED_HOME;
+    // Los datos legales, igual: la columna nueva cae con `{}` en la fila que ya
+    // estaba, y sin esto el módulo Legal del panel abriría sin la estructura.
+    if (!Object.keys(existing.legal ?? {}).length) cambios.legal = SEED_SITE.legal;
     if (Object.keys(cambios).length === 0) return;
 
     // Se modifica la entidad que ya se leyó en vez de armar un objeto con

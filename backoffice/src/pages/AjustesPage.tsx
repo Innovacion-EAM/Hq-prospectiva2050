@@ -12,7 +12,9 @@ import { ModuloPendiente } from "./ajustes/modulo-pendiente";
 import { ModuloProyecto } from "./ajustes/modulo-proyecto";
 import { ModuloContactos } from "./ajustes/modulo-contactos";
 import { ModuloFooter } from "./ajustes/modulo-footer";
+import { ModuloLegal } from "./ajustes/modulo-legal";
 import { PORTADA_VACIA } from "@/lib/portada";
+import { LEGAL_VACIO } from "@/lib/legal";
 import { problemaDeNav } from "@/lib/nav-links";
 
 /**
@@ -94,6 +96,11 @@ const MODULOS = [
     label: "Footer",
     desc: "El pie de página: las redes sociales, el nombre del sitio y los enlaces de «El proyecto» que se muestran en su columna.",
   },
+  {
+    id: "legal",
+    label: "Legal",
+    desc: "Los datos de las páginas legales (/privacidad y /terminos): el responsable del tratamiento, su NIT, el canal para los derechos ARCO, el plazo de conservación y quiénes acceden a los datos. Lo que deje vacío aparece como «PENDIENTE» en el sitio.",
+  },
 ] as const;
 
 type ModuloId = (typeof MODULOS)[number]["id"];
@@ -144,6 +151,7 @@ const PANTALLAS: Record<ModuloId, (props: PropsModulo) => ReactNode> = {
   ),
   contactos: ModuloContactos,
   footer: ModuloFooter,
+  legal: ModuloLegal,
 };
 
 /**
@@ -226,6 +234,10 @@ export function AjustesPage() {
             enlaces: (value.home?.footer?.enlaces ?? []).map((l) => ({ ...l })),
           },
         },
+        // Los datos legales, con respaldo: instalaciones anteriores a la columna
+        // traen `undefined` y el módulo Legal no puede pintar campos de un
+        // objeto que no existe.
+        legal: { ...LEGAL_VACIO, ...(value.legal ?? {}) },
       });
     }
   }, [value, form]);

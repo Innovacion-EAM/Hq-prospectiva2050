@@ -354,13 +354,21 @@ function Footer() {
       </div>
       <div className="border-t border-paper/10 px-4 py-4 text-center text-xs text-mist flex flex-col sm:flex-row items-center justify-between gap-2 max-w-6xl mx-auto">
         <span>Horizonte Quindío 2050 — Todos los derechos reservados</span>
-        {/* Enlace y no texto plano: es la política de tratamiento de datos, y
-            está en la misma página que el aviso al que apunta la casilla de
-            autorización de los formularios. El texto queda fijo —es la
-            identidad del sitio—, pero el clic tiene que llegar a la política. */}
-        <Link to="/privacidad" className="text-mist no-underline transition-colors hover:text-lime">
-          Protección y Tratamiento de Datos Personales (Ley 1581 de 2012)
-        </Link>
+        {/* Enlaces y no texto plano: son las páginas legales, y las dos están en
+            la misma que el aviso al que apuntan las casillas de autorización de
+            los formularios. El texto queda fijo —es la identidad del sitio—, pero
+            el clic tiene que llegar a cada política. */}
+        <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <Link to="/privacidad" className="text-mist no-underline transition-colors hover:text-lime">
+            Protección y Tratamiento de Datos Personales (Ley 1581 de 2012)
+          </Link>
+          <span aria-hidden="true" className="text-mist/50">
+            ·
+          </span>
+          <Link to="/terminos" className="text-mist no-underline transition-colors hover:text-lime">
+            Términos y condiciones
+          </Link>
+        </nav>
       </div>
     </footer>
   );
