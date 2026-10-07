@@ -544,7 +544,7 @@ export const SEED_SITE: SeedSite = {
     { label: "El proyecto", href: "/proyecto" },
     { label: "Dimensiones", href: "/dimensiones" },
     { label: "Documentos", href: "/documentos" },
-    { label: "Repositorio", href: "/repo" },
+    { label: "Repositorio", href: "/repositorio" },
     { label: "Noticias", href: "/noticias" },
     { label: "Participa", href: "/participa" },
     { label: "Contáctanos", href: "/contactos" },

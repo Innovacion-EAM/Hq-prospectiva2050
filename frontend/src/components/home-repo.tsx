@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowRight, Database, FileDown, Link2Off } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import {
@@ -70,20 +69,20 @@ export function HomeRepo() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <Link
-              to="/repo"
+            <a
+              href="/repo"
               className="inline-flex items-center gap-2 rounded-pill bg-lime px-5 py-2.5 font-display text-sm font-semibold text-lime-fg no-underline hover:bg-lime-deep"
             >
               <Database className="size-4" />
               Dashboard del repositorio
-            </Link>
-            <Link
-              to="/repo/catalogo"
+            </a>
+            <a
+              href="/repo/catalogo"
               className="inline-flex items-center gap-2 rounded-pill border border-paper/20 bg-paper/5 px-5 py-2.5 font-display text-sm font-semibold text-paper no-underline hover:bg-paper/10"
             >
               Explorar al catálogo
               <ArrowRight className="size-4" />
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -137,8 +136,8 @@ export function HomeRepo() {
                 const count = stats ? dimCount(stats.porDimension, slug) : 0;
                 return (
                   <li key={slug}>
-                    <Link
-                      to={`/repo?dimension=${slug}`}
+                    <a
+                      href={`/repo?dimension=${slug}`}
                       className="flex items-center justify-between gap-3 rounded-xl px-3 py-2 no-underline transition-colors hover:bg-paper/5"
                     >
                       <span className="flex items-center gap-2.5 text-sm text-paper">
@@ -151,7 +150,7 @@ export function HomeRepo() {
                       <span className="font-display text-lg font-extrabold" style={{ color: meta.color }}>
                         {stats ? count : "…"}
                       </span>
-                    </Link>
+                    </a>
                   </li>
                 );
               })}

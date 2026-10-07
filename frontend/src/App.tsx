@@ -15,6 +15,7 @@ import { ParticipaPage } from "@/pages/ParticipaPage";
 import { ProyectoDetailPage } from "@/pages/ProyectoDetailPage";
 import { PrivacidadPage } from "@/pages/PrivacidadPage";
 import { ProyectoPage } from "@/pages/ProyectoPage";
+import { RepositorioPage } from "@/pages/RepositorioPage";
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/dimensiones/:slug" element={<DimensionDetailPage />} />
           <Route path="/documentos" element={<DocumentosPage />} />
           <Route path="/documentos/:categoria" element={<DocumentosCategoriaPage />} />
+          <Route path="/repositorio" element={<RepositorioPage />} />
           <Route path="/documento/:id" element={<DocumentoDetallePage />} />
           <Route path="/noticias" element={<NoticiasPage />} />
           <Route path="/noticias/:slug" element={<NoticiasDetailPage />} />

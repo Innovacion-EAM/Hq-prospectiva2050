@@ -87,6 +87,19 @@ function NavEnlace({
   className: string;
   children: ReactNode;
 }) {
+  // `/repo` es la app del repositorio, una aplicación APARTE que Traefik sirve
+  // en su propio contenedor. Con `<Link>` de react-router el enrutador del sitio
+  // la trata como una ruta interna, no la encuentra y pinta el 404; solo al
+  // recargar (F5) el navegador vuelve a pedirla al servidor y entonces sí entra.
+  // Por eso aquí se usa un `<a>` normal, que hace la navegación completa.
+  const esOtraApp = href === "/repo" || href.startsWith("/repo/");
+  if (esOtraApp) {
+    return (
+      <a href={href} aria-current={activo ? "page" : undefined} className={className}>
+        {children}
+      </a>
+    );
+  }
   if (!href.startsWith("/")) {
     return (
       <a

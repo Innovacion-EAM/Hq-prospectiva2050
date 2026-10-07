@@ -160,7 +160,7 @@ async function errorMessage(res: Response, path: string): Promise<string> {
 }
 
 export async function loginRequest(email: string, password: string) {
-  return http<{ accessToken: string; user: User }>("/auth/login", {
+  return http<{ accessToken: string; user: User }>("/api/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
@@ -185,7 +185,7 @@ export async function uploadFileRequest(file: File): Promise<Media> {
   const headers: Record<string, string> = {};
   const token = getToken();
   if (token) headers.authorization = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/media/uploads`, { method: "POST", body: form, headers });
+  const res = await fetch(`${API_BASE}/api/media/uploads`, { method: "POST", body: form, headers });
   if (res.status === 401) {
     clearSession();
     gotoLogin();
@@ -245,14 +245,14 @@ function httpCrud<T extends { id: number }>(
   papeleraPath?: string,
   restaurar?: (id: number) => string,
 ): Crud<T> {
-  const normalizedPath = path.startsWith("/api/") ? path.slice(4) : path;
-  const normalizedPapelera = papeleraPath?.startsWith("/api/") ? papeleraPath.slice(4) : papeleraPath;
-  const normalizedRestaurar = restaurar
-    ? (id: number) => {
-        const url = restaurar(id);
-        return url.startsWith("/api/") ? url.slice(4) : url;
-      }
-    : undefined;
+  // Las rutas ya vienen con el prefijo `/api` (la convención del proyecto:
+  // `API_BASE` es el origen sin prefijo y cada llamada lleva su `/api/...`).
+  // Antes se recortaba ese prefijo aquí, dando por hecho que `API_BASE` lo
+  // incluía; como no es así, todas las llamadas del panel caían en el sitio
+  // público (HTML) y el panel no cargaba nada.
+  const normalizedPath = path;
+  const normalizedPapelera = papeleraPath;
+  const normalizedRestaurar = restaurar ? (id: number) => restaurar(id) : undefined;
   const conPapelera = papeleraPath !== undefined && restaurar !== undefined;
   return {
     async list() {
@@ -321,13 +321,13 @@ function httpCrudPaginado<T extends { id: number }>(
  * Colecciones del panel. Solo las que tienen `@DeleteDateColumn` en el backend
  * exponen papelera; `mensajes`, `media` y `users` siguen sin ella a proposito.
  */
-const papeleraDe = (recurso: string) => `/config/papelera/${recurso}`;
+const papeleraDe = (recurso: string) => `/api/config/papelera/${recurso}`;
 
 /** Ruta de restauracion de las colecciones de configuracion. */
-const restaurarDe = (recurso: string) => (id: number) => `/config/papelera/${recurso}/${id}/restaurar`;
+const restaurarDe = (recurso: string) => (id: number) => `/api/config/papelera/${recurso}/${id}/restaurar`;
 
 /** Ruta de restauracion del contenido: cuelga del recurso, no de la papelera. */
-const restaurarDeContenido = (recurso: string) => (id: number) => `/${recurso}/${id}/restaurar`;
+const restaurarDeContenido = (recurso: string) => (id: number) => `/api/${recurso}/${id}/restaurar`;
 
 /**
  * Une un CRUD ya construido —noticias necesita la versión paginada— con sus
@@ -498,7 +498,7 @@ function configBackend<C>(path: string): ConfigBackend<C> {
 }
 
 export const configs = {
-  site: () => configBackend<SiteSettings>("/config/site"),
+  site: () => configBackend<SiteSettings>("/api/config/site"),
 };
 
 export function useCollection<T extends { id: number }>(
