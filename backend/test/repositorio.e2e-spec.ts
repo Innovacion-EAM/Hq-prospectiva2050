@@ -267,6 +267,62 @@ describe('Repositorio (e2e)', () => {
       expect(primero?.link).toBe('https://drive.google.com/uc?export=download&id=XYZ987');
     });
 
+    it('no parte la fila cuando un autor trae varios nombres separados por ;', async () => {
+      // Exportación real de LibreOffice: "Autor(es)" trae `Ana; Luis; Marta`
+      // SIN comillas. Antes el parser trataba `;` como delimitador y corría las
+      // columnas siguientes (año, tipo, formato, link) una posición.
+      const codigo = 9301;
+      const csv = [
+        'No.,,Título del documento,Autor(es),Fecha de publicación,Tipo de documento,Delimitación espacial,Formato,Link de acceso/descarga',
+        [
+          String(codigo),
+          'Dimensión Físico-ambiental',
+          'Documento con varios autores',
+          'Ana Pérez; Luis Gómez; Marta Ruiz',
+          '2021',
+          'Artículo Científico o Revista',
+          'Departamental (Quindío)',
+          'PDF',
+          'https://example.com/multi.pdf',
+        ].join(','),
+      ].join('\n');
+
+      await importarCsv(await tokenFor(await makeUser()), csv);
+
+      const guardado = await repo.findOne({ where: { codigo } });
+      expect(guardado?.autor).toBe('Ana Pérez; Luis Gómez; Marta Ruiz');
+      expect(guardado?.anio).toBe(2021);
+      expect(guardado?.tipo).toBe('Artículo Científico o Revista');
+      expect(guardado?.formato).toBe('PDF');
+      expect(guardado?.link).toBe('https://example.com/multi.pdf');
+    });
+
+    it('acepta CSV delimitado por punto y coma (coma dentro de un campo)', async () => {
+      const codigo = 9302;
+      const csv = [
+        'No.;;Título del documento;Autor(es);Fecha de publicación;Tipo de documento;Delimitación espacial;Formato;Link de acceso/descarga',
+        [
+          String(codigo),
+          'Dimensión Económico-productivo',
+          'Documento delimitado por punto y coma',
+          'Entidad, con coma en el autor',
+          '2020',
+          'Acuerdo',
+          'Municipal (Específico)',
+          'PDF',
+          'https://example.com/pc.pdf',
+        ].join(';'),
+      ].join('\n');
+
+      await importarCsv(await tokenFor(await makeUser()), csv);
+
+      const guardado = await repo.findOne({ where: { codigo } });
+      expect(guardado?.titulo).toBe('Documento delimitado por punto y coma');
+      expect(guardado?.autor).toBe('Entidad, con coma en el autor');
+      expect(guardado?.anio).toBe(2020);
+      expect(guardado?.dimension).toBe('economica-productiva');
+    });
+
     it('reimportar el mismo archivo actualiza, no duplica', async () => {
       const token = await tokenFor(await makeUser());
       const csv = csvExcel(['7100', '7101']);

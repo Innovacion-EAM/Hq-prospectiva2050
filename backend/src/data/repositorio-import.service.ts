@@ -40,7 +40,8 @@ export class RepositorioImportService {
 
   /** Parsea un buffer de CSV y lo importa (upsert por `codigo`). */
   async importar(buffer: Buffer): Promise<ImportarResultado> {
-    const grid = splitCsv(buffer.toString('utf8').replace(/^\uFEFF/, ''));
+    const texto = buffer.toString('utf8').replace(/^\uFEFF/, '');
+    const grid = splitCsv(texto, detectarDelimitador(texto));
 
     if (grid.length < 2) {
       throw new BadRequestException('El archivo no tiene filas de datos');
@@ -135,8 +136,46 @@ export class RepositorioImportService {
   }
 }
 
+/**
+ * Detecta el delimitador del archivo mirando SOLO la primera línea (el
+ * encabezado), que es la que define las columnas.
+ *
+ * No basta con separar por `,` y `;` a la vez: en la exportación de LibreOffice
+ * la columna "Autor(es)" trae varios autores separados por `;` SIN comillas
+ * (`Ana; Luis; Marta`). Si se trata el `;` como delimitador, esa fila se parte
+ * en tres y todas las columnas siguientes quedan desalineadas. Igual al revés:
+ * un CSV delimitado por `;` puede traer comas dentro de un campo.
+ *
+ * Por eso se cuenta cuál aparece más en el encabezado (respetando comillas) y
+ * se usa solo ese. El encabezado del Excel tiene 8 comas y 0 puntos y coma, así
+ * que gana la coma; un export regional con `;` gana el punto y coma.
+ */
+function detectarDelimitador(texto: string): string {
+  let comas = 0;
+  let puntoYComa = 0;
+  let enComillas = false;
+
+  for (let i = 0; i < texto.length; i += 1) {
+    const ch = texto[i];
+    if (ch === '"') {
+      if (enComillas && texto[i + 1] === '"') {
+        i += 1;
+        continue;
+      }
+      enComillas = !enComillas;
+      continue;
+    }
+    if (enComillas) continue;
+    if (ch === '\n' || ch === '\r') break; // solo la primera línea
+    if (ch === ',') comas += 1;
+    else if (ch === ';') puntoYComa += 1;
+  }
+
+  return puntoYComa > comas ? ';' : ',';
+}
+
 /** Divide el texto CSV en celdas, respetando comillas y saltos de línea internos. */
-function splitCsv(texto: string): string[][] {
+function splitCsv(texto: string, delimitador: string): string[][] {
   const filas: string[][] = [];
   let fila: string[] = [];
   let campo = '';
@@ -157,7 +196,7 @@ function splitCsv(texto: string): string[][] {
       }
     } else if (ch === '"') {
       enComillas = true;
-    } else if (ch === ',' || ch === ';') {
+    } else if (ch === delimitador) {
       fila.push(campo);
       campo = '';
     } else if (ch === '\n') {

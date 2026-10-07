@@ -5,7 +5,7 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
  *
  * Es un catálogo con enlaces EXTERNOS (Google Drive / web), no un almacén de
  * archivos: dejar los PDFs en Drive evita ocupar el disco de la instancia en
- * 297 documentos. `link` queda `null` cuando falta (por ejemplo, la fila 247
+ * 392 documentos. `link` queda `null` cuando falta (por ejemplo, la fila 247
  * del Excel original) y se muestra como "Enlace pendiente".
  *
  * `codigo` es el número del Excel original y es LA clave natural del registro:
