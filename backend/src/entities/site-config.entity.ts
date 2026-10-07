@@ -319,6 +319,15 @@ export type FooterPortada = {
    * un pie sin nada.
    */
   enlaces?: NavLink[];
+  /**
+   * El texto de la barra inferior del pie («… — Todos los derechos
+   * reservados»).
+   *
+   * Opcional y con respaldo en el frontend, como los enlaces: un valor vacío
+   * o ausente hace que el pie muestre el texto que trae el sitio, nunca una
+   * barra en blanco.
+   */
+  copyright?: string;
 };
 
 /** Todo lo editable de la portada, agrupado por sección. */

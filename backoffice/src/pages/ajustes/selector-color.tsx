@@ -2,12 +2,8 @@ import { Field, Select } from "@/components/ui";
 import {
   COLORES_BOTON,
   COLORES_BOTON_NOMBRE,
-  COLORES_BOTON_SOBRE_LIMA,
   COLOR_POR_DEFECTO,
-  COLOR_POR_DEFECTO_SOBRE_LIMA,
-  esColorBotonSobreLima,
   type ColorBoton,
-  type ColorBotonSobreLima,
 } from "@/lib/portada";
 
 /**
@@ -83,48 +79,5 @@ export function SelectorColor({
         </Select>
       </div>
     </Field>
-  );
-}
-
-/**
- * El mismo selector para el botón que va **encima de la caja lima** del hero.
- *
- * Existe aparte, y no como un `lista` más, porque aquí el tipo también cambia: el
- * campo es `cajaBotonColor: ColorBotonSobreLima` y no `ColorBoton`, así que
- * `onChange` no puede ser el mismo. Meterlo en el de arriba con una lista
- * recortada dejaría el tipo mintiendo —dejaría pasar un `lima` que el backend
- * rechaza— que es justo el error que este componente existe para evitar.
- */
-export function SelectorColorSobreLima({
-  valor,
-  onChange,
-  etiqueta,
-  hint,
-}: {
-  valor: string;
-  onChange: (color: ColorBotonSobreLima) => void;
-  etiqueta: string;
-  hint?: string;
-}) {
-  // El `onChange` se envuelve en una función en vez de pasarse tal cual porque los
-  // tipos no son el mismo: `SelectorColor` entrega un `ColorBoton` (de la lista
-  // completa) y aquí el campo declara un `ColorBotonSobreLima`. La lista ya
-  // garantiza que el color que llega es de la corta, pero eso hay que comprobarlo
-  // en vez de asumirlo con un `as`: si mañana se le pasa `lista` equivocada, el
-  // `as` dejaría colar un `lima` que el backend rechaza y el editor vería un
-  // `400` sin explicación. Con el filtro, el valor simplemente no se guarda.
-  const narrow = (color: ColorBoton) => {
-    if (esColorBotonSobreLima(color)) onChange(color);
-  };
-
-  return (
-    <SelectorColor
-      etiqueta={etiqueta}
-      hint={hint}
-      valor={valor}
-      lista={COLORES_BOTON_SOBRE_LIMA}
-      respaldo={COLOR_POR_DEFECTO_SOBRE_LIMA}
-      onChange={narrow}
-    />
   );
 }

@@ -1,11 +1,30 @@
-import { Field, FormGrid, Input, LinkBtn, ParagraphEditor, TextArea } from "@/components/ui";
-import { ListChecks } from "lucide-react";
-import type { SiteSettings } from "@/lib/types";
+import { Field, FormGrid, Input, ParagraphEditor, TextArea } from "@/components/ui";
+import { ConfigCrud, type FieldDef } from "@/components/config-crud";
+import { collections } from "@/lib/data";
+import type { SiteSettings, Stat } from "@/lib/types";
 import { ModuloCard } from "./nav-links-editor";
 import { SelectorImagen } from "./selector-imagen";
-import { SelectorColor, SelectorColorSobreLima } from "./selector-color";
+import { SelectorColor } from "./selector-color";
 import { useEditarPortada } from "./editor-portada";
 import { CampoTelefono } from "./campo-telefono";
+
+/**
+ * Los campos editables de cada cifra de la portada.
+ *
+ * Las cifras son las mismas cuatro tarjetas con números que trae el sitio (11,
+ * 2050, 3 y 60) y viven en su propia colección, no dentro de `home`: por eso se
+ * editan con un CRUD incrustado y no con los campos del formulario de ajustes.
+ */
+const CAMPOS_CIFRA: FieldDef<Stat>[] = [
+  { key: "value", label: "Valor", hint: "Número o texto corto, ej: 11, 2050, 60." },
+  { key: "label", label: "Etiqueta", hint: "Ej: Entidades Aliadas." },
+  {
+    key: "subtext",
+    label: "Subtítulo",
+    type: "textarea",
+    hint: "Línea de apoyo bajo la etiqueta.",
+  },
+];
 
 /**
  * Tope de renglones del titular del hero. Tiene que coincidir con
@@ -32,9 +51,6 @@ export const LINEAS_TITULAR_MAX = 10;
  * quien edita no tenga que saltar de arriba abajo. Lo que **no** está aquí, y es
  * a propósito:
  *
- *  - **Las cifras** (las cuatro tarjetas con números): viven en su propia
- *    pantalla, Configuración → Estadísticas, porque son datos y no rótulos. Al
- *    final de este módulo hay un enlace directo para no tener que buscarla.
  *  - **Las Municipalidades** (la lista de los doce municipios): igual, en
  *    Configuración → Municipios.
  *  - **Las categorías de documentos**: Configuración → Categorías.
@@ -58,13 +74,16 @@ export const LINEAS_TITULAR_MAX = 10;
  * antes de este módulo. Por eso el campo escribe con `commit` y no con `editar`.
  *
  * **Del color hay un campo por botón, y no uno solo para la portada**, porque los
- * botones no se parecen entre sí: el del hero va sobre una foto oscura, el «Ver
- * más» de cada noticia va **encima** de la foto de la noticia, y el «Enviar» de la
- * caja de sugerencias va sobre un fondo lima. Con un solo color habría que
- * decidir cuál de los dos lados de cada botón se enteraba. Todos eligen de la
- * misma lista cerrada —salvo el de la caja lima, que va en la corta porque sobre
- * lima se fundiría— y ninguno admite un color libre: cada uno de la lista ya
- * viene con el texto que contrasta con él.
+ * botones no se parecen entre sí: el del hero va sobre una foto oscura y el «Ver
+ * más» de cada noticia va **encima** de la foto de la noticia. Con un solo color
+ * habría que decidir cuál de los dos lados de cada botón se enteraba. Todos
+ * eligen de la misma lista cerrada y ninguno admite un color libre: cada uno de
+ * la lista ya viene con el texto que contrasta con él.
+ *
+ * **La tarjeta lima de «¿Tienes alguna pregunta…?» no se edita aquí**: su rótulo
+ * y el color de su «Enviar» son fijos del diseño, y el formulario en sí es el
+ * mismo que el del hero y el de /participa. Ofrecer esos campos sería ofrecer un
+ * cambio que el sitio ignora.
  */
 export function ModuloHome({
   form,
@@ -142,25 +161,25 @@ export function ModuloHome({
             />
           </FormGrid>
 
-          <div className="space-y-4 rounded-2xl border border-mist bg-fog p-4">
-            <Field
-              label="Rótulo de la caja de preguntas"
-              hint="El texto de la tarjeta lima que dice «¿Tienes alguna pregunta…?». El formulario en sí no se cambia."
-            >
-              <Input
-                value={hero.cajaTitulo}
-                onChange={(e) => editar("hero", "cajaTitulo", e.target.value)}
-                placeholder="¿Tienes alguna pregunta o quieres darnos una recomendación?"
-              />
-            </Field>
-            <SelectorColorSobreLima
-              etiqueta="Color del «Enviar» de esa caja"
-              hint="Menos opciones a propósito: la caja es lima, y un botón lima encima de una caja lima no se vería."
-              valor={hero.cajaBotonColor}
-              onChange={(cajaBotonColor) => editar("hero", "cajaBotonColor", cajaBotonColor)}
-            />
-          </div>
+          {/* La tarjeta lima de «¿Tienes alguna pregunta…?» no se edita desde
+              aquí: su rótulo y el color de su «Enviar» son fijos. El formulario
+              en sí tampoco cambia. */}
         </div>
+      </ModuloCard>
+
+      <ModuloCard
+        titulo="Cifras de la portada"
+        descripcion="Las cuatro tarjetas con números (11, 2050, 3 y 60), en el orden en que se ven: van justo debajo del hero, como en la portada. Son una colección aparte, así que se guardan al instante y no dependen del botón «Guardar ajustes»."
+      >
+        <ConfigCrud<Stat>
+          compact
+          title="Cifras de la portada"
+          description="Las cuatro tarjetas con números."
+          store={collections.stats}
+          empty={() => ({ id: 0, value: "", label: "", subtext: "" })}
+          fields={CAMPOS_CIFRA}
+          columns={(s) => [s.value, s.label, s.subtext]}
+        />
       </ModuloCard>
 
       <ModuloCard
@@ -206,16 +225,6 @@ export function ModuloHome({
             <p className="mb-4 font-display text-xs font-bold text-ink">
               Las cuatro dimensiones
             </p>
-            <Field
-              label="Rótulo del recuadro de bloques"
-              hint="El que dice «Del diagnóstico a la acción», encima de misiones, retos e iniciativas."
-            >
-              <Input
-                value={proyecto.accionTitulo}
-                onChange={(e) => editar("proyecto", "accionTitulo", e.target.value)}
-                placeholder="Del diagnóstico a la acción"
-              />
-            </Field>
             <Field label="Texto">
               <TextArea
                 rows={2}
@@ -427,15 +436,6 @@ export function ModuloHome({
             llenar.
           </p>
         </div>
-      </ModuloCard>
-
-      <ModuloCard
-        titulo="Cifras de la portada"
-        descripcion="Las cuatro tarjetas con números (11, 2050, 3 y 60). Son datos y no rótulos, así que viven en su propia pantalla: ahí se cambia el número, el título y el enunciado de cada una, y el cambio se ve enseguida en la portada."
-      >
-        <LinkBtn to="/configuracion/estadisticas" variant="outline" size="sm">
-          <ListChecks className="size-4" /> Abrir Configuración → Estadísticas
-        </LinkBtn>
       </ModuloCard>
 
       <p className="text-xs text-muted">

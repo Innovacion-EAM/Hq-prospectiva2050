@@ -8,6 +8,7 @@ import {
   DIMENSIONS as FALLBACK_DIMENSIONS,
   DOC_CATEGORIES as FALLBACK_CATEGORIES,
   FOOTER_COLS as FALLBACK_FOOTER_COLS,
+  FOOTER_COPYRIGHT as FALLBACK_FOOTER_COPYRIGHT,
   LEGAL as FALLBACK_LEGAL,
   LOGO as FALLBACK_LOGO,
   NAV as FALLBACK_NAV,
@@ -175,6 +176,20 @@ function pickFooter(raw: RawSiteConfig): { title: string; links: NavLink[] }[] {
 
   const enlaces = lista.length ? lista : FALLBACK_FOOTER_COLS[1].links;
   return FALLBACK_FOOTER_COLS.map((col, i) => (i === 1 ? { ...col, links: enlaces } : col));
+}
+
+/**
+ * El texto de la barra inferior del pie.
+ *
+ * Editable en **Ajustes → Footer** (`home.footer.copyright`). Como el resto del
+ * pie, un valor vacío o ausente cae al texto que trae el sitio: una barra de
+ * derechos en blanco es peor que la de siempre.
+ */
+function pickCopyright(raw: RawSiteConfig): string {
+  const home = (raw.home ?? {}) as Record<string, unknown>;
+  const footer = (home.footer ?? {}) as Record<string, unknown>;
+  const texto = typeof footer.copyright === "string" ? footer.copyright.trim() : "";
+  return texto || FALLBACK_FOOTER_COPYRIGHT;
 }
 
 /**
@@ -508,6 +523,8 @@ type SiteBundle = {
   NAV: NavLink[];
   /** Las cuatro columnas del pie de página; solo la segunda es editable. */
   FOOTER: { title: string; links: NavLink[] }[];
+  /** El texto de la barra inferior del pie, editable en Ajustes → Footer. */
+  FOOTER_COPYRIGHT: string;
   /** El hero y las secciones de la portada, editables desde Ajustes, bloque a bloque. */
   PORTADA: Portada;
   /** Datos legales editables (Ajustes → Legal): privacidad y términos de uso. */
@@ -530,6 +547,7 @@ function fallbackBundle(): SiteBundle {
     LOGO: { ...FALLBACK_LOGO, url: "" },
     NAV: [...FALLBACK_NAV],
     FOOTER: FALLBACK_FOOTER_COLS.map((col) => ({ ...col, links: [...col.links] })),
+    FOOTER_COPYRIGHT: FALLBACK_FOOTER_COPYRIGHT,
     PORTADA: FALLBACK_PORTADA,
     LEGAL: { ...FALLBACK_LEGAL },
     STATS: FALLBACK_STATS as unknown as Stat[],
@@ -564,6 +582,7 @@ function buildBundle(raw: RawSite | null): SiteBundle {
     LOGO: pickLogo(raw.site),
     NAV: pickNav(raw.site),
     FOOTER: pickFooter(raw.site),
+    FOOTER_COPYRIGHT: pickCopyright(raw.site),
     PORTADA: portada,
     LEGAL: pickLegal(raw.site.legal),
     STATS: pickStats(raw.stats),

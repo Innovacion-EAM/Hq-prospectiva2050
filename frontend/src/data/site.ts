@@ -710,6 +710,20 @@ export const FOOTER_COLS = [
  */
 export const FOOTER_PROYECTO_FALLBACK = FOOTER_COLS[1].links;
 
+/**
+ * El texto de la barra inferior del pie de página.
+ *
+ * Es lo que se ve a la izquierda del copyright, con los enlaces legales a la
+ * derecha: «Horizonte Quindío 2050 — Todos los derechos reservados». Se edita
+ * en **Ajustes → Footer** y vive en `home.footer.copyright`. Lo que hay aquí es
+ * solo su respaldo —lo que se ve si nunca se ha guardado nada o si el campo se
+ * dejó vacío—.
+ *
+ * El respaldo es además lo que siembra el backend en una base nueva, así que si
+ * cambia aquí, hay que cambiarlo también en `backend/src/seed-data.ts`.
+ */
+export const FOOTER_COPYRIGHT = "Horizonte Quindío 2050 — Todos los derechos reservados";
+
 export function getProject(slug: string) {
   return PROJECT_PAGES.find((p) => p.slug === slug);
 }

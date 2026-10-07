@@ -714,6 +714,12 @@ export const SEED_HOME = {
       { label: "Principios y valores", href: "/proyecto/principios" },
       { label: "Línea de tiempo", href: "/proyecto/linea-de-tiempo" },
     ],
+    // El texto de la barra inferior del pie. El guion es el largo (—) y no un
+    // guion corto: es el que trae el sitio por defecto. Si se cambia aquí, hay
+    // que cambiarlo también en `FOOTER_COPYRIGHT` del frontend
+    // (`frontend/src/data/site.ts`), que es el respaldo cuando la base no lo
+    // trae.
+    copyright: "Horizonte Quindío 2050 — Todos los derechos reservados",
   },
 };
 

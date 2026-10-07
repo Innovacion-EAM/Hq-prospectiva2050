@@ -228,6 +228,11 @@ export type ContactoPortada = SeccionPortada & {
  */
 export type FooterPortada = {
   enlaces: NavLink[];
+  /**
+   * El texto de la barra inferior del pie («… — Todos los derechos
+   * reservados»). Vacío significa "usa el texto que trae el sitio".
+   */
+  copyright: string;
 };
 
 export type PortadaSettings = {

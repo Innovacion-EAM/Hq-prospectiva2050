@@ -33,6 +33,7 @@ export function ConfigCrud<T extends { id: number }>({
   fields,
   columns,
   display,
+  compact = false,
 }: {
   title: string;
   description: string;
@@ -41,6 +42,12 @@ export function ConfigCrud<T extends { id: number }>({
   fields: FieldDef<T>[];
   columns: (item: T) => string[];
   display?: (item: T) => React.ReactNode;
+  /**
+   * Modo incrustado: sin `PageHeader` ni título de página, para meter el CRUD
+   * dentro de una tarjeta de otro módulo (las cifras de la portada viven en
+   * Home). Deja solo el botón «Agregar» y la lista.
+   */
+  compact?: boolean;
 }) {
   const { items, loading, create, update, remove } = useCollection(store());
   const [editing, setEditing] = useState<T | null>(null);
@@ -71,16 +78,26 @@ export function ConfigCrud<T extends { id: number }>({
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={title}
-        description={description}
-        actions={
-          <Button variant="lime" onClick={() => setEditing(empty())}>
-            <Plus className="size-4" /> Nuevo
-          </Button>
-        }
-      />
+    <div className={compact ? "space-y-4" : "space-y-6"}>
+      {compact ? (
+        items.length > 0 ? (
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setEditing(empty())}>
+              <Plus className="size-4" /> Agregar
+            </Button>
+          </div>
+        ) : null
+      ) : (
+        <PageHeader
+          title={title}
+          description={description}
+          actions={
+            <Button variant="lime" onClick={() => setEditing(empty())}>
+              <Plus className="size-4" /> Nuevo
+            </Button>
+          }
+        />
+      )}
 
       {editing ? (
         <Card className="border-l-4 border-l-lime-hot">

@@ -244,7 +244,7 @@ function Footer() {
   // Las tres columnas del pie llegan de la base: dos son fijas (el mapa de
   // páginas y las dimensiones) y la de las tarjetas de «El proyecto» se elige en
   // Ajustes → Footer (ver `pickFooter`).
-  const { SITE, FOOTER } = useSite();
+  const { SITE, FOOTER, FOOTER_COPYRIGHT } = useSite();
 
   async function subscribe(e: FormEvent) {
     e.preventDefault();
@@ -355,11 +355,11 @@ function Footer() {
       </div>
       <div className="border-t border-paper/10 px-4 py-4 text-xs text-mist">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 sm:flex-row">
-          <span>Horizonte Quindío 2050 — Todos los derechos reservados</span>
+          <span>{FOOTER_COPYRIGHT}</span>
           {/* Enlaces y no texto plano: son las páginas legales, y las dos están en
               la misma que el aviso al que apuntan las casillas de autorización de
-              los formularios. El texto queda fijo —es la identidad del sitio—, pero
-              el clic tiene que llegar a cada política. */}
+              los formularios. El texto de la izquierda es editable (Ajustes →
+              Footer, `home.footer.copyright`); estos dos enlaces son fijos. */}
           <nav aria-label="Legal" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <Link to="/privacidad" className="text-mist no-underline transition-colors hover:text-lime">
               Protección y Tratamiento de Datos Personales (Ley 1581 de 2012)

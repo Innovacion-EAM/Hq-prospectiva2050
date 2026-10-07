@@ -6,12 +6,16 @@ import { ModuloCard } from "./nav-links-editor";
 /**
  * Módulo "Footer": el pie de página del sitio.
  *
- * Aquí viven las redes sociales, el nombre y la frase del sitio, que estaban en
- * el módulo "General" que se eliminó al partir los ajustes por bloques del
- * sitio. Las redes salen en el pie y en ningún otro sitio, y el nombre y la
- * frase, en el aviso legal y en el pie.
+ * Aquí viven las redes sociales y el texto de la barra inferior del pie que
+ * estaban en el módulo "General" que se eliminó al partir los ajustes por
+ * bloques del sitio. Las redes salen en el pie y en ningún otro sitio, y el
+ * texto de derechos, solo en la barra inferior.
  *
  * Lo que **no** se edita aquí, y es a propósito:
+ *
+ *  - **El nombre y la frase del sitio**: ya no se muestran en ninguna parte del
+ *    sitio, así que no tienen campo en el panel. Se conservan en la fila de
+ *    configuración para no romper instalaciones viejas.
  *
  *  - **Las columnas fijas del pie**: la del mapa del sitio (copia del menú del
  *    encabezado), la de las dimensiones y la del aviso legal. Son el temario
@@ -76,23 +80,18 @@ export function ModuloFooter({
       </ModuloCard>
 
       <ModuloCard
-        titulo="Identidad del sitio"
-        descripcion="El nombre y la frase que salen en el pie y en el aviso de privacidad."
+        titulo="Texto de derechos del pie"
+        descripcion="Lo que aparece en la barra de abajo del pie, a la izquierda de los enlaces legales. Si se deja vacío, el sitio muestra «Horizonte Quindío 2050 — Todos los derechos reservados»."
       >
-        <FormGrid>
-          <Field label="Nombre del sitio">
-            <Input
-              value={form.nombre}
-              onChange={(e) => commit({ nombre: e.target.value })}
-            />
-          </Field>
-          <Field label="Frase">
-            <Input
-              value={form.tagline}
-              onChange={(e) => commit({ tagline: e.target.value })}
-            />
-          </Field>
-        </FormGrid>
+        <Field label="Texto de la barra inferior">
+          <Input
+            value={footer.copyright}
+            onChange={(e) =>
+              commit({ home: { ...form.home, footer: { ...footer, copyright: e.target.value } } })
+            }
+            placeholder="Horizonte Quindío 2050 — Todos los derechos reservados"
+          />
+        </Field>
       </ModuloCard>
 
       <ModuloCard titulo="Lo que no se cambia aquí">

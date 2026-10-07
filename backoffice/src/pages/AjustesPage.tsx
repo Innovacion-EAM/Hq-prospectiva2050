@@ -59,7 +59,7 @@ const MODULOS = [
   {
     id: "home",
     label: "Home",
-    desc: "La portada entera, de arriba abajo: el titular del hero, sus imágenes, los botones y el texto de cada sección hasta antes del pie.",
+    desc: "La portada entera, de arriba abajo: el titular del hero, sus imágenes, los botones, las cifras y el texto de cada sección hasta antes del pie.",
   },
   {
     id: "proyecto",
@@ -94,7 +94,7 @@ const MODULOS = [
   {
     id: "footer",
     label: "Footer",
-    desc: "El pie de página: las redes sociales, el nombre del sitio y los enlaces de «El proyecto» que se muestran en su columna.",
+    desc: "El pie de página: las redes sociales, el texto de la barra inferior y los enlaces de «El proyecto» que se muestran en su columna.",
   },
   {
     id: "legal",

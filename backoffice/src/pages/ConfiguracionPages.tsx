@@ -1,25 +1,31 @@
 import { Navigate } from "react-router-dom";
 import { ConfigCrud, type FieldDef } from "@/components/config-crud";
-import { Badge } from "@/components/ui";
+import { Badge, PageHeader } from "@/components/ui";
 import { collections } from "@/lib/data";
 import { ICONOS_CATEGORIA, STATUS_TALLER } from "@/lib/types";
-import type { DocCategoria, Municipio, Stat, Taller } from "@/lib/types";
+import type { DocCategoria, Municipio, Taller } from "@/lib/types";
 
+/**
+ * Sección de estadísticas del panel, **vacía a propósito**.
+ *
+ * Antes editaba las cuatro cifras de la portada (11, 2050, 3 y 60). Esas cifras
+ * son datos de la portada, así que ahora se editan donde se ven: en **Ajustes →
+ * Home**, en la tarjeta «Cifras de la portada». Esta pantalla queda reservada
+ * para otra cosa; mientras tanto, deja claro dónde se edita lo que había aquí.
+ */
 export function EstadisticasPage() {
-  const fields: FieldDef<Stat>[] = [
-    { key: "value", label: "Valor", hint: "Número o texto corto, ej: 11, 2050, 60." },
-    { key: "label", label: "Etiqueta", hint: "Ej: Entidades Aliadas." },
-    { key: "subtext", label: "Subtítulo", type: "textarea", hint: "Línea de apoyo bajo la etiqueta." },
-  ];
   return (
-    <ConfigCrud<Stat>
-      title="Estadísticas"
-      description="Las cuatro tarjetas de indicadores que se muestran en la portada (sección de estadísticas)."
-      store={collections.stats}
-      empty={() => ({ id: 0, value: "", label: "", subtext: "" })}
-      fields={fields}
-      columns={(s) => [s.value, s.label, s.subtext]}
-    />
+    <div className="space-y-6">
+      <PageHeader
+        title="Estadísticas"
+        description="Sección reservada para otro contenido."
+      />
+      <p className="max-w-2xl text-sm text-muted">
+        Las cuatro cifras de la portada (11, 2050, 3 y 60) se editan ahora en{" "}
+        <span className="font-semibold text-ink">Ajustes → Home</span>, en la
+        tarjeta «Cifras de la portada», donde se ven junto al resto del inicio.
+      </p>
+    </div>
   );
 }
 

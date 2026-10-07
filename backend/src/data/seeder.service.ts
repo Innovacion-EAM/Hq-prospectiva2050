@@ -158,8 +158,26 @@ if (this.sembrarContenido) {
     // respaldo. No se pisa nada de lo que ya hubiera.
     if (!Object.keys(existing.home ?? {}).length) {
       cambios.home = SEED_HOME;
-    } else if (!Object.keys((existing.home as Record<string, unknown>).repositorio ?? {}).length) {
-      cambios.home = { ...existing.home, repositorio: SEED_HOME.repositorio };
+    } else {
+      // La portada ya existe: solo se rellenan las piezas añadidas después, sin
+      // pisar nada de lo que ya hubiera. Se acumulan en `homeNueva` para no
+      // sobrescribir un parche con el siguiente.
+      let homeNueva: Record<string, unknown> | null = null;
+      if (!Object.keys(existing.home.repositorio ?? {}).length) {
+        homeNueva = { ...existing.home, repositorio: SEED_HOME.repositorio };
+      }
+      // El texto de la barra inferior del pie también es nuevo: una fila vieja
+      // tiene `footer.enlaces` pero no `copyright`, y sin esto el módulo Footer
+      // del panel abriría con el campo en blanco.
+      const footer = ((homeNueva ?? (existing.home as Record<string, unknown>)).footer ??
+        {}) as Record<string, unknown>;
+      if (!footer.copyright) {
+        homeNueva = {
+          ...(homeNueva ?? (existing.home as Record<string, unknown>)),
+          footer: { ...footer, copyright: SEED_HOME.footer.copyright },
+        };
+      }
+      if (homeNueva) cambios.home = homeNueva as unknown as typeof existing.home;
     }
     // Los datos legales, igual: la columna nueva cae con `{}` en la fila que ya
     // estaba, y sin esto el módulo Legal del panel abriría sin la estructura.

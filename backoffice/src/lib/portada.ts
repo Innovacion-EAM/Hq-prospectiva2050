@@ -152,6 +152,8 @@ export const PORTADA_VACIA = {
     // Vacía a propósito: una lista vacía significa "usa las que trae el sitio"
     // (ver `pickFooter` en el frontend), igual que el menú del encabezado.
     enlaces: [],
+    // Vacío a propósito, por el mismo motivo: el sitio cae al texto que trae.
+    copyright: "",
   },
 } as const;
 

@@ -830,6 +830,20 @@ export class FooterPortadaDto {
   @ValidateNested({ each: true })
   @Type(() => NavLinkDto)
   enlaces?: NavLinkDto[];
+
+  /**
+   * El texto de la barra inferior del pie.
+   *
+   * Sin `VacioOpcional` a propósito: aquí la cadena vacía **sí** es un valor
+   * que se guarda y significa "usa el texto que trae el sitio". Con
+   * `VacioOpcional` el vacío llegaría como `undefined` y el guardado no
+   * escribiría nada, de modo que limpiar el campo no repondría el texto por
+   * defecto: dejaría el que hubiera antes.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  copyright?: string;
 }
 
 /**

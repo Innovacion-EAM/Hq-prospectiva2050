@@ -844,6 +844,42 @@ describe('API pública y validación (e2e)', () => {
         .expect(400);
     });
 
+    it('guarda el texto de la barra inferior del pie junto a sus enlaces', async () => {
+      // El texto de derechos vive en `home.footer.copyright` y se fusiona campo
+      // a campo: guardarlo no puede llevarse los enlaces ya guardados, ni
+      // guardar los enlaces puede borrarlo.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({
+          home: {
+            footer: {
+              enlaces: [{ label: 'Inicio', href: '/' }],
+              copyright: 'Horizonte Quindío 2050 — Todos los derechos reservados',
+            },
+          },
+        })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.footer?.copyright).toBe(
+        'Horizonte Quindío 2050 — Todos los derechos reservados',
+      );
+      expect(guardada.footer?.enlaces).toEqual([{ label: 'Inicio', href: '/' }]);
+    });
+
+    it('acepta dejar el texto del pie vacío sin tocar los enlaces', async () => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { footer: { enlaces: [{ label: 'Documentos', href: '/documentos' }], copyright: '' } } })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.footer?.copyright).toBe('');
+      expect(guardada.footer?.enlaces).toEqual([{ label: 'Documentos', href: '/documentos' }]);
+    });
+
     it('guarda el titular del hero y no lo pisa al guardar la portada', async () => {
       // El titular vive en la columna `headline` de la fila, no dentro de `home`:
       // se edita en Ajustes → Home pero viaja aparte, para que guardar una
