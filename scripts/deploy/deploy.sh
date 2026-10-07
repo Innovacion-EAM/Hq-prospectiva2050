@@ -128,7 +128,7 @@ if [ "$RUN_DB_INIT" = "yes" ]; then
   # --wait: no seguir hasta que postgres acepte conexiones. Sin esto, db-init
   # puede intentar conectar antes de que el postgres esté listo y fallar.
   "${COMPOSE[@]}" up -d --wait postgres
-  "${COMPOSE[@]}" run --rm --no-deps -T backend node dist/cli/db-init.js
+  "${COMPOSE[@]}" run --rm --no-deps -T backend node dist/cli/db-init.js < /dev/null
 else
   warn "RUN_DB_INIT=no: se arranca sin comprobar el esquema"
 fi

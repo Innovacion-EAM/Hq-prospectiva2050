@@ -105,7 +105,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # t3.micro es x86_64. Para añadir Apple Silicon en local, quita el
           # `platform:` fijo y compila con `docker buildx build --platform`.
-          platform: linux/amd64
+          platforms: linux/amd64
           # Sin esto buildx adjunta un manifiesto de attestation aparte, que
           # confunde a `docker pull` y al registro de algunos clientes.
           provenance: false
@@ -199,4 +199,4 @@ jobs:
                    -o IdentitiesOnly=yes \
                    -o StrictHostKeyChecking=yes \
                    "$DEPLOY_SSH_USER@$REMOTE_HOST" \
-                   "read -r GHCR_DEPLOY_TOKEN; export GHCR_DEPLOY_TOKEN; APP_DIR=$REMOTE_APP_DIR bash -s"
+                   "read -r GHCR_DEPLOY_TOKEN; export GHCR_DEPLOY_TOKEN; script=\$(mktemp); cat > \"\$script\"; APP_DIR=$REMOTE_APP_DIR bash \"\$script\"; rc=\$?; rm -f \"\$script\"; exit \$rc"

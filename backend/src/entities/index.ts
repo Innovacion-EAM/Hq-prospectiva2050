@@ -12,6 +12,7 @@ export { DocCategoria } from './doc-categoria.entity';
 export { Documento } from './documento.entity';
 export { Media } from './media.entity';
 export { Mensaje } from './mensaje.entity';
+export { Municipio } from './municipio.entity';
 export { Noticia } from './noticia.entity';
 export { PaginaProyecto } from './pagina-proyecto.entity';
 export { RepositorioItem } from './repositorio-item.entity';
@@ -26,6 +27,7 @@ import { DocCategoria } from './doc-categoria.entity';
 import { Documento } from './documento.entity';
 import { Media } from './media.entity';
 import { Mensaje } from './mensaje.entity';
+import { Municipio } from './municipio.entity';
 import { Noticia } from './noticia.entity';
 import { PaginaProyecto } from './pagina-proyecto.entity';
 import { RepositorioItem } from './repositorio-item.entity';
@@ -46,6 +48,7 @@ export const ALL_ENTITIES = [
   Convocatoria,
   Mensaje,
   Media,
+  Municipio,
   RepositorioItem,
   User,
 ];
