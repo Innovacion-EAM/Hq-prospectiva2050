@@ -2,7 +2,7 @@
  * Cliente del repositorio: tipos, paleta por dimensión y llamadas a la API.
  *
  * Todo pasa por /api/repositorio (público): el listado filtrar lo sirve el
- * backend, así que el catálogo no descarga los 297 ítems de una vez.
+ * backend, así que el catálogo no descarga los 392 ítems de una vez.
  */
 
 export type RepositorioItem = {

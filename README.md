@@ -41,7 +41,7 @@ Los cuatro formularios públicos piden nombre y correo (o un texto libre que pue
 | Usuarios | ✅ | ❌ |
 | Ajustes del sitio (por módulos, uno por bloque del sitio) | ✅ | ❌ |
 
-La primera cuenta se siembra sola: `admin@prospectiva.com` / `Admin123*`. **Cámbiala antes de salir de desarrollo** (o edita `SEED_USERS` en `backend/src/seed-data.ts`).
+La primera cuenta se siembra sola: `prospectiva@horizontequindio2050.com` / `prospectiva@horizontequindio2050.com`. **Cámbiala antes de salir de desarrollo** (o edita `SEED_USERS` en `backend/src/seed-data.ts`).
 
 ## Documentación
 

@@ -332,6 +332,11 @@ function ResultCard({ doc }: { doc: RepositorioItem }) {
     <li className="glass group flex flex-col gap-3 rounded-2xl p-5 transition-all hover:border-neon/40 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
+          {/* El "No." del Excel, bien visible: es como se busca un documento
+              concreto ("el 45") para validarlo contra la fuente original. */}
+          <span className="inline-flex items-center rounded-pill bg-neon px-2.5 py-0.5 font-display text-[0.7rem] font-extrabold text-petro-deep">
+            Nº {doc.codigo}
+          </span>
           {doc.dimension ? (
             <Badge color={color}>
               <Dot color={color} />
@@ -351,7 +356,7 @@ function ResultCard({ doc }: { doc: RepositorioItem }) {
           {doc.titulo}
         </Link>
         <p className="mt-1 truncate text-xs text-muted">
-          {doc.autor ?? "Sin autor"} · {doc.tipo} · {doc.codigo}
+          {doc.autor ?? "Sin autor"} · {doc.tipo}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

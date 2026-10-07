@@ -345,7 +345,7 @@ Ver opción `SERVICE=` (backend · frontend · backoffice · traefik · postgres
 
 ### Login y roles
 
-- El backoffice exige sesión: se entra por `/login`. La primera cuenta se **siembra** automáticamente: `admin@prospectiva.com` / `Admin123*` (cámbiala tras el primer uso, o edítala en `backend/src/seed-data.ts` → `SEED_USERS`).
+- El backoffice exige sesión: se entra por `/login`. La primera cuenta se **siembra** automáticamente: `prospectiva@horizontequindio2050.com` / `prospectiva@horizontequindio2050.com` (cámbiala tras el primer uso, o edítala en `backend/src/seed-data.ts` → `SEED_USERS`).
 | | **admin** | **editor** |
 |---|---|---|
 | Noticias, documentos, convocatorias, mensajes | ✅ | ✅ |
@@ -457,7 +457,7 @@ La caja «¿Tienes alguna pregunta o quieres darnos una recomendación?» del he
 
 ### Probar el sitio con la base vacía
 
-`make db-vacia` borra el volumen y deja la base **sin contenido de muestra**: no hay noticias, documentos, municipios, dimensiones ni mensajes. Se queda solo con la cuenta de admin (`admin@prospectiva.com` / `Admin123*`) y la fila de configuración del sitio, porque sin la primera no hay forma de entrar al backoffice a llenarla y sin la segunda el sitio no arranca. La cuenta de rol editor se crea desde el propio backoffice.
+`make db-vacia` borra el volumen y deja la base **sin contenido de muestra**: no hay noticias, documentos, municipios, dimensiones ni mensajes. Se queda solo con la cuenta de admin (`prospectiva@horizontequindio2050.com` / `prospectiva@horizontequindio2050.com`) y la fila de configuración del sitio, porque sin la primera no hay forma de entrar al backoffice a llenarla y sin la segunda el sitio no arranca. La cuenta de rol editor se crea desde el propio backoffice.
 
 El interruptor es `SEED_CONTENIDO` en `backend/.env.docker`, y queda puesto a `false` **de forma permanente**: el seeder siembra las tablas que encuentra vacías en cada arranque, así que un `SEED_CONTENIDO=false` de paso se perdería en el siguiente `make up` y todo el contenido volvería solo. `make db-reset` lo devuelve a `true` y recupera la semilla.
 

@@ -49,7 +49,7 @@ export function LoginPage() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@prospectiva.com"
+                  placeholder="prospectiva@horizontequindio2050.com"
                 />
               </Field>
               <Field label="Contraseña">

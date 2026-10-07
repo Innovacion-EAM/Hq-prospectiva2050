@@ -230,7 +230,7 @@ suficiente con hacerlo una vez.
 
 ### El usuario inicial del panel
 
-El seed crea `admin@prospectiva.com` / `Admin123*`. **Cámbialo en cuanto entres**
+El seed crea `prospectiva@horizontequindio2050.com` / `prospectiva@horizontequindio2050.com`. **Cámbialo en cuanto entres**
 en `/admin` → Ajustes → Usuarios. Es una contraseña pública del repo.
 
 ---

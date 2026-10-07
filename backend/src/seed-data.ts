@@ -1138,8 +1138,12 @@ export type SeedUser = {
 
 export const SEED_USERS: SeedUser[] = [
   {
-    email: 'admin@prospectiva.com',
-    password: null,
+    // Credencial temporal acordada con el dueño de la plataforma: el correo es
+    // a la vez usuario y contraseña, para que pueda entrar y cambiarla desde
+    // «Mi cuenta». DEBE cambiarse: al ser el repo público, cualquiera que lea
+    // este archivo conoce la contraseña.
+    email: 'prospectiva@horizontequindio2050.com',
+    password: 'prospectiva@horizontequindio2050.com',
     role: 'admin',
   },
 ];

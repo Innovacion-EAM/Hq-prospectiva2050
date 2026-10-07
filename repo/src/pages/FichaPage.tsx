@@ -58,7 +58,7 @@ export function FichaPage() {
               <Badge>Sin dimensión</Badge>
             )}
             <Badge className="border-transparent">{doc.formato}</Badge>
-            <Badge color="#9db8b5">#{doc.codigo}</Badge>
+            <Badge color="#c6e85c">Nº {doc.codigo}</Badge>
           </div>
           <h1 className="mt-4 max-w-3xl font-display text-2xl font-extrabold leading-tight tracking-tight text-paper sm:text-3xl">
             {doc.titulo}
