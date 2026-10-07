@@ -44,10 +44,12 @@ on:
         required: false
         default: true
 
-# El mínimo: leer el repo para el contexto. `packages: write` no hace falta
-# para borrar (no se puede), pero se deja por claridad sobre qué recurso toca.
+# `packages: write` habilita el token del propio workflow (GITHUB_TOKEN) para
+# operar sobre los paquetes. Se usa como respaldo del PAT: si el secreto
+# GHCR_CLEANUP_TOKEN existe, manda; si no, se intenta con el GITHUB_TOKEN.
 permissions:
   contents: read
+  packages: write
 
 jobs:
   prune:
@@ -63,7 +65,7 @@ jobs:
       # vez de terminar en verde sin haber limpiado nada.
       - name: Limpiar GHCR
         env:
-          GHCR_TOKEN: ${{ secrets.GHCR_CLEANUP_TOKEN }}
+          GHCR_TOKEN: ${{ secrets.GHCR_CLEANUP_TOKEN || github.token }}
           GHCR_OWNER: innovacion-eam
           KEEP_VERSIONS: ${{ inputs.keep_versions || '2' }}
           DRY_RUN: ${{ github.event_name == 'schedule' && 'no' || (inputs.dry_run && 'yes' || 'no') }}
