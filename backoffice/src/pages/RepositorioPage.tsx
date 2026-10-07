@@ -40,6 +40,7 @@ import {
 import { cn } from "@/lib/utils";
 
 type Tab = "catalogo" | "importar" | "estadisticas";
+type OrdenRepo = "codigo" | "recientes" | "antiguos" | "titulo";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "catalogo", label: "Catálogo" },
@@ -77,7 +78,7 @@ export function RepositorioPage() {
     <div className="space-y-6">
       <PageHeader
         title="Repositorio de información"
-        description="Los 297 documentos de referencia que se muestran en /repo: catalogo, importación desde el Excel y estadísticas de lo publicado."
+        description="Los 392 documentos de referencia que se muestran en /repo: catalogo, importación desde el Excel y estadísticas de lo publicado."
         actions={
           <a
             href={(import.meta.env.VITE_SITE_URL || "http://localhost:5173") + "/repo"}
@@ -129,10 +130,11 @@ function CatalogoTab() {
   const [dimension, setDimension] = useState("");
   const [tipo, setTipo] = useState("");
   const [formato, setFormato] = useState("");
+  const [orden, setOrden] = useState<"codigo" | "recientes" | "antiguos" | "titulo">("codigo");
 
   const load = useCallback(
-    async (over: Partial<{ q: string; dimension: string; tipo: string; formato: string; page: number }>) => {
-      const params = { q, dimension, tipo, formato, page, ...over };
+    async (over: Partial<{ q: string; dimension: string; tipo: string; formato: string; orden: typeof orden; page: number }>) => {
+      const params = { q, dimension, tipo, formato, orden, page, ...over };
       setLoading(true);
       try {
         const res = await repositorio.list({
@@ -142,7 +144,7 @@ function CatalogoTab() {
           formato: params.formato || undefined,
           page: params.page,
           perPage: PER_PAGE,
-          orden: "recientes",
+          orden: params.orden,
         });
         setItems(res.data);
         setTotal(res.meta.total);
@@ -155,13 +157,13 @@ function CatalogoTab() {
         setLoading(false);
       }
     },
-    [q, dimension, tipo, formato],
+    [q, dimension, tipo, formato, orden],
   );
 
   useEffect(() => {
     load({ page: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dimension, tipo, formato]);
+  }, [dimension, tipo, formato, orden]);
 
   if (editando) {
     return (
@@ -184,7 +186,7 @@ function CatalogoTab() {
     <div className="space-y-4">
       {/* Controles */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid flex-1 gap-3 sm:grid-cols-3">
+        <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Select value={dimension} onChange={(e) => setDimension(e.target.value)}>
             <option value="">Todas las dimensiones</option>
             {DIMENSIONES_REPO.map((d) => (
@@ -208,6 +210,12 @@ function CatalogoTab() {
                 {f}
               </option>
             ))}
+          </Select>
+          <Select value={orden} onChange={(e) => setOrden(e.target.value as OrdenRepo)} aria-label="Ordenar por">
+            <option value="codigo">Ordenar: Nº (1→392)</option>
+            <option value="recientes">Ordenar: más recientes</option>
+            <option value="antiguos">Ordenar: más antiguos</option>
+            <option value="titulo">Ordenar: título</option>
           </Select>
         </div>
         <div className="flex items-end gap-2">
@@ -246,7 +254,7 @@ function CatalogoTab() {
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge tone="ink">#{item.codigo}</Badge>
+                    <Badge tone="ink">Nº {item.codigo}</Badge>
                     {item.dimension ? (
                       <span
                         className="inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 font-display text-[0.65rem] font-semibold uppercase tracking-wide"

@@ -53,7 +53,7 @@ export type Paginated<T> = {
   meta: { total: number; page: number; perPage: number };
 };
 
-export type Orden = "recientes" | "antiguos" | "titulo";
+export type Orden = "codigo" | "recientes" | "antiguos" | "titulo";
 
 export type RepositorioParams = {
   page?: number;

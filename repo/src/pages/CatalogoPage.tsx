@@ -44,7 +44,7 @@ export function CatalogoPage() {
   const formato = searchParams.get("formato") ?? "";
   const desde = searchParams.get("desde") ?? "";
   const hasta = searchParams.get("hasta") ?? "";
-  const orden = (searchParams.get("orden") as Orden) ?? "recientes";
+  const orden = (searchParams.get("orden") as Orden) ?? "codigo";
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const perPage = 20;
 
@@ -246,6 +246,7 @@ export function CatalogoPage() {
             <div className="flex flex-wrap gap-2">
               {(
                 [
+                  ["codigo", "Nº (1→392)"],
                   ["recientes", "Más recientes"],
                   ["antiguos", "Más antiguos"],
                   ["titulo", "Título"],

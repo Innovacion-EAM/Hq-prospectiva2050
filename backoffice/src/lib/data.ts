@@ -412,7 +412,7 @@ export type RepositorioListaParams = {
   delimitacion?: string;
   formato?: string;
   anio?: string;
-  orden?: "recientes" | "antiguos" | "titulo";
+  orden?: "codigo" | "recientes" | "antiguos" | "titulo";
 };
 
 /**

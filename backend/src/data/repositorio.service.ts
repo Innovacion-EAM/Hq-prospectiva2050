@@ -16,7 +16,7 @@ export interface RepositorioQuery {
   desde?: string;
   hasta?: string;
   q?: string;
-  orden?: 'recientes' | 'antiguos' | 'titulo';
+  orden?: 'recientes' | 'antiguos' | 'titulo' | 'codigo';
   /** True en las rutas del panel: incluye borradores y programados. */
   includeAll?: boolean;
 }
@@ -90,6 +90,11 @@ export class RepositorioService extends CrudService<RepositorioItem> {
     }
 
     switch (query.orden) {
+      case 'codigo':
+        // El "No." del Excel, en orden natural 1 → N. Es como se valida el
+        // repositorio contra la fuente original.
+        qb.orderBy('r.codigo', 'ASC');
+        break;
       case 'antiguos':
         qb.orderBy('r.anio', 'ASC', 'NULLS LAST').addOrderBy('r.id', 'ASC');
         break;
