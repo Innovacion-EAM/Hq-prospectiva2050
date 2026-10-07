@@ -57,6 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Sin esto el runner no tiene el repo, y `prune-ghcr.sh` no existe.
+      - uses: actions/checkout@v4
+
       - name: Instalar jq
         run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
 
