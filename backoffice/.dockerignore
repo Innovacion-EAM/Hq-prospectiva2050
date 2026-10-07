@@ -9,3 +9,7 @@ coverage
 .env.dev
 .env.prod
 .env.prod.local
+# .env.docker está versionado (fallback del compose local) pero NO debe entrar
+# al contexto de build: las URLs llegan como build-arg y así no puede pisar el
+# PROD_API_URL/PROD_SITE_URL de producción.
+.env.docker

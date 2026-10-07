@@ -80,7 +80,7 @@ services:
       args:
         VITE_MODE: docker
         VITE_API_URL: ${VITE_API_URL:-http://localhost}
-        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:5173}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost}
     container_name: hq-backoffice
     restart: unless-stopped
     depends_on:
@@ -99,7 +99,7 @@ services:
       args:
         VITE_MODE: docker
         VITE_API_URL: ${VITE_API_URL:-http://localhost}
-        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:5173}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost}
     container_name: hq-repo
     restart: unless-stopped
     depends_on:

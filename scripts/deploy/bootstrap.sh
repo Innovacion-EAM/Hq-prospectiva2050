@@ -158,13 +158,16 @@ JWT_EXPIRES_IN=12h
 # declarados: el guard solo recorre los del módulo backend/src/auth/throttler.ts,
 # y un contador que no exista ahí no se aplica aunque su ruta lleve @Throttle.
 # Los valores buenos de login y forms están en los decoradores de sus
-# controladores; estos son los de arranque. Ver backend/src/auth/throttler.ts.
+# controladores; estos son los de arranque.
+# ⚠ NO bajar THROTTLE_LIMIT_LOGIN ni THROTTLE_LIMIT_FORMS: se aplican a TODAS
+# las rutas, así que un suelo pequeño (p. ej. 5 y 3) devolvería 429 en el sitio
+# público tras unos pocos accesos desde la misma IP. Ver auth/throttler.ts.
 THROTTLE_TTL_DEFAULT=60
 THROTTLE_LIMIT_DEFAULT=120
 THROTTLE_TTL_LOGIN=900
-THROTTLE_LIMIT_LOGIN=5
+THROTTLE_LIMIT_LOGIN=10000
 THROTTLE_TTL_FORMS=3600
-THROTTLE_LIMIT_FORMS=3
+THROTTLE_LIMIT_FORMS=10000
 EOF
   chmod 600 "$APP_DIR/backend/.env.prod"
 else
