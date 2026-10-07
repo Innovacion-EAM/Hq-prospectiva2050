@@ -99,8 +99,20 @@ export function CatalogoPage() {
     const fresh = new URLSearchParams(searchParams);
     if (value) fresh.set(key, value);
     else fresh.delete(key);
+    // Cambiar cualquier filtro devuelve a la página 1 (si no, podrías quedar
+    // en una página que ya no existe tras reducir los resultados).
     fresh.delete("page");
     setSearchParams(fresh, { replace: true });
+  }
+
+  // Paginar NO puede pasar por setFilter: esa función borra `page` a propósito.
+  function goToPage(p: number) {
+    const fresh = new URLSearchParams(searchParams);
+    if (p <= 1) fresh.delete("page");
+    else fresh.set("page", String(p));
+    // Sin `replace` para que el botón «atrás» del navegador funcione.
+    setSearchParams(fresh);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const clearSearch = () => setFilter("q", "");
@@ -275,7 +287,7 @@ export function CatalogoPage() {
                   <ResultCard key={doc.id} doc={doc} />
                 ))}
               </ul>
-              <Pagination page={page} pageCount={pageCount} total={total} onPage={(p) => setFilter("page", String(p))} />
+              <Pagination page={page} pageCount={pageCount} total={total} onPage={goToPage} />
             </>
           )}
         </div>
