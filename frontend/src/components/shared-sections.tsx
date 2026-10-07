@@ -153,7 +153,7 @@ export function HomeNews({ news }: { news?: { slug: string; title: string; categ
   const items = (news && news.length > 0 ? news : FALLBACK_NEWS).slice(0, 3);
 
   return (
-    <section className="relative overflow-hidden bg-paper px-4 pb-16 sm:px-6">
+    <section className="relative overflow-hidden bg-paper px-4 pt-14 pb-16 sm:px-6 sm:pt-20">
       <div className="pointer-events-none absolute -left-20 top-4 h-56 w-56 rounded-full border border-stone/60" />
       <div className="mx-auto grid max-w-6xl items-center gap-8 lg:grid-cols-[0.6fr_1.8fr]">
         <div>
