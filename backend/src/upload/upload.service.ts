@@ -144,11 +144,49 @@ export class UploadService implements OnModuleInit {
     });
     const saved = await this.repo.save(entity);
     this.logger.log(`Guardado archivo ${filename} (${file.size} bytes)`);
-    return saved;
+    return this.absoluteUrl(saved, '');
   }
 
-  async list(): Promise<Media[]> {
+    // Alias para mantener compatibilidad
+  toDto(media: Media, origin = ''): Media {
+    return this.absoluteUrl(media, origin);
+  }
+
+  findAll(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
+  }
+
+  list(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
+  }
+
+  findAllWithoutOrigin(): Promise<Media[]> {
     return this.repo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  /**
+   * Convierte una fila de `media` en lo que ve el panel, con la URL ya
+   * absoluta respecto al host de la petición.
+   *
+   * Sin esto, un `<img src="/api/uploads/x.png">` en el panel apuntaría al
+   * origen del panel (`/admin`) y no a la API. Como las dos cosas están bajo
+   * el mismo dominio en producción, basta con el origen de la petición.
+   */
+  absoluteUrl(media: Media, origin = ''): Media {
+    return {
+      ...media,
+      url: media.url.startsWith('/') ? `${origin}${media.url}` : media.url,
+    };
+  }
+
+  listAll(origin = ''): Promise<Media[]> {
+    return this.repo
+      .find({ order: { createdAt: 'DESC' } })
+      .then((items) => items.map((item) => this.absoluteUrl(item, origin)));
   }
 
   async remove(id: number): Promise<void> {

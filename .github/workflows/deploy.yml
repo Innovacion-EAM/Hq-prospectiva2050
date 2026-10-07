@@ -1,94 +1,202 @@
-# ════════════════════════════════════════════════════════════════════════════
-#  CI — HQ Prospectiva 2050
-# ════════════════════════════════════════════════════════════════════════════
-#  Corre en cada push y PR. No despliega: el despliegue al servidor lo hace
-#  `make deploy` desde una máquina con acceso al servidor. Aquí solo se verifica
-#  que el código está sano antes de llegar a producción.
+name: Build & Deploy
+
+# ── Qué hace este workflow ───────────────────────────────────────────────────
+# 1. Construye las 4 imágenes (backend, frontend, backoffice, repo) en un runner
+#    de GitHub. NUNCA en el servidor: una t3.micro (1 vCPU / 1 GB) se queda sin
+#    memoria en cuanto `nest build` y `vite build` empiezan en paralelo.
+# 2. Las publica en GHCR con varios tags (latest, rama, sha, semver).
+# 3. Si toca producción, entra por SSH a la instancia y ejecuta
+#    scripts/deploy/deploy.sh, que solo hace pull + up + prune. Nada compila.
 #
-#  Los tests e2e necesitan PostgreSQL, así que el job levanta uno como servicio.
-#  El resto (lint, typecheck, build) no necesita nada externo.
-# ════════════════════════════════════════════════════════════════════════════
-name: CI
+# ── Cuándo despliega ────────────────────────────────────────────────────────
+#   push a develop        -> construye y publica. NO despliega.
+#   push a main           -> construye, publica y despliega.
+#   tag v*                -> construye, publica y despliega.
+#   manual (dispatch)     -> construye y publica siempre; despliega si se marca.
+#
+# ── Configuración necesaria (Settings → Secrets and variables) ──────────────
+#   Secrets:
+#     GHCR_DEPLOY_TOKEN    PAT con read:packages   (el servidor descarga)
+#   (para SUBIR imágenes no hace falta ningún PAT: usa el GITHUB_TOKEN nativo
+#    del repo, que ya tiene packages:write declarado en el bloque permissions)
+#     DEPLOY_SSH_KEY       clave privada ed25519, en formato PEM
+#     DEPLOY_SSH_USER      usuario (ubuntu)
+#     DEPLOY_SSH_PORT      puerto (22)
+#   Variables (Settings → Variables → Actions):
+#     PROD_API_URL         p. ej. https://midominio.com (SIN /api: las apps piden /api/... y el prefijo lo pone el backend)
+#     PROD_SITE_URL        p. ej. https://midominio.com
+#     PROD_SSH_HOST        IP o dominio de la instancia
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
+    branches: [main, develop]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Desplegar en producción tras publicar'
+        type: boolean
+        default: false
 
-# Cancela ejecuciones anteriores del mismo ref: no aporta nada y gasta minutos.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# El bloqueo de despliegues simultáneos va en el job `deploy`, no aquí: así una
+# build de develop no espera a que termine un despliegue a producción.
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # Minúsculas: GHCR no admite mayúsculas en el nombre del paquete.
+  # Debe coincidir con el propietario del repo en minúsculas.
+  IMAGE_OWNER: innovacion-eam
 
 jobs:
-  comprobar:
-    name: Lint, typecheck y build
+  build:
+    name: build · ${{ matrix.service }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: backend
+            context: ./backend
+          - service: frontend
+            context: ./frontend
+          - service: backoffice
+            context: ./backoffice
+          - service: repo
+            context: ./repo
+    defaults:
+      run:
+        working-directory: ${{ matrix.context }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-            backoffice/package-lock.json
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Instalar dependencias
+      # Se usa el GITHUB_TOKEN del propio repo (habilitado con
+      # `permissions: packages: write` más abajo) en lugar de un PAT personal:
+      # un token de escritura compartido es un riesgo innecesario, y si el
+      # Secret estuviera vacío el paso fallaría con "Password required".
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/hq-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Construir y publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # t3.micro es x86_64. Para añadir Apple Silicon en local, quita el
+          # `platform:` fijo y compila con `docker buildx build --platform`.
+          platform: linux/amd64
+          # Sin esto buildx adjunta un manifiesto de attestation aparte, que
+          # confunde a `docker pull` y al registro de algunos clientes.
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          build-args: |
+            VITE_MODE=prod
+            VITE_API_URL=${{ vars.PROD_API_URL }}
+            VITE_SITE_URL=${{ vars.PROD_SITE_URL }}
+
+  deploy:
+    name: deploy · producción
+    needs: build
+    # Solo despliega en los casos del apartado "Cuándo despliega". En un push a
+    # develop se construyen y publican imágenes, pero el job termina aquí.
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PROD_SITE_URL }}
+    if: >-
+      github.ref == 'refs/heads/main'
+      || startsWith(github.ref, 'refs/tags/v')
+      || (github.event_name == 'workflow_dispatch' && inputs.deploy)
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sin esto la imagen sale sin URL de API y el sitio, ya publicado, hace
+      # que el navegador del visitante llame a http://localhost:3000.
+      # PROD_API_URL va SIN /api: las apps construyen ${API_BASE}/api/... y el
+      # prefijo lo pone el backend (Traefik pasa la petición tal cual).
+      - name: Comprobar la configuración de producción
+        env:
+          PROD_API_URL: ${{ vars.PROD_API_URL }}
+          PROD_SITE_URL: ${{ vars.PROD_SITE_URL }}
         run: |
-          npm ci --prefix backend
-          npm ci --prefix frontend
-          npm ci --prefix backoffice
+          if [ -z "$PROD_API_URL" ]; then
+            echo "::error::Falta la variable de repositorio PROD_API_URL (Settings → Variables → Actions)."
+            echo "::error::La imagen se publicaría sin URL de API y el sitio no funcionaría."
+            exit 1
+          fi
+          if [ -z "$PROD_SITE_URL" ]; then
+            echo "::warning::PROD_SITE_URL vacía: los enlaces 'Ver el sitio' del panel"
+            echo "::warning::apuntarán a localhost. Configúrala en Settings → Variables."
+          fi
+          echo "PROD_API_URL=$PROD_API_URL"
+          echo "PROD_SITE_URL=$PROD_SITE_URL"
 
-      - name: Lint
-        run: make lint
-        continue-on-error: true # hoy solo hay warnings; no bloquea el PR
-
-      - name: Typecheck y build del backend
-        run: npm run build --prefix backend
-
-      - name: Typecheck y build del frontend
-        run: npm run build --prefix frontend
-
-      - name: Typecheck y build del backoffice
-        run: npm run build --prefix backoffice
-
-  e2e:
-    name: Tests e2e de la API
-    runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
+      - name: Desplegar por SSH
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: hq_prospectiva2050
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_SSH_USER: ${{ secrets.DEPLOY_SSH_USER }}
+          DEPLOY_SSH_PORT: ${{ secrets.DEPLOY_SSH_PORT }}
+          GHCR_DEPLOY_TOKEN: ${{ secrets.GHCR_DEPLOY_TOKEN }}
+          REMOTE_HOST: ${{ vars.PROD_SSH_HOST || secrets.DEPLOY_SSH_HOST }}
+          REMOTE_APP_DIR: /opt/hq-prospectiva2050
+        run: |
+          set -euo pipefail
 
-    steps:
-      - uses: actions/checkout@v4
+          if [ -z "$REMOTE_HOST" ] || [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::Faltan DEPLOY_SSH_KEY o PROD_SSH_HOST en los secretos del repo."
+            exit 1
+          fi
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
+          install -m 600 -D /dev/null ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
 
-      - name: Instalar dependencias
-        run: npm ci --prefix backend
+          # Acepta la clave del host en el primer uso (el runner es efímero, así
+          # que no hay known_hosts que conservar entre ejecuciones). Si el
+          # keyscan no devuelve nada es que el host/port no responden: abortar
+          # aquí es mucho más claro que un "Permission denied" más abajo.
+          ssh-keyscan -p "${DEPLOY_SSH_PORT:-22}" -H "$REMOTE_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/known_hosts ]; then
+            echo "::error::No se pudo obtener la clave del host $REMOTE_HOST:$DEPLOY_SSH_PORT."
+            echo "::error::Revisa que la instancia esté encendida, el puerto abierto en el"
+            echo "::error::security group y que PROD_SSH_HOST / DEPLOY_SSH_HOST sean correctos."
+            exit 1
+          fi
 
-      - name: Tests e2e
-        # El usuario admin que siembran los tests lo crea el propio arranque
-        # de la app (synchronize + seeder), no hace falta pasos previos.
-        run: make test-e2e
-        env:
-          APP_ENV: e2e
+          # El PAT de lectura viaja como PRIMERA línea del stdin y se entrega al
+          # script por el entorno. Nunca como argumento de `ssh`/`docker login`:
+          # eso lo dejaría visible en `ps` para cualquiera de la máquina.
+          {
+            printf '%s\n' "$GHCR_DEPLOY_TOKEN"
+            cat scripts/deploy/deploy.sh
+          } | ssh -i ~/.ssh/deploy_key \
+                   -p "${DEPLOY_SSH_PORT:-22}" \
+                   -o IdentitiesOnly=yes \
+                   -o StrictHostKeyChecking=yes \
+                   "$DEPLOY_SSH_USER@$REMOTE_HOST" \
+                   "read -r GHCR_DEPLOY_TOKEN; export GHCR_DEPLOY_TOKEN; APP_DIR=$REMOTE_APP_DIR bash -s"

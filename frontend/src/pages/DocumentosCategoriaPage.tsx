@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHero } from "@/components/site-shell";
 import {
@@ -35,11 +34,14 @@ export function DocumentosCategoriaPage() {
 
   function openDoc(doc: ApiDocumento) {
     const url = documentoUrl(doc);
-    if (!url) {
-      toast.info("Documento aún no publicado. Estará disponible en el repositorio.");
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
       return;
     }
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Sin archivo ni enlace: se busca en el repositorio de información. Si la
+    // búsqueda deja exactamente un resultado, el catálogo de /repo abre la ficha
+    // automáticamente.
+    window.location.assign(`/repo?q=${encodeURIComponent(doc.titulo)}`);
   }
 
   return (
@@ -67,7 +69,7 @@ export function DocumentosCategoriaPage() {
                     </p>
                   </div>
                   <Button variant="lime" onClick={() => openDoc(doc)}>
-                    {url ? "Descargar" : "Ver ficha"}
+                    {url ? "Descargar" : "Ver ficha en el repositorio"}
                   </Button>
                 </li>
               );

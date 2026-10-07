@@ -130,8 +130,9 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || "http:/
  *  - `http(s)://…` → es una URL externa o una fila vieja: se deja tal cual.
  *  - `/uploads/…`  → se le añade el `/api` del servidor, porque `API_BASE` es la
  *                    raíz del backend y los archivos se sirven en
- *                    `/api/uploads`. Con Traefik delante sale `/api/api/uploads/…`
- *                    y el middleware `strip-api` quita uno de los dos.
+ *                    `/api/uploads`. Desde fuera siempre se ve un único `/api`
+ *                    (Traefik hace passthrough), así que la URL resuelta es
+ *                    `${API_BASE}/api/uploads/…`.
  *  - cualquier otra ruta (`/images/hero.jpg`) → es un asset del propio sitio y se
  *    sirve desde el dominio del frontend, sin tocar.
  */
@@ -211,4 +212,31 @@ export function documentoUrl(doc: Pick<ApiDocumento, "link" | "archivo">): strin
   // `archivo` viene de la galería y es una ruta relativa; `link` es una URL
   // externa. `resolveUrl` solo toca la primera y deja la segunda intacta.
   return resolveUrl(doc.archivo) || doc.link?.trim() || null;
+}
+
+// ── Repositorio de información ──────────────────────────────────────────────
+// La portada consume un solo endpoint público del repositorio
+// (`/api/repositorio/estadisticas`): así las mini-gráficas de las 4 dimensiones
+// dicen exactamente lo mismo que el dashboard de /repo, con la misma fuente.
+
+export type ApiRepositorioGrupo = {
+  clave: string | number | null;
+  etiqueta?: string | null;
+  count: number;
+};
+
+export type ApiRepositorioStats = {
+  total: number;
+  conEnlace: number;
+  sinEnlace: number;
+  porDimension: ApiRepositorioGrupo[];
+  porTipo: ApiRepositorioGrupo[];
+  porDelimitacion: ApiRepositorioGrupo[];
+  porFormato: ApiRepositorioGrupo[];
+  porAnio: ApiRepositorioGrupo[];
+  topAutores: ApiRepositorioGrupo[];
+};
+
+export async function fetchRepositorioEstadisticas() {
+  return get<ApiRepositorioStats>("/api/repositorio/estadisticas");
 }

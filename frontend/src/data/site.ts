@@ -33,14 +33,15 @@ export const STATS = [
  * instalado muestra el mismo menú de siempre en vez de una barra vacía.
  */
 export const NAV = [
-  { label: "Inicio", href: "/" },
-  { label: "El proyecto", href: "/proyecto" },
-  { label: "Dimensiones", href: "/dimensiones" },
-  { label: "Documentos", href: "/documentos" },
-  { label: "Noticias", href: "/noticias" },
-  { label: "Participa", href: "/participa" },
-  { label: "Contáctanos", href: "/contactos" },
-];
+{ label: "Inicio", href: "/", match: "/" },
+  { label: "El proyecto", href: "/proyecto", match: "/proyecto" },
+  { label: "Dimensiones", href: "/dimensiones", match: "/dimensiones" },
+  { label: "Documentos", href: "/documentos", match: "/documentos" },
+  { label: "Repositorio", href: "/repo", match: "/repo" },
+  { label: "Noticias", href: "/noticias", match: "/noticias" },
+  { label: "Participa", href: "/participa", match: "/participa" },
+  { label: "Contáctanos", href: "/contactos", match: "/contactos" },
+] as const;
 
 /** Textos que van al lado del logo. Editables en Ajustes → Header. */
 export const LOGO = {

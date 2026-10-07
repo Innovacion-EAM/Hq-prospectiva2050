@@ -6,6 +6,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppModule } from './../src/app.module';
 import { configureApp } from './../src/app.setup';
+import { UsersService } from './../src/auth/users.service';
 import { Mensaje } from './../src/entities/mensaje.entity';
 import { Noticia } from './../src/entities/noticia.entity';
 import { Dimension } from './../src/entities/dimension.entity';
@@ -31,6 +32,19 @@ const ASUNTO_DE_PRUEBA = ['E2E', 'Solicitud de suscripción al boletín'];
 let app: INestApplication<App>;
 let mensajes: Repository<Mensaje>;
 let noticiasRepo: Repository<Noticia>;
+let users: UsersService;
+
+/**
+ * Cuenta de administrador propia de esta corrida.
+ *
+ * Esta suite necesita un token de admin en casi todos los tests, y ya no puede
+ * fiarse de la semilla: la semilla crea el admin con una contraseña aleatoria
+ * que imprime una vez en el log (la que había, `Admin123*`, está en el
+ * repositorio y se quitó a propósito). Así que el `beforeAll` crea su propia
+ * cuenta de admin con esta clave conocida, y `tokenAdmin()` entra con ella.
+ */
+const ADMIN_EMAIL = `super-${Date.now().toString(36)}@prospectiva.test`;
+const ADMIN_PASSWORD = 'Prueba-Solo-CI-2026';
 
 /**
  * Id más alto de `mensajes` antes de que empezara la corrida. La red de
@@ -65,8 +79,17 @@ describe('API pública y validación (e2e)', () => {
     // petición y aparecen ECONNREFUSED intermitentes.
     await app.listen(0);
 
+    users = app.get(UsersService);
     mensajes = app.get<Repository<Mensaje>>(getRepositoryToken(Mensaje));
     noticiasRepo = app.get<Repository<Noticia>>(getRepositoryToken(Noticia));
+    // Cuenta de admin propia: ver `ADMIN_EMAIL` más arriba. Si una corrida
+    // anterior quedó a medias, el correo es distinto (lleva el timestamp), así
+    // que nunca choca con un `UNIQUE`; el `beforeAll` la crea siempre.
+    await users.create({
+      email: ADMIN_EMAIL,
+      password: ADMIN_PASSWORD,
+      role: 'admin',
+    });
     // Se anota el punto de partida antes de crear nada: a partir de aquí, todo
     // lo que aparezca en `mensajes` es de esta corrida y se puede borrar.
     const [elMasAlto] = await mensajes.find({ order: { id: 'DESC' }, take: 1 });
@@ -1095,7 +1118,7 @@ describe('API pública y validación (e2e)', () => {
         ).toBe(false);
 
         const backoffice = await request(app.getHttpServer())
-          .get('/api/noticias?perPage=100')
+          .get('/api/noticias/panel?perPage=100')
           .set('authorization', `Bearer ${await tokenAdmin()}`)
           .expect(200);
         expect(
@@ -1104,10 +1127,18 @@ describe('API pública y validación (e2e)', () => {
           ),
         ).toBe(true);
 
-        // El detalle sigue igual: 404 para el público, 200 para el backoffice.
+        // El detalle sigue igual: 404 para el público (incluso con token: las
+        // rutas públicas no miran el token) y 200 para el backoffice por el
+        // panel. Antes este test pasaba por la ruta pública porque la ruta
+        // resolvía el token a mano; el fix de main hace que el backoffice use
+        // `/panel`.
         await request(app.getHttpServer()).get('/api/noticias/borrador-de-e2e').expect(404);
         await request(app.getHttpServer())
           .get('/api/noticias/borrador-de-e2e')
+          .set('authorization', `Bearer ${await tokenAdmin()}`)
+          .expect(404);
+        await request(app.getHttpServer())
+          .get('/api/noticias/panel/borrador-de-e2e')
           .set('authorization', `Bearer ${await tokenAdmin()}`)
           .expect(200);
       } finally {
@@ -1187,7 +1218,7 @@ describe('API pública y validación (e2e)', () => {
 async function tokenAdmin(): Promise<string> {
   const res = await request(app.getHttpServer())
     .post('/api/auth/login')
-    .send({ email: 'admin@prospectiva.com', password: 'Admin123*' })
+    .send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD })
     .expect(201);
   return res.body.accessToken as string;
 }

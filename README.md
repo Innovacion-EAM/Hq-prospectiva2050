@@ -1,6 +1,6 @@
 # HQ Prospectiva 2050
 
-Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite), PostgreSQL, Docker Compose y Traefik. Tres formas de correr: **dev (npm)**, **docker local** y **producción**.
+Monorepo con **backend (NestJS)**, **frontend**, **backoffice** y **repositorio de información** (React + Vite), PostgreSQL, Docker Compose y Traefik. Tres formas de correr: **dev (npm)**, **docker local** y **producción**.
 
 ## Stack
 
@@ -9,6 +9,7 @@ Monorepo con **backend (NestJS)**, **frontend** y **backoffice** (React + Vite),
 | backend | TypeScript · NestJS 12 · TypeORM · Node 24 | :3006 | `/api` |
 | frontend | TypeScript · React 19 · Vite 8 | :5173 | `/` |
 | backoffice | TypeScript · React 19 · Vite 8 | :1234 | `/admin` |
+| repo | TypeScript · React 19 · Vite 8 · Recharts | :4173 | `/repo` |
 | Infra | PostgreSQL 16 · Traefik v3.5 · nginx 1.27 | — | `localhost` vía Traefik |
 
 ## Qué hace
@@ -44,18 +45,21 @@ La primera cuenta se siembra sola: `admin@prospectiva.com` / `Admin123*`. **Cám
 
 ## Documentación
 
-▶ **Guía completa (cómo correr cada servicio, puertos, compose, producción): [`docs/guia-del-proyecto.md`](docs/guia-del-proyecto.md)**
+- ▶ **Guía completa (cómo correr cada servicio, puertos, compose, producción): [`docs/guia-del-proyecto.md`](docs/guia-del-proyecto.md)**
+- ▶ **Repositorio de información (la cuarta app, /repo): [`docs/repositorio-de-informacion.md`](docs/repositorio-de-informacion.md)**
+- ▶ **Despliegue en AWS EC2 con CI/CD (paso a paso): [`docs/despliegue-aws.md`](docs/despliegue-aws.md)**
+- ▶ **Dominio y HTTPS (para los dueños del dominio y para nosotros): [`docs/dominio-y-ssl.md`](docs/dominio-y-ssl.md)**
 
 ## Comandos rápidos
 
-`make help` muestra el menú completo (54 comandos). Lo esencial:
+`make help` muestra el menú completo. Lo esencial:
 
 ```bash
-make install       # dependencias de los 3 servicios
-make dev           # backend + frontend + backoffice (npm, hot-reload)
-make up            # entorno docker local (5 contenedores)
+make install       # dependencias de los 4 servicios
+make dev           # backend + frontend + backoffice + repo (npm, hot-reload)
+make up            # entorno docker local (6 contenedores)
 make test          # tests unitarios
-make test-e2e      # 40 tests e2e de la API (requiere la db levantada)
+make test-e2e      # e2e de la API: core con throttling activo + api con throttling apagado
 make smoke         # recorrido http contra el entorno que esté corriendo
 make db-vacia      # vaciar la base de contenido, para probar el sitio desde cero
 make db-migrate    # aplicar migraciones pendientes del esquema
@@ -65,14 +69,34 @@ make backup        # respaldo de la base de datos
 make doctor        # diagnóstico del entorno
 ```
 
-> **Base de datos:** en dev/docker el esquema y los datos iniciales se crean solos al arrancar el backend (TypeORM `synchronize` + seeder). Para probar el sitio desde cero, `make db-vacia` borra el contenido de muestra y deja solo la cuenta de admin y la configuración del sitio —lo mínimo para poder entrar al backoffice y escribirlo todo a mano—; `make db-reset` recupera la semilla. En producción corre con `DB_SYNCHRONIZE=false`, así que **el esquema no se crea solo**: sin él el backend no arranca (`relation "config_stats" does not exist`). Por eso `make prod-up` —y por tanto `make prod-deploy`— aplica `db-schema` y `db-migrate` antes de levantar. Si levantas el backend a mano, ese orden es obligatorio.
+> **Base de datos:** en dev/docker el esquema y los datos iniciales se crean solos al arrancar el backend (TypeORM `synchronize` + seeder). Para probar el sitio desde cero, `make db-vacia` borra el contenido de muestra y deja solo la cuenta de admin y la configuración del sitio —lo mínimo para poder entrar al backoffice y escribirlo todo a mano—; `make db-reset` recupera la semilla. En producción `DB_SYNCHRONIZE=false`, así que el esquema se crea explícitamente con `make prod-db-init` (idempotente: genera el esquema desde las entidades de TypeORM y siembra las tablas vacías).
 >
 > **Migraciones:** `scripts/migrations/NNNN-*.sql`. `make db-migrate` aplica solo las que falten y las registra en `schema_migrations`; se puede volver a correr las veces que haga falta. El esquema completo para una base vacía está en `scripts/schema-db.sql` (se regenera con `pg_dump --schema-only`; el procedimiento está escrito en su propia cabecera). A partir de la 0001, los cambios incrementales van como migración numerada, no editando ese archivo.
 
+## Despliegue
+
+El flujo de producción es **construir en CI, desplegar sin compilar**:
+
+```
+git push main  →  GitHub Actions (lint + tests → buildx → GHCR)  →  SSH  →  pull + up
+```
+
+Las imágenes nunca se compilan en la instancia: una t3.micro (1 vCPU / 1 GB) se
+queda sin memoria. El arranque inicial de la instancia es un comando:
+
+```bash
+sudo HQ_SITE_HOST=tudominio.com \
+     GHCR_DEPLOY_USER=tu_usuario \
+     GHCR_DEPLOY_TOKEN=ghp_xxx \
+     ./scripts/deploy/bootstrap.sh
+```
+
+Detalle completo, secretos incluidos, en [`docs/despliegue-aws.md`](docs/despliegue-aws.md).
+
 ## Pendientes
 
-- **SSL/TLS** en Traefik.
-- **Despliegue automatizado**: la CI (`.github/workflows/deploy.yml`) valida lint, typecheck, build y e2e en cada push, pero el `make deploy` sigue siendo manual.
+**Pendientes:** SSL/TLS, migraciones del esquema, backups y más — ver [TODO.md](TODO.md).
+
 - **Los e2e corren contra la base de desarrollo** (`.env.e2e`) y borran lo que crean. `make test-e2e` fija `APP_ENV=e2e` a propósito, pero invocar `npm run test:e2e` a mano con otro `APP_ENV` haría que los tests apuntaran a esa base y borraran datos reales.
 - **⚠️ Los corchetes del Aviso de Privacidad** (nombre del responsable, canal para ejercer los derechos, plazo de conservación y quiénes acceden), en `frontend/src/pages/PrivacidadPage.tsx`. Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
 - **⚠️ `noticias.slug` y `users.email` son UNIQUE sin mirar la columna de borrado lógico.** Consecuencia: un slug que se borró queda ocupado para siempre y la siguiente noticia con ese slug se come un 500 en vez de un «ese slug ya existe». Se detectó al hacer repetible la suite e2e. Afecta también a los correos de usuarios dados de baja.

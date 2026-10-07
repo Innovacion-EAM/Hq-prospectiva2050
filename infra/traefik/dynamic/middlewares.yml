@@ -1,12 +1,47 @@
 # ── Traefik: middlewares (config DINÁMICA) ──────────────────────────
 # Transformaciones aplicadas al request ANTES de entrar al servicio.
-#
-# En este proyecto no hay middlewares de ruta: el prefijo `/api` lo pone el
-# propio backend (prefijo global, ver backend/src/app.setup.ts) y el frontend
-# SIEMPRE pide con `/api` delante, así que Traefik pasa la petición tal cual.
-# Si en el futuro se necesitara uno (headers CORS, límites, etc.), se define
-# aquí y se referencia desde routes.yml.
-#
-# OJO: Traefik rechaza este archivo si `http:` queda vacío ("http cannot be a
-# standalone element"), por eso este archivo es solo documentación: sin
-# middlewares definidos, Traefik no encuentra configuración que aplicar.
+
+http:
+  middlewares:
+    # strip-admin: quita el prefijo /admin de la petición al backoffice.
+    # El bundle del panel se construye con base "/admin/", así que su index.html
+    # pide /admin/assets/…; traefik lo deja en /assets/… y nginx lo sirve desde
+    # la raíz real del build. Simétrico a strip-repo.
+    strip-admin:
+      stripPrefix:
+        prefixes:
+          - /admin
+
+    # strip-repo: quita el prefijo /repo de la petición al repositorio.
+    # Idéntico a strip-admin: el bundle de /repo se construye con base "/repo/"
+    # y nginx sirve el build desde la raíz.
+    strip-repo:
+      stripPrefix:
+        prefixes:
+          - /repo
+
+    # ── NO hay strip-api (a propósito) ─────────────────────────────────
+    # El prefijo /api lo pone el propio backend (prefijo global de Nest, ver
+    # backend/src/app.setup.ts) y las tres apps piden `${API_BASE}/api/...`
+    # con API_BASE = origen sin /api. Si se recortara /api aquí, la petición
+    # llegaría a una ruta que no existe y el sitio caería al contenido de
+    # respaldo. Ver el comentario del router `api` en routes.yml y la nota de
+    # URLs en docs/guia-del-proyecto.md.
+
+    # ── ALTERNATIVA CORS por middleware ──────────────────────────────
+    # Ojo: con path-based NO hace falta (todo vive bajo el mismo host =
+    # mismo origen). Con host-based el backend ya lo cubre vía su variable
+    # CORS_ORIGINS. Este quedaría si quisieras manejarlo aquí:
+    # headers:
+    #   accessControlAllowOriginList:
+    #     - "http://localhost"
+    #     - "http://backoffice.localhost"
+    #   accessControlAllowMethods:
+    #     - GET
+    #     - POST
+    #     - PUT
+    #     - PATCH
+    #     - DELETE
+    #     - OPTIONS
+    #   accessControlAllowHeaders:
+    #     - "*"

@@ -58,11 +58,14 @@ Instalación rápida de dependencias: `make install` (npm install en los 3 servi
 ├── infra/
 │   ├── compose/        # docker-compose.yml (+ overlay prod) y .env de credenciales
 │   └── traefik/        # config estática (traefik.yml) y dinámica (dynamic/)
-├── scripts/            # Scripts SQL (opcionales en prod: schema-db.sql y seed.sql)
-├── docs/               # Documentación
+├── scripts/
+│   ├── deploy/         # bootstrap.sh (arranque único) y deploy.sh (cada despliegue)
+│   ├── schema-db.sql   # SQL manual del esquema — obsoleto, usar `make prod-db-init`
+│   └── seed.sql        # SQL manual de la semilla — obsoleto, idem
+├── docs/               # Documentación (incluye despliegue-aws.md)
 ├── backups/            # Dumps de la base de datos (make backup) — gitignored
 ├── Makefile            # La "interfaz" de comandos del proyecto
-└── README.md           # Portada (enlace a esta guía)
+└── README.md           # Portada (enlaces a las guías)
 ```
 
 ---
@@ -75,9 +78,11 @@ Cada servicio lee **un archivo según el entorno** (el backend elige con `APP_EN
 |---|---|---|---|
 | Dev (npm) | `backend/.env.dev` | `frontend|backoffice/.env.dev` | — |
 | Docker local | `backend/.env.docker` | `frontend|backoffice/.env.docker` | `infra/compose/.env` |
-| Producción | `backend/.env.prod` | `frontend|backoffice/.env.prod` | `infra/compose/.env.prod` |
+| Producción | `backend/.env.prod` | **build-arg** `VITE_API_URL` | `infra/compose/.env.prod` |
 
 Los archivos `.env.*.example` son plantillas: cópialos y complétalos (ver Producción).
+
+> En producción, frontend y backoffice **no** leen `.env.prod`: la URL llega como build-arg (`VITE_API_URL`) porque se incrusta en el bundle durante el build. Solo hay dos archivos de entorno que mantener en el servidor: `infra/compose/.env.prod` y `backend/.env.prod`.
 
 Variables principales:
 
@@ -87,16 +92,18 @@ Variables principales:
 | `DB_HOST / DB_PORT / DB_USER / DB_PASSWORD / DB_NAME` | Conexión a PostgreSQL del backend |
 | `CORS_ORIGINS` | Orígenes permitidos por el backend (separados por coma) |
 | `VITE_API_URL` | **Origen** de la API que llaman las apps web (**sin `/api`**: las apps siempre piden `${VITE_API_URL}/api/...` y el prefijo lo pone el backend) |
+| `VITE_SITE_URL` | URL pública del sitio, para los enlaces del panel (build-arg) |
 | `POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB` | Credenciales del contenedor de la db (compose) |
+| `HQ_SITE_HOST` | Dominio que matchean los routers de Traefik (`infra/compose/.env.prod`) |
 | `APP_ENV` | Entorno del backend (`dev` / `docker` / `prod`) |
 | `DB_SYNCHRONIZE` | Esquema automático de TypeORM (`true` en dev/docker, `false` en prod) |
 | `SEED_CONTENIDO` | Contenido de muestra (noticias, documentos, municipios, dimensiones, mensajes). **Opt-in**: solo se siembra con `true`, así que un entorno sin la variable arranca vacío. Las cuentas y la configuración del sitio se siembran igual. `make db-reset` pone `true`, `make db-vacia` pone `false` |
 | `JWT_SECRET` | Clave para firmar los tokens de sesión del backoffice (obligatorio) |
 | `UPLOAD_DIR` | Carpeta (relativa al backend o absoluta) donde se guardan los archivos de la biblioteca |
 
-> **Esquema y datos iniciales:** con `DB_SYNCHRONIZE=true` (dev/docker) TypeORM crea las tablas y el **seeder** del backend (`SeederService` + `seed-data.ts`) carga los datos de arranque al iniciar, si la db está vacía. En producción va `false`.
+> **Esquema y datos iniciales:** con `DB_SYNCHRONIZE=true` (dev/docker) TypeORM crea las tablas y el **seeder** del backend (`SeederService` + `seed-data.ts`) carga los datos de arranque al iniciar, si la db está vacía. En producción va `false` y hay que ejecutar `make prod-db-init`, que hace las dos fases (esquema y semilla) de forma idempotente.
 
-> **Importante:** en frontend/backoffice, `VITE_API_URL` y `PORT` se **incrustan en el build** (`vite build`). Si los cambias, hay que **reconstruir** (`make rebuild` o `make prod-deploy`); reiniciar el contenedor no basta.
+> **Importante:** en frontend/backoffice, `VITE_API_URL` y `PORT` se **incrustan en el build** (`vite build`). Si los cambias, hay que **reconstruir** la imagen; en producción eso significa desplegar de nuevo (`git push main`), no reiniciar el contenedor.
 
 ---
 
@@ -160,11 +167,20 @@ docker compose -f infra/compose/docker-compose.yml --project-directory infra/com
 | URL | A dónde va |
 |---|---|
 | `http://localhost/` | frontend |
-| `http://localhost/admin` | backoffice (SPA en subruta `/admin`) |
+| `http://localhost/admin` | backoffice (SPA en subruta `/admin`; el middleware `strip-admin` la sirve desde su propia base) |
 | `http://localhost/api` | backend (Traefik pasa `/api` **tal cual**: el prefijo lo pone el backend) |
 | `http://127.0.0.1:8080` | dashboard de Traefik |
 
 Health de todo el stack: `http://localhost/api/health/db` → `{"status":"ok", ..., "database":"connected"}`.
+
+> **Por qué hay dos middlewares de `stripPrefix` y no uno solo:** el panel se
+> construye con `base: "/admin/"`, así que su `index.html` pide los assets en
+> `/admin/assets/…`. Traefik quita `/admin` y nginx los sirve desde la raíz real
+> del build. La alternativa (que nginx resolviera `/admin/**` con `alias`) no
+> funciona: dentro de un `alias`, `try_files $uri` busca contra el root del
+> server, no contra el alias, los assets devuelven 500 y el panel sale en blanco
+> aunque `/admin` responda 200. Si añades una subruta nueva, quita el prefijo en
+> `routes.yml`, no en el `nginx.conf`.
 
 > **Primera subida:** con `DB_SYNCHRONIZE=true` la db se crea sola: el backend genera las tablas y el seeder carga los datos iniciales. No hay que ejecutar nada a mano (los `scripts/*.sql` son opcionales).
 
@@ -205,47 +221,80 @@ Hay **dos** postgres que conviven:
 
 ## 8. Producción (server)
 
-Es el mismo compose con un **overlay** (`docker-compose.prod.yml`) que cambia credenciales, `APP_ENV=prod` y la URL real de la API (`VITE_MODE=prod`).
+Es el mismo compose con un **overlay** (`docker-compose.prod.yml`) que cambia credenciales, fija `APP_ENV=prod`, baja las imágenes de GHCR en vez de compilarlas y ajusta PostgreSQL a 1 GB de RAM.
+
+> **El flujo completo en AWS EC2 está en [`docs/despliegue-aws.md`](despliegue-aws.md)** (secretos de GitHub, arranque de la instancia, rollback, HTTPS). Esta sección es el resumen.
+
+### El principio: construir en CI, no en el servidor
+
+Las imágenes se construyen en los runners de GitHub y se publican en GHCR. El servidor **solo descarga**. En una t3.micro (1 vCPU / 1 GB) compilar tres servicios a la vez tumba la instancia por falta de memoria; descargar y rearrancar son segundos.
+
+```
+git push main → Actions (lint + tests → buildx → GHCR) → SSH → pull + db-init + up
+```
 
 ### Primera vez en el server
 
 ```bash
-git clone <repo> && cd hq-prospectiva2050
+git clone <repo> && cd Hq-prospectiva2050
 
-make env-prod      # crea los 4 archivos .env.prod desde las plantillas .env.prod.example
+sudo HQ_SITE_HOST=tudominio.com \
+     GHCR_DEPLOY_USER=tu_usuario \
+     GHCR_DEPLOY_TOKEN=ghp_xxx \
+     ./scripts/deploy/bootstrap.sh
 ```
 
-**Luego edítalos con los valores reales** (los `.env.prod` están gitignored):
+El script instala Docker, crea 2 GB de swap (imprescindible con 1 GB de RAM), clona el repo en `/opt/hq-prospectiva2050`, genera los `.env.prod` con secretos aleatorios y levanta todo. Es idempotente.
+
+Si lo haces a mano en vez de usar el script:
+
+```bash
+make env-prod      # crea infra/compose/.env.prod y backend/.env.prod
+```
+
+**Luego edítalos** (los `.env.prod` están gitignored):
 
 | Archivo | Qué poner |
 |---|---|
-| `backend/.env.prod` | `DB_USER` / `DB_PASSWORD` / `DB_NAME` reales, `CORS_ORIGINS` con tu dominio |
-| `infra/compose/.env.prod` | los **mismos** `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` |
-| `frontend/.env.prod` y `backoffice/.env.prod` | `VITE_API_URL=https://<tudominio>` — el **origen sin `/api`**; las apps agregan `/api` en cada llamada |
+| `infra/compose/.env.prod` | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` y **`HQ_SITE_HOST`** (el dominio) |
+| `backend/.env.prod` | los **mismos** `DB_USER` / `DB_PASSWORD` / `DB_NAME`, `CORS_ORIGINS` con el dominio y un `JWT_SECRET` nuevo (`openssl rand -hex 24`) |
 
-La primera vez, `POSTGRES_PASSWORD` (compose) y `DB_PASSWORD` (backend) deben coincidir porque el contenedor crea la db con esas credenciales y el backend se conecta con las suyas.
+`POSTGRES_PASSWORD` y `DB_PASSWORD` deben coincidir: el contenedor crea la db con esas credenciales y el backend se conecta con las suyas.
+
+Ya **no** hacen falta `.env.prod` en frontend ni backoffice: la URL de la API llega como **build-arg** (`VITE_API_URL`, el **origen sin `/api`**; las apps añaden `/api` en cada llamada) y se incrusta en el bundle en tiempo de build.
+
+### Esquema de la base de datos
+
+En producción `DB_SYNCHRONIZE=false`, así que el esquema hay que crearlo explícitamente. Lo hace `backend/src/cli/db-init.ts`:
+
+```bash
+make prod-db-init  # sincroniza el esquema + siembra las tablas vacías
+```
+
+Es idempotente, genera el SQL desde las entidades de TypeORM (no puede desincronizarse) y reutiliza el mismo `SeederService` que la app. Sin esto, el backend arranca contra una base sin tablas y se cae.
 
 ### Desplegar
 
 ```bash
-make prod-build    # build de frontend/backoffice con la URL de prod incrustada
-make prod-up       # levanta con el overlay prod
-# o directo:
-make prod-deploy   # build + up
+make prod-deploy   # pull + db-init + up (NO compila)
 ```
+
+Equivale a lo que hace el despliegue automático. Para reconstruir en el propio servidor (plan B, no recomendado): `make prod-build`.
 
 Verificación:
 
 ```bash
-make prod-smoke    # revisa contenedores, /, /admin, /api/health/db y https
+make prod-smoke    # contenedores, /, /admin, /api/health/db y https
 make prod-ps / make prod-logs SERVICE=backend
 ```
 
-Actualizar el server con código nuevo:
+Rollback:
 
 ```bash
-make deploy        # git pull + build + up de producción
+make prod-rollback TAG=v1.0.0
 ```
+
+> `prod-smoke` envía la cabecera `Host` de `HQ_SITE_HOST` porque los routers de Traefik filtran por host. Con el dominio real, un `curl http://localhost/` sin esa cabecera da 404 aunque todo esté bien.
 
 ### Backups de la db (importante)
 
@@ -255,6 +304,8 @@ make backup-list   # listar
 make backup-clean  # conservar solo los N últimos (N=14 default)
 make restore FILE=backups/<archivo>.pg   # restaurar (pide confirmación)
 ```
+
+Los ficheros subidos (fotos, logos) viven en el volumen `hq-uploads` y **no** están en la db: hay que respaldarlos aparte. Receta con cron y S3 en [`docs/despliegue-aws.md`](despliegue-aws.md#copias-de-seguridad).
 
 ---
 
@@ -454,7 +505,7 @@ Con traefik (path-based, sin recortar), la URL pública de todo es el origen má
 
 ```bash
 make test        # tests unitarios del backend
-make test-e2e    # 52 tests e2e de la API (levanta la app contra la db)
+make test-e2e    # e2e de la API (levanta la app contra la db; dos fases, ver más abajo)
 make smoke       # recorrido http contra el entorno que esté corriendo
 ```
 
@@ -462,6 +513,8 @@ make smoke       # recorrido http contra el entorno que esté corriendo
 - Arrancan el `AppModule` real, así que crean el esquema y siembran el admin ellos solos: funcionan también contra una base vacía. Corren con `SEED_CONTENIDO=false`, de modo que **no** siembran el contenido de muestra: dejan la base como estaba y funcionan igual contra una que se vació a propósito.
 - Lo que no se puede depender de la semilla, el test lo monta él. El único caso era el de las dimensiones, que ahora crea la suya y comprueba lo que de verdad vigila: que `body` sea una lista de párrafos y no un texto suelto.
 - La suite del encabezado **guarda la fila de `config_site` que encuentra y la deja tal cual** al terminar (`beforeAll`/`afterAll`). La suite corre contra la base de desarrollo, que es la que usa el panel de verdad: cambiarla sería tocar la configuración que está viendo la gente.
+- `make test-e2e` corre en **dos fases** (ver `backend/package.json`): `test:e2e:core` con el throttling **activo** (auth, app, repositorio y `throttle.e2e-spec.ts`, que comprueba que el login bloquea al sexto intento y por cuenta), y `test:e2e:api` con `THROTTLE_ENABLED=false` (el suite `api.e2e-spec.ts` ejercita el mismo endpoint decenas de veces y no puede hacerlo con límites). Separarlos es lo que mantiene en verde los tests de límites de verdad.
+- El stack docker **local** sirve también con `THROTTLE_ENABLED=false` (`backend/.env.docker`): `make smoke` hace decenas de peticiones de formularios desde una IP, y el límite real de 3/hora (decoradores de `forms.controller.ts`) las cortaría con 429. Los límites de verdad no se comprueban ahí: los verifica la fase core de `test-e2e` con todo activo. Producción **no** define `THROTTLE_ENABLED`, así que en el servidor los 3/hora de formularios sí protegen la bandeja de spam.
 
 ### CI
 
@@ -469,10 +522,21 @@ make smoke       # recorrido http contra el entorno que esté corriendo
 
 ## 14. Pendientes
 
-- **SSL/TLS** en Traefik (decidir automática vs manual).
-- **Despliegue automatizado**: la CI valida, pero el `make deploy` sigue siendo manual.
+Estado completo y detallado en [`TODO.md`](../TODO.md). Resumen de lo que queda:
+
+- **SSL/TLS** en Traefik: sin decidir entre Let's Encrypt automático y certificados manuales. Traefik ya tiene el 443 publicado y las dos configuraciones copiadas en [`despliegue-aws.md`](despliegue-aws.md#activar-https). Mientras tanto el panel viaja por HTTP en claro.
+- **Migraciones del esquema**: hoy `db-init` usa `synchronize` de TypeORM, que solo añade tablas y columnas y nunca rehace ni borra. Es suficiente para arrancar, pero no permite deshacer cambios. Lo correcto es `typeorm migration:generate` versionado.
+- **Backups automáticos**: `make backup` es manual y no cubre el volumen `hq-uploads`. Receta con cron + S3 en [`despliegue-aws.md`](despliegue-aws.md#copias-de-seguridad).
+- **Tests en frontend y backoffice**: no hay ninguno; CI solo compila y hace lint.
 - **Los e2e comparten la base de desarrollo y borran lo que crean.** `make test-e2e` fija `APP_ENV=e2e` a propósito; invocar `npm run test:e2e` a mano con otro `APP_ENV` haría que los tests apuntaran a esa base y borraran datos reales.
 - **⚠️ Los dos `[PENDIENTE]` del Aviso de Privacidad** (nombre del responsable y canal de peticiones). Sin ellos la página se publica pero no cumple la Ley 1581. Bloqueante para publicar.
 - **⚠️ `noticias.slug` y `users.email` son UNIQUE sin mirar la columna de borrado lógico.** Un slug de una noticia borrada queda ocupado para siempre, y la siguiente noticia con ese slug se come un 500 en vez de un «ese slug ya existe». Salió al intentar hacer repetible la suite e2e. Lo mismo con el correo de un usuario dado de baja. El arreglo es un índice parcial `WHERE eliminado_at IS NULL`; no se hizo por estar fuera del alcance acordado.
 - **12 fotos de municipios por subir.** El sistema ya está listo (URL relativa, botón de quitar imagen, asignación en lote); faltan las fotos.
 - **⚠️ `AjustesPage` no exige rol `admin`** (`backoffice/src/App.tsx`), pero `PUT /api/config/site` sí lo exige (`@Roles('admin')`). Un editor que entre a esa página ve el formulario y recibe un `403` al guardar. Ahora el aviso enseña el mensaje real del servidor en vez de un «no se pudo» genérico, que es lo que hizo que este bug pasara inadvertido, pero el arreglo de fondo es envolver la ruta en `RequireRole('admin')`.
+
+**Resuelto:**
+
+- **CI/CD** completo: `ci.yml` (lint, typecheck, tests unit y e2e con PostgreSQL) y `deploy.yml` (buildx → GHCR → SSH al servidor). Guía en [`despliegue-aws.md`](despliegue-aws.md).
+- **Esquema de producción** vía `backend/src/cli/db-init.ts` en lugar del SQL manual, que era un stub vacío.
+- Los routers de Traefik ya no están clavados a `Host(localhost)`: se parametrizan con `HQ_SITE_HOST`.
+- **Seguridad del despliegue**: `JWT_SECRET` ahora se exige (sin fallback `'dev-secret'`), las rutas públicas de noticias ya no filtran borradores por rol, `/api/forms/*` tiene rate limiting, las URLs de media son relativas (`/uploads/…`) y `trust proxy` está activo.

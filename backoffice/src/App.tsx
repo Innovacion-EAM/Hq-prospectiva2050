@@ -8,12 +8,14 @@ import { MensajesPage } from "@/pages/MensajesPage";
 import PapeleraPage from "@/pages/PapeleraPage";
 import { NoticiaFormPage, NoticiasListPage } from "@/pages/NoticiasPage";
 import { DocumentoFormPage, DocumentosListPage } from "@/pages/DocumentosPage";
+import { RepositorioPage } from "@/pages/RepositorioPage";
 import { ConvocatoriaFormPage, ConvocatoriasListPage } from "@/pages/ConvocatoriasPage";
 import { ProyectoFormPage, ProyectoListPage } from "@/pages/ProyectoPages";
 import { DimensionFormPage, DimensionesListPage } from "@/pages/DimensionesPage";
 import { AjustesPage } from "@/pages/AjustesPage";
 import { UsuariosPage } from "@/pages/UsuariosPage";
 import { RutaNoEncontradaPage } from "@/pages/RutaNoEncontradaPage";
+import { MiCuentaPage } from "@/pages/MiCuentaPage";
 import {
   CategoriasPage,
   EntidadesPage,
@@ -45,6 +47,8 @@ export default function App() {
         <Route path="/documentos/nuevo" element={<DocumentoFormPage />} />
         <Route path="/documentos/:id" element={<DocumentoFormPage />} />
 
+        <Route path="/repositorio" element={<RepositorioPage />} />
+
         <Route path="/convocatorias" element={<ConvocatoriasListPage />} />
         <Route path="/convocatorias/nuevo" element={<ConvocatoriaFormPage />} />
         <Route path="/convocatorias/:id" element={<ConvocatoriaFormPage />} />
@@ -56,6 +60,8 @@ export default function App() {
         <Route path="/dimensiones" element={<DimensionesListPage />} />
         <Route path="/dimensiones/nuevo" element={<DimensionFormPage />} />
         <Route path="/dimensiones/:id" element={<DimensionFormPage />} />
+
+        <Route path="/mi-cuenta" element={<MiCuentaPage />} />
 
         <Route path="/configuracion" element={<AjustesPage />} />
         <Route path="/configuracion/estadisticas" element={<EstadisticasPage />} />

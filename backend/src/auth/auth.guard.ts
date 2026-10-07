@@ -16,26 +16,20 @@ export class AuthGuard implements CanActivate {
   constructor(private readonly jwt: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const token = this.extractToken(request);
-
-    // Rutas públicas con autenticación opcional: la petición entra igual, pero
-    // si viene un JWT válido se adjunta a `request.user`. Es lo que permite que
-    // el backoffice, al listar noticias, vea también los borradores que a un
-    // visitante anónimo le llegarían filtrados.
-    if (this.getMetadata<boolean>(context, IS_PUBLIC_KEY)) {
-      if (token) {
-        try {
-          request.user = await this.jwt.verifyAsync<AuthUser>(token);
-        } catch {
-          // Token inválido en una ruta pública: no es un error, simplemente el
-          // usuario se trata como anónimo.
-        }
-      }
+    const isPublic = this.getMetadata<boolean>(context, IS_PUBLIC_KEY);
+    // Las rutas públicas son ANÓNIMAS de verdad: no resuelven el token ni
+    // adjuntan `request.user`. Si una ruta pública distinguiera visitantes
+    // según trajeran token, se reintroduciría el agujero de las noticias (el
+    // comentario de `NoticiasController` lo cuenta): bastaba con poner el
+    // token de un editor en una ruta `@Public()` y el listado devolvía también
+    // los borradores.
+    if (isPublic) {
       return true;
     }
 
     const requiredRoles = this.getMetadata<string[]>(context, ROLES_KEY) ?? [];
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractToken(request);
     if (!token) {
       throw new UnauthorizedException('No autenticado');
     }

@@ -1,0 +1,122 @@
+name: CI
+
+# Puerta de calidad. Corre en cada push a develop/main y en cada PR.
+# Es la condición que bloquea el despliegue: si esto falla, `deploy` no arranca.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend · lint + test
+    runs-on: ubuntu-latest
+    # Los tests e2e usan el AppModule real (con TypeORM y el seeder), así que
+    # necesitan un PostgreSQL de verdad, no un mock.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hq_prospectiva2050
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d hq_prospectiva2050"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_ENV: ci
+      PORT: 3006
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: hq_prospectiva2050
+      DB_SYNCHRONIZE: "true"
+      JWT_SECRET: ci-secret-no-usar-en-produccion
+      CORS_ORIGINS: http://localhost:5173,http://localhost:1234
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint (oxlint --type-aware)
+        working-directory: backend
+        run: npm run lint
+
+      # `nest build` = tsc estricto sobre tsconfig.build.json (src, excluye tests).
+      # Compilar aquí además valida el nuevo `src/cli/db-init.ts`, que es lo que
+      # usa el script de arranque de la base de datos en producción.
+      - name: Build / typecheck (nest build)
+        working-directory: backend
+        run: npm run build
+
+      - name: Tests unitarios
+        working-directory: backend
+        run: npm test -- --runInBand
+
+      - name: Tests e2e
+        working-directory: backend
+        run: npm run test:e2e
+
+  web:
+    name: ${{ matrix.app }} · lint + typecheck + build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: frontend
+            dir: frontend
+          - app: backoffice
+            dir: backoffice
+          - app: repo
+            dir: repo
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    env:
+      # La URL de la API se incrusta en el bundle. Aquí se usa una inválida a
+      # propósito: en este job no se publica nada, solo se comprueba que el
+      # código compila. El valor real lo inyecta el build-arg de `deploy.yml`.
+      VITE_API_URL: https://ci.invalid/api
+      VITE_SITE_URL: https://ci.invalid
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (oxlint)
+        run: npm run lint
+
+      # `tsc -b && vite build` en modo production: valida tipos Y que el bundle
+      # se arme (base=/admin/ para el backoffice).
+      - name: Typecheck + build (tsc -b && vite build)
+        run: npm run build

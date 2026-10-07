@@ -13,6 +13,14 @@ export type SeedNoticia = {
   publicadoEn?: string;
 };
 
+// El repositorio vive en `data/repositorio-seed.ts` (297 ítems generados desde
+// el Excel original); aquí solo se re-exporta para que el seeder siga teniendo
+// un único punto de importación.
+export {
+  SEED_REPOSITORIO,
+  type SeedRepositorioItem,
+} from './data/repositorio-seed';
+
 export type SeedDocumento = {
   titulo: string;
   autor: string;
@@ -536,6 +544,7 @@ export const SEED_SITE: SeedSite = {
     { label: "El proyecto", href: "/proyecto" },
     { label: "Dimensiones", href: "/dimensiones" },
     { label: "Documentos", href: "/documentos" },
+    { label: "Repositorio", href: "/repo" },
     { label: "Noticias", href: "/noticias" },
     { label: "Participa", href: "/participa" },
     { label: "Contáctanos", href: "/contactos" },
@@ -1109,14 +1118,28 @@ export const SEED_MENSAJES: SeedMensaje[] = [
 
 export type SeedUser = {
   email: string;
-  password: string;
+  /**
+   * Contraseña inicial, o null para generarla al vuelo.
+   *
+   * null significa "una contraseña aleatoria que solo se muestra una vez". Es
+   * lo que hay que usar siempre: una contraseña fija en el repositorio acaba
+   * publicada en internet en cuanto el repo es público, y con ella entra
+   * cualquiera como administrador. Ya pasó con 'Admin123*', que llegó a
+   * producción y se podía usar para iniciar sesión en el panel.
+   *
+   * Cuando la semilla pone null, el seeder genera una contraseña aleatoria de
+   * 20 caracteres, la siembra y la imprime en el log una única vez. Esos logs
+   * solo los ve quien tenga acceso al servidor, que es justo quien puede
+   * cambiar la contraseña desde el backoffice.
+   */
+  password: string | null;
   role: 'admin' | 'editor';
 };
 
 export const SEED_USERS: SeedUser[] = [
   {
     email: 'admin@prospectiva.com',
-    password: 'Admin123*',
+    password: null,
     role: 'admin',
   },
 ];

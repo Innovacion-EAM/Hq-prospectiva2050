@@ -28,8 +28,16 @@ services:
       context: ../../backend
     container_name: hq-backend
     restart: unless-stopped
+    # `required: false` NO es opcional: el overlay de producción declara
+    # `env_file: ../../backend/.env.prod` y Compose CONCATENA las listas de
+    # `env_file` en vez de reemplazarlas. Con la forma corta, producción
+    # heredaría también esta entrada y el despliegue moriría al arrancar con
+    # "env file ../../backend/.env.docker not found" (ese fichero solo existe
+    # en el entorno de desarrollo). La forma larga con `required: false` hace
+    # que este fichero se cargue en local y se ignore, sin error, en producción.
     env_file:
-      - ../../backend/.env.docker
+      - path: ../../backend/.env.docker
+        required: false
     environment:
       APP_ENV: docker
     depends_on:
@@ -49,6 +57,11 @@ services:
   frontend:
     build:
       context: ../../frontend
+      args:
+        VITE_MODE: docker
+        # Constantes de build, no secretos. Se pueden sobreescribir desde
+        # infra/compose/.env sin tocar este archivo.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost}
     container_name: hq-frontend
     restart: unless-stopped
     depends_on:
@@ -64,7 +77,30 @@ services:
   backoffice:
     build:
       context: ../../backoffice
+      args:
+        VITE_MODE: docker
+        VITE_API_URL: ${VITE_API_URL:-http://localhost}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:5173}
     container_name: hq-backoffice
+    restart: unless-stopped
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hq-net
+
+  repo:
+    build:
+      context: ../../repo
+      args:
+        VITE_MODE: docker
+        VITE_API_URL: ${VITE_API_URL:-http://localhost}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://localhost:5173}
+    container_name: hq-repo
     restart: unless-stopped
     depends_on:
       - backend
@@ -80,6 +116,12 @@ services:
     image: traefik:v3.5
     container_name: hq-traefik
     restart: unless-stopped
+    environment:
+      # Host que matchean los routers de infra/traefik/dynamic/routes.yml.
+      # Se define aquí para que la variable NUNCA falte (una regla vacía rompe
+      # todos los routers). Se sobreescribe con infra/compose/.env.prod
+      # (=dominio real) al desplegar en producción.
+      HQ_SITE_HOST: ${HQ_SITE_HOST:-localhost}
     ports:
       - "80:80"
       - "443:443"
@@ -91,9 +133,15 @@ services:
         condition: service_healthy
       backoffice:
         condition: service_healthy
+      repo:
+        condition: service_healthy
     volumes:
       - ../traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ../traefik/dynamic:/etc/traefik/dynamic:ro
+      # Certificados TLS. Necesario para la vía de certificados manuales
+      # (infra/traefik/certs/, gitignored) y para el acme.json del resolver de
+      # Let's Encrypt. La carpeta se crea vacía; no afecta al arranque.
+      - ../traefik/certs:/etc/traefik/certs
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ping || exit 1"]
       interval: 10s

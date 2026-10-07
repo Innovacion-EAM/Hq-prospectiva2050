@@ -4,11 +4,13 @@ import {
   BookOpen,
   Boxes,
   CalendarDays,
+  Database,
   FileStack,
   FolderOpen,
   Home,
   Image as ImageIcon,
   Inbox,
+  KeyRound,
   LogOut,
   Megaphone,
   MapPin,
@@ -43,6 +45,11 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
       items: [
         { to: "/", label: "Inicio", icon: Home, end: true },
         { to: "/mensajes", label: "Mensajes", icon: Inbox },
+        // "Mi cuenta" no lleva adminOnly a propósito: cambiar la contraseña es
+        // de la cuenta de uno mismo, así que le sirve igual a un editor. Si
+        // estuviera bajo Configuración, que es donde vive todo lo de admin,
+        // un editor no encontraría la opción.
+        { to: "/mi-cuenta", label: "Mi cuenta", icon: KeyRound },
       ],
     },
     {
@@ -50,6 +57,7 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
       items: [
         { to: "/noticias", label: "Noticias", icon: Newspaper },
         { to: "/documentos", label: "Documentos", icon: FileStack },
+        { to: "/repositorio", label: "Repositorio", icon: Database },
         { to: "/convocatorias", label: "Convocatorias", icon: Megaphone },
       ],
     },

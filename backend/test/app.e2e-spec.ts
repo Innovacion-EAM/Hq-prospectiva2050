@@ -15,7 +15,7 @@ describe('AppController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     // Sin `configureApp` la app no tiene el prefijo global `/api` y este test
-    // pediría una ruta que en producción sí existe.
+    // pediría una ruta que en producción sí existe. Debe coincidir con main.ts.
     configureApp(app);
     await app.init();
   });

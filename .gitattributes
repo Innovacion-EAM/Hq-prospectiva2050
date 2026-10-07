@@ -1,0 +1,41 @@
+# El proyecto se despliega en Linux (EC2 Ubuntu) pero se desarrolla en Windows.
+# Sin estas reglas, core.autocrlf de quien Clone en Windows convierte a CRLF los
+# ficheros que bash y los contenedores necesitan en LF, y el resultado en el
+# servidor es un críptico "command not found" o "/bin/sh^M: bad interpreter".
+#
+# Regla general: LF en el repositorio para todo lo que se ejecuta.
+# Excepción: los .bat/.cmd de Windows.
+
+* text=auto eol=lf
+
+# Ficheros que ejecuta bash o una shell dentro de un contenedor
+*.sh text eol=lf
+Makefile text eol=lf
+*.mk text eol=lf
+
+# Configuración que leen Docker / Traefik / nginx
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+docker-compose*.yml text eol=lf
+
+# Scripts SQL (psql los lee; CRLF rompe el \i y los delimitadores)
+*.sql text eol=lf
+
+# Ficheros de Windows
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios explícitos (nada que normalizar)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.pg binary
+*.woff binary
+*.woff2 binary

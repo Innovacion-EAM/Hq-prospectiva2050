@@ -1,37 +1,58 @@
 # ── Traefik: routers (config DINÁMICA) ──────────────────────────────
 # Define "quién va a dónde". Se recarga en caliente (file.watch: true).
-# PRIORIDAD: traefik ordena por longitud de regla → /api y /admin
+# PRIORIDAD: traefik ordena por longitud de regla → /api, /admin y /repo
 # ganan al catch-all "/". No hace falta declarar priority explícita.
 #
-# El dominio está escrito a mano en "Host(`localhost`)", y para producción se
-# reescribe con:  make traefik-host HOST=prospectivaquindio2050.com
-# (lee HQ_SITE_HOST de infra/compose/.env.prod si no se pasa HOST=).
-#
-# Ojo: NO se usa ${HQ_SITE_HOST} en este archivo. El file provider de Traefik
-# v3.5 NO sustituye variables de entorno en la configuración dinámica: la
-# regla se toma literal y el Host queda vacío, así que ningún router coincide
-# y todo devuelve 404.
+# ⚠ El host NO está escrito a mano: sale de la variable de entorno HQ_SITE_HOST
+#   que recibe el contenedor traefik (docker-compose.yml). Así el mismo archivo
+#   sirve para docker local (HQ_SITE_HOST=localhost) y para producción con
+#   dominio real (HQ_SITE_HOST=prospectivaquindio2050.com, en .env.prod).
+#   Cambia el host -> cambia solo .env.prod y reinicia traefik: `make prod-restart`.
+#   Traefik v3 usa la función `env` en el provider de archivos, que está
+#   activada en traefik.yml (providers.file.template: true). Además de
+#   HQ_SITE_HOST, la regla acepta cualquier IP (acceso a la instancia por IP
+#   pública mientras no haya dominio) y `localhost` (docker local).
 
 http:
   routers:
-    # /  → frontend (catch-all)
+    # / → frontend (catch-all)
     frontend:
-      rule: "Host(`localhost`) && PathPrefix(`/`)"
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/`)'
       entryPoints:
         - web
       service: frontend
 
-    # /admin → backoffice (SPA servido bajo subruta)
+    # /admin → backoffice (SPA servida bajo subruta)
+    # El middleware strip-admin le quita /admin, igual que strip-repo hace con
+    # /repo. Así nginx sirve el panel en "/" con su try_files normal. Si no se
+    # quitara el prefijo, nginx tendría que resolver /admin/** con `alias`, y
+    # `try_files $uri` dentro de un `alias` busca contra el root del server y no
+    # contra el alias: los assets devolverían 500 y el panel saldría en blanco.
     backoffice:
-      rule: "Host(`localhost`) && PathPrefix(`/admin`)"
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/admin`)'
       entryPoints:
         - web
+      middlewares:
+        - strip-admin
       service: backoffice
 
+    # /repo → repositorio de información (SPA bajo subruta, como /admin)
+    repo:
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/repo`)'
+      entryPoints:
+        - web
+      middlewares:
+        - strip-repo
+      service: repo
+
     # /api → backend (el backend responde bajo su prefijo global /api, así que
-    # aquí la petición se pasa tal cual; ver backend/src/app.setup.ts)
+    # aquí la petición se pasa tal cual; ver backend/src/app.setup.ts).
+    # NO hay strip-api: el frontend, el backoffice y el repositorio piden
+    # `${API_BASE}/api/...` con API_BASE = origen (sin /api), y el backend
+    # aplica el prefijo global. Si se recortara /api aquí, la petición llegaría
+    # a una ruta que no existe y el sitio caería al contenido de respaldo.
     api:
-      rule: "Host(`localhost`) && PathPrefix(`/api`)"
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/api`)'
       entryPoints:
         - web
       service: api
@@ -40,12 +61,13 @@ http:
     # ║ VARIANTE HOST-BASED (alternativa)                                ║
     # ║ Para activarla: descomentar estos 3 routers, comentar los de      ║
     # ║ arriba, y cambiar además:                                         ║
-    # ║  - front/back .env.docker: VITE_API_URL=http://api.localhost      ║
+    # ║  - front/back/repo .env.docker: VITE_API_URL=http://api.localhost ║
     # ║  - backend  .env.docker : CORS_ORIGINS=http://localhost,          ║
     # ║                                  http://backoffice.localhost      ║
     # ║  Los navegadores resuelven *.localhost → 127.0.0.1;               ║
     # ║  si no, agrega 2 líneas a /etc/hosts.                             ║
-    # ║ ⚠ Ninguna variante usa middleware: el prefijo /api lo pone el    ║
+    # ║  ⚠ Ninguna variante usa middleware: el prefijo /api lo pone el    ║
+    # ║  backend (prefijo global de Nest) y aquí se pasa la petición      ║
     # ╚══════════════════════════════════════════════════════════════════╝
     # frontend:
     #   rule: "Host(`localhost`)"
@@ -53,12 +75,17 @@ http:
     #     - web
     #   service: frontend
     # backoffice:
-    #   rule: "Host(`localhost`)"
+    #   rule: "Host(`backoffice.localhost`)"
     #   entryPoints:
     #     - web
     #   service: backoffice
+    # repo:
+    #   rule: "Host(`repo.localhost`)"
+    #   entryPoints:
+    #     - web
+    #   service: repo
     # api:
-    #   rule: "Host(`localhost`)"
+    #   rule: "Host(`api.localhost`)"
     #   entryPoints:
     #     - web
     #   service: api

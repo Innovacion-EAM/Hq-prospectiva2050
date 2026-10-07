@@ -8,6 +8,7 @@ import { AuthGuard } from './auth/auth.guard';
 import { AuthModule } from './auth/auth.module';
 import { DataModule } from './data/data.module';
 import { HealthController } from './health/health.controller';
+import { ThrottlerConfigModule } from './auth/throttler';
 import { UploadModule } from './upload/upload.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { UploadModule } from './upload/upload.module';
     DataModule,
     AuthModule,
     UploadModule,
+    ThrottlerConfigModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

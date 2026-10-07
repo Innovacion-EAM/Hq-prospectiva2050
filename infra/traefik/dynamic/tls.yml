@@ -1,16 +1,42 @@
 # ── Traefik: TLS / certificados (config DINÁMICA) ────────────────────
-# Sin uso todavía. Esta carpeta dynamic/ monta certs/ en /etc/traefik/certs
-# (gitignored: los certificados no se commitean).
-# Cuando haya un dominio real, ejemplo con Let's Encrypt (ACME):
 #
-# certificatesResolvers:
-#   letsencrypt:
-#     acme:
-#       email: tu@dominio.com
-#       storage: /etc/traefik/certs/acme.json
-#       httpChallenge:
-#         entryPoint: web
+# Hay DOS vías para servir el sitio por HTTPS. Se elige una; el detalle está en
+# docs/dominio-y-ssl.md.
 #
-# Y en routes.yml los routers pasarían a:
-#   tls:
-#     certResolver: letsencrypt
+# ─────────────────────────────────────────────────────────────────────
+# VÍA 1 — Let's Encrypt automático (recomendada)
+# ─────────────────────────────────────────────────────────────────────
+# El resolver de ACME va en la config ESTÁTICA (infra/traefik/traefik.yml),
+# porque `certificatesResolvers` no es válido en dynamic/: si se pone aquí,
+# Traefik descarta el fichero entero y se queda sin routers (todo 404).
+# Está escrito y COMENTADO en traefik.yml: no hace nada hasta que lo actives.
+#
+# Para activarlo: quita las comillas del bloque `tls:` de traefik.yml, pon tu
+# email real, y añade `certResolver: letsencrypt` a los tres routers de
+# routes.yml. Los pasos están comentados en ambos ficheros.
+#
+# Ojo con el orden: no actives nada hasta que el registro A del dominio apunte
+# a la instancia Y el puerto 80 esté abierto desde internet, o el challenge de
+# Let's Encrypt fallará.
+#
+# ─────────────────────────────────────────────────────────────────────
+# VÍA 2 — certificados que entrega el dueño del dominio
+# ─────────────────────────────────────────────────────────────────────
+# Esta carpeta dynamic/ monta infra/traefik/certs/ en /etc/traefik/certs
+# (gitignored: los certificados nunca se commitean).
+#
+# Pide al dueño del dominio el certificado en formato PEM y guárdalo en
+# infra/traefik/certs/ con estos nombres:
+#
+#   fullchain.pem   ← el certificado (incluye la cadena, si la hay)
+#   privkey.pem     ← la clave privada
+#
+# Después añade a cada router de routes.yml:
+#
+#     tls:
+#       # sin certResolver: usa el certificado de /etc/traefik/certs
+#
+# Y activa el redirect http → https en redirect.yml (está todo comentado).
+#
+# Esta vía NO necesita que el dominio apunte a la instancia para emitir el
+# certificado: el dueño te lo entrega ya emitido. Se renueva a mano cada año.

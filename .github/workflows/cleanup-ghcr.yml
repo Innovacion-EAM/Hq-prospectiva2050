@@ -1,0 +1,92 @@
+name: Limpieza de imágenes en GHCR
+
+# Cada push a main publica una versión nueva de los cuatro servicios en GitHub
+# Container Registry, y ninguna se borra después: la cuota de almacenamiento de
+# la organización se llena en semanas. Este workflow deja las KEEP_VERSIONS
+# últimas de cada paquete y borra el resto.
+#
+# Es independiente de Build & Deploy a propósito: publicar y limpiar son
+# cosas distintas, y así un fallo al borrar nunca impide desplegar.
+#
+# ── Configuración necesaria (Settings → Secrets and variables) ───────────────
+#   Secret:
+#     GHCR_CLEANUP_TOKEN   PAT con permiso `delete:packages`.
+#
+#   NO se usa el GITHUB_TOKEN del propio workflow a propósito. Ese token ya
+#   tiene `packages: write` (lo necesita para publicar), pero la API de GHCR
+#   exige además permiso de BORRADO sobre el paquete, que el GITHUB_TOKEN de
+#   un workflow no concede: con él la respuesta es 403 y no se borra nada.
+#
+# ── Cómo crear el PAT ────────────────────────────────────────────────────────
+#   1. Avatar → Settings → Developer settings → Personal access tokens
+#      → Tokens (classic) → Generate new token (classic)
+#   2. Scope: marcar SOLO `delete:packages`.
+#         Con `read:packages` NO basta: es un permiso distinto y es el que
+#         impide que este workflow borre nada.
+#   3. Caducidad: la que quieras. Si caduca, la limpieza se para sola y solo
+#      hay que renovarlo; no afecta a los despliegues.
+#   4. Copiar el token (ghp_...) en el secreto GHCR_CLEANUP_TOKEN del repo.
+
+on:
+  schedule:
+    # GitHub ejecuta los cron en UTC y con retraso en horas de punta. Un lunes
+    # a las 04:17 es una hora tranquila, así que el retraso no importa.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      keep_versions:
+        description: 'Versiones a conservar por paquete (1 = solo la última)'
+        required: false
+        default: '2'
+      dry_run:
+        description: 'Simular sin borrar nada'
+        type: boolean
+        required: false
+        default: true
+
+# El mínimo: leer el repo para el contexto. `packages: write` no hace falta
+# para borrar (no se puede), pero se deja por claridad sobre qué recurso toca.
+permissions:
+  contents: read
+
+jobs:
+  prune:
+    name: Podar versiones antiguas
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Instalar jq
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq jq
+
+      # Los permisos de borrado vienen del PAT, no de permissions:. Si el
+      # secreto no existe, el paso falla con un mensaje que dice qué hacer, en
+      # vez de terminar en verde sin haber limpiado nada.
+      - name: Limpiar GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_CLEANUP_TOKEN }}
+          GHCR_OWNER: innovacion-eam
+          KEEP_VERSIONS: ${{ inputs.keep_versions || '2' }}
+          DRY_RUN: ${{ github.event_name == 'schedule' && 'no' || (inputs.dry_run && 'yes' || 'no') }}
+          PACKAGES: hq-backend hq-frontend hq-backoffice hq-repo
+        run: |
+          if [ -z "$GHCR_TOKEN" ]; then
+            echo "::error::Falta el secreto GHCR_CLEANUP_TOKEN (PAT con delete:packages)."
+            echo "::error::Crear el PAT y añadirlo en Settings → Secrets and variables"
+            echo "::error::→ Secrets → New repository secret → GHCR_CLEANUP_TOKEN"
+            echo "::error::Los pasos exactos están arriba, en el comentario de este workflow."
+            exit 1
+          fi
+          bash scripts/deploy/prune-ghcr.sh
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "### Limpieza de GHCR"
+            echo
+            echo "- Se conservan las ${{ inputs.keep_versions || 2 }} versiones más recientes"
+            echo "  de \`hq-backend\`, \`hq-frontend\`, \`hq-backoffice\` y \`hq-repo\`."
+            echo "- Los despliegues NO se ven afectados: solo se borran versiones"
+            echo "  antiguas que ya nadie está usando."
+            echo "- La limpieza automática corre cada lunes a las 04:17 UTC."
+          } >> "$GITHUB_STEP_SUMMARY"

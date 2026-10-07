@@ -1,5 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { MensajesService } from './mensajes.service';
+import { LIMITE_FORMS_OK } from '../auth/throttler';
 import { Public } from '../auth/public.decorator';
 import {
   BoletinDto,
@@ -28,6 +30,14 @@ function recibido(): { ok: true } {
  * Bandeja de entrada de los formularios públicos del sitio. Todos los endpoints
  * son `@Public()` porque los visita gente sin sesión; el `ValidationPipe` global
  * es lo que impide que entren filas vacías o basura.
+ *
+ * Además, cada endpoint lleva `@Throttle` con el contador `forms`: 3 envíos por
+ * hora desde la misma IP. Estos endpoints escriben filas en `mensajes` sin pedir
+ * autenticación, así que son la vía más barata para llenar la tabla de spam.
+ * Tres por hora no estorba a nadie real: quien rellena un formulario de
+ * contacto lo hace una vez. Un bot que repita se encuentra con un 429 enseguida.
+ * La clave es por IP (el `default` de la librería) porque un formulario no
+ * tiene cuenta a la que atribuir el intento.
  */
 @Public()
 @Controller('forms')
@@ -36,6 +46,7 @@ export class FormsController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('contacto')
+  @Throttle({ forms: { limit: LIMITE_FORMS_OK, ttl: 60 * 60 * 1000 } })
   async contacto(@Body() body: ContactoDto) {
     await this.mensajes.create({
       nombre: body.nombre.trim(),
@@ -54,6 +65,7 @@ export class FormsController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('inscripciones')
+  @Throttle({ forms: { limit: LIMITE_FORMS_OK, ttl: 60 * 60 * 1000 } })
   async inscripciones(@Body() body: InscripcionDto) {
     await this.mensajes.create({
       nombre: body.nombre.trim(),
@@ -73,6 +85,7 @@ export class FormsController {
   /** Newsletter del pie de página. */
   @HttpCode(HttpStatus.CREATED)
   @Post('boletin')
+  @Throttle({ forms: { limit: LIMITE_FORMS_OK, ttl: 60 * 60 * 1000 } })
   async boletin(@Body() body: BoletinDto) {
     await this.mensajes.create({
       nombre: body.nombre?.trim() || 'Suscriptor del boletín',
@@ -99,6 +112,7 @@ export class FormsController {
    */
   @HttpCode(HttpStatus.CREATED)
   @Post('sugerencias')
+  @Throttle({ forms: { limit: LIMITE_FORMS_OK, ttl: 60 * 60 * 1000 } })
   async sugerencias(@Body() body: SugerenciaDto) {
     const correo = body.email?.trim().toLowerCase() ?? '';
     await this.mensajes.create({

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { HomeHero } from "@/components/home-hero";
 import { HomeProject } from "@/components/home-project";
 import { MunicipiosStrip } from "@/components/municipios-section";
+import { HomeRepo } from "@/components/home-repo";
 import { HomeContact, HomeDocuments, HomeNews, HomeStats } from "@/components/shared-sections";
 import { fetchNoticias, toNewsItem, type NewsItem } from "@/lib/api";
 
@@ -24,6 +25,7 @@ export function HomePage() {
           aparece. La versión con texto vive en /proyecto. */}
       <MunicipiosStrip />
       <HomeDocuments />
+      <HomeRepo />
       <HomeNews news={news} />
       <HomeContact />
     </>

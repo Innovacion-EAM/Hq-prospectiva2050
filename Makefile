@@ -2,17 +2,17 @@
 #  HQ PROSPECTIVA 2050 — Makefile de comandos
 # ════════════════════════════════════════════════════════════════════════════
 #  Centraliza TODOS los comandos del monorepo (backend + frontend + backoffice
-#  + docker + producción) en un solo lugar, para no recordarlos.
+#  + repo + docker + producción) en un solo lugar, para no recordarlos.
 #
 #  USO:
 #     make help                    → menú (también es el default con solo `make`)
 #     make <comando>               → ejecuta ese comando
 #     make <comando> SERVICE=X     → algunos comandos aceptan elegir el servicio
-#                                    (backend | frontend | backoffice | traefik | postgres)
+#                                    (backend | frontend | backoffice | repo | traefik | postgres)
 #
 #  ESTRUCTURA (secciones):
 #     1. Utilidades / diagnóstico
-#     2. Entorno dev  (npm LOCAL, sin docker: backend :3006, front :5173, backoffice :1234)
+#     2. Entorno dev  (npm LOCAL, sin docker: backend :3006, front :5173, backoffice :1234, repo :4173)
 #     3. Calidad      (lint, tests, formato)
 #     4. Docker       (entorno de contenedores LOCAL, traefik en http://localhost)
 #     5. Base de datos
@@ -71,26 +71,28 @@ help:
 doctor:
 	@echo "── 1. Docker ──"
 	@if docker info >/dev/null 2>&1; then echo "     [OK] docker disponible"; else echo "     [!] docker NO disponible (¿daemon apagado?)"; fi
-	@echo "── 2. Puertos dev (3006 backend · 5173 frontend · 1234 backoffice · 8080 traefik) ──"
-	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:8080 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "     (nada escuchando)"
+	@echo "── 2. Puertos dev (3006 backend · 5173 frontend · 1234 backoffice · 4173 repo · 8080 traefik) ──"
+	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:4173 -i tcp:8080 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "     (nada escuchando)"
 	@echo "── 3. Contenedores hq-* ──"
 	@docker ps --filter "name=hq-" --format "     {{.Names}}: {{.Status}}" 2>/dev/null || echo "     (docker no disponible)"
 	@echo "── 4. Archivos de entorno ──"
-	@for f in backend/.env.docker backend/.env.prod frontend/.env.docker frontend/.env.prod backoffice/.env.docker backoffice/.env.prod infra/compose/.env infra/compose/.env.prod; do \
+	@echo "     (en prod solo se necesitan los 2 marcados PROD; frontend/backoffice"
+	@echo "      llevan la URL de la API como build-arg, no como archivo)"
+	@for f in backend/.env.docker backend/.env.dev infra/compose/.env infra/compose/.env.prod backend/.env.prod; do \
 		if [ -f "$$f" ]; then echo "     [OK]   $$f"; else echo "     [FALTA] $$f"; fi; \
 	done
 
 ## dev-status: Muestra quién está escuchando en los puertos dev
 dev-status:
-	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "Nada escuchando en puertos dev."
+	@lsof -i tcp:3006 -i tcp:5173 -i tcp:1234 -i tcp:4173 2>/dev/null | awk 'NR==1 || /LISTEN/' || echo "Nada escuchando en puertos dev."
 
 # ────────────────────────────────────────────────────────────────────────────
 # 2. ENTORNO DEV (npm local, SIN docker)
 # ────────────────────────────────────────────────────────────────────────────
 
-## install: Instala las dependencias de los 3 servicios (paralelo)
+## install: Instala las dependencias de los 4 servicios (paralelo)
 install:
-	$(MAKE) -j3 install-backend install-frontend install-backoffice
+	$(MAKE) -j4 install-backend install-frontend install-backoffice install-repo
 
 ## install-backend: Instala dependencias del backend
 install-backend:
@@ -104,14 +106,19 @@ install-frontend:
 install-backoffice:
 	@cd backoffice && npm install
 
-## dev: Levanta los 3 servicios dev en paralelo (Ctrl+C detiene todo)
-#  Puedes levantarlos por separado con dev-backend / dev-frontend / dev-backoffice.
+## install-repo: Instala dependencias del repositorio (repo/)
+install-repo:
+	@cd repo && npm ci
+
+## dev: Levanta los 4 servicios dev en paralelo (Ctrl+C detiene todo)
+#  Puedes levantarlos por separado con dev-backend / dev-frontend / dev-backoffice / dev-repo.
 #  Si algo se queda colgado, usa `make dev-stop`.
 dev:
-	@echo "Levantando backend (:3006), frontend (:5173) y backoffice (:1234)... (Ctrl+C detiene todo)"
+	@echo "Levantando backend (:3006), frontend (:5173), backoffice (:1234) y repo (:4173)... (Ctrl+C detiene todo)"
 	@$(MAKE) dev-backend & \
 	$(MAKE) dev-frontend & \
 	$(MAKE) dev-backoffice & \
+	$(MAKE) dev-repo & \
 	wait
 
 ## dev-backend: Levanta el backend NestJS en :3006 con hot-reload (--watch)
@@ -126,9 +133,13 @@ dev-frontend:
 dev-backoffice:
 	@cd backoffice && npm run dev
 
-## dev-stop: Mata los procesos dev que estén en los puertos 3006/5173/1234
+## dev-repo: Levanta el repositorio Vite/React en :4173 (modo dev)
+dev-repo:
+	@cd repo && npm run dev
+
+## dev-stop: Mata los procesos dev que estén en los puertos 3006/5173/1234/4173
 dev-stop:
-	@pids=$$(lsof -ti tcp:3006 -ti tcp:5173 -ti tcp:1234); \
+	@pids=$$(lsof -ti tcp:3006 -ti tcp:5173 -ti tcp:1234 -ti tcp:4173); \
 	if [ -n "$$pids" ]; then \
 		echo "Matando procesos dev: $$pids"; kill $$pids; \
 	else \
@@ -139,8 +150,8 @@ dev-stop:
 # 3. CALIDAD (lint, tests, formato)
 # ────────────────────────────────────────────────────────────────────────────
 
-## lint: Ejecuta el lint (oxlint) de los 3 servicios
-lint: lint-backend lint-frontend lint-backoffice
+## lint: Ejecuta el lint (oxlint) de los 4 servicios
+lint: lint-backend lint-frontend lint-backoffice lint-repo
 
 ## lint-backend: Lint del backend
 lint-backend:
@@ -153,6 +164,10 @@ lint-frontend:
 ## lint-backoffice: Lint del backoffice
 lint-backoffice:
 	@cd backoffice && npm run lint
+
+## lint-repo: Lint del repositorio
+lint-repo:
+	@cd repo && npm run lint
 
 ## test: Ejecuta los tests (jest) del backend
 test:
@@ -167,13 +182,25 @@ test:
 #  base con los datos de muestra, rompiendo cualquier `make db-vacia` previo.
 #  Se pasa por el entorno porque dotenv no pisa lo que ya viene definido, así que
 #  manda esto aunque el .env.e2e local tenga otra cosa.
+#
+#  El comando corre DOS fases (ver backend/package.json):
+#    1. `test:e2e:core` — con el throttling ACTIVO: auth, app, repositorio y el
+#       spec dedicado a los límites del login (throttle.e2e-spec.ts).
+#    2. `test:e2e:api` — con THROTTLE_ENABLED=false: el suite api.e2e-spec.ts,
+#       que ejercita el mismo endpoint decenas de veces y no puede correr con
+#       límites; resetear el throttling por fase es lo que mantiene los tests
+#       de límites de verdad en verde.
 test-e2e:
 	@cd backend && APP_ENV=e2e SEED_CONTENIDO=false npm run test:e2e
 
 ## smoke: Smoke test de extremo a extremo contra el stack levantado
 #  Verifica de verdad lo que el usuario ve: rutas públicas, las 8 dimensiones,
 #  los 4 formularios, validación de entrada, auth, roles y rechazo de archivos
-#  peligrosos. Sale con código 1 si algo falla, para encadenarlo en CI.
+#  peligrosos. Sale con código 1 si algo falla.
+#  ⚠ El smoke hace decenas de peticiones de forms desde una IP, así que el
+#  stack local sirve con THROTTLE_ENABLED=false (backend/.env.docker). Si el
+#  backend estuviera throttled, los checks de formularios devolverían 429. Los
+#  límites reales se verifican aparte con la fase core de `test-e2e`.
 smoke:
 	@BASE=$${BASE:-http://localhost} ./scripts/smoke.sh
 
@@ -185,9 +212,10 @@ format:
 # 4. DOCKER (entorno local de contenedores, traefik en http://localhost)
 # ────────────────────────────────────────────────────────────────────────────
 
-## up: Levanta el entorno docker local (5 servicios) en segundo plano
-#  Servicios: postgres (hq-db), backend, frontend, backoffice y traefik.
-#  Rutas: http://localhost  → frontend · http://localhost/admin → backoffice · http://localhost/api → backend
+## up: Levanta el entorno docker local (6 servicios) en segundo plano
+#  Servicios: postgres (hq-db), backend, frontend, backoffice, repo y traefik.
+#  Rutas: http://localhost  → frontend · http://localhost/admin → backoffice
+#         http://localhost/repo → repositorio · http://localhost/api → backend
 up:
 	@$(DOCKER) up -d --build
 	@echo "Levantando... revisa el estado con: make health"
@@ -236,22 +264,10 @@ config:
 #  TRAEFIK — dominio del sitio
 # ────────────────────────────────────────────────────────────────────────────
 
-## traefik-host: Reescribe el Host(...) de los routers de traefik. Uso: make traefik-host HOST=dominio.com
-#  Sin HOST= toma HQ_SITE_HOST de infra/compose/.env.prod (o .env).
-#  Traefik recarga dynamic/ en caliente, no hace falta reiniciar nada.
-traefik-host:
-	@host="$(HOST)"; \
-	if [ -z "$$host" ]; then \
-		envf=$(COMPOSE_DIR)/.env.prod; [ -f "$$envf" ] || envf=$(COMPOSE_DIR)/.env; \
-		host=$$(grep -E '^HQ_SITE_HOST=' "$$envf" 2>/dev/null | cut -d= -f2-); \
-	fi; \
-	if [ -z "$$host" ]; then \
-		echo "[!] No se pudo determinar el dominio. Usa: make traefik-host HOST=tu-dominio.com"; exit 1; \
-	fi; \
-	sed -i.bak 's|Host(`[^`]*`)|Host(`'"$$host"'`)|g' $(COMPOSE_DIR)/../traefik/dynamic/routes.yml; \
-	rm -f $(COMPOSE_DIR)/../traefik/dynamic/routes.yml.bak; \
-	echo "Routers de traefik apuntando a: $$host"; \
-	grep -o 'Host(`[^`]*`)' $(COMPOSE_DIR)/../traefik/dynamic/routes.yml | sort -u
+# El host de los routers ya NO se reescribe con sed: sale de la variable
+# HQ_SITE_HOST que recibe el contenedor traefik (docker-compose.yml). Para
+# cambiar el dominio en producción, edita infra/compose/.env.prod
+# (HQ_SITE_HOST=...) y reinicia: make prod-restart. Ver routes.yml.
 
 # ────────────────────────────────────────────────────────────────────────────
 # 5. BASE DE DATOS
@@ -279,10 +295,15 @@ db-reset:
 #
 #  A diferencia de `db-reset`, aquí no queda ningún dato de muestra: no hay
 #  noticias, documentos, municipios, dimensiones ni mensajes. Lo único que se
-#  siembra es la cuenta de admin (admin@prospectiva.com / Admin123*) y la fila de
-#  configuración del sitio, porque sin una cuenta no hay forma de entrar al
-#  backoffice a llenarla y sin esa fila el sitio no arranca. La segunda cuenta,
-#  de rol editor, se crea desde el propio backoffice.
+#  siembra es la cuenta de admin y la fila de configuración del sitio, porque
+#  sin una cuenta no hay forma de entrar al backoffice a llenarla y sin esa fila
+#  el sitio no arranca. La segunda cuenta, de rol editor, se crea desde el
+#  propio backoffice.
+#
+#  La contraseña del admin ya NO es `Admin123*` (estaba en el repo, público; la
+#  semilla genera una aleatoria y la imprime UNA vez en el log del backend en el
+#  primer arranque con la base vacía). `make smoke` acepta `ADMIN_PASSWORD=…`
+#  para los casos en que la clave no sea la de una base anterior.
 #
 #  El interruptor es SEED_CONTENIDO en backend/.env.docker, que queda puesto a
 #  `false` **de forma permanente**: el seeder siembra las tablas que encuentra
@@ -294,7 +315,7 @@ db-vacia:
 		[ "$$ans" = "si" ] || { echo "Cancelado."; exit 1; }; \
 		$(call sembrar_contenido,false); \
 		$(DOCKER) down -v && $(DOCKER) up -d --build && \
-		echo "" && echo "Base vacía. Entra con admin@prospectiva.com / Admin123* y escríbelo todo a mano." && \
+		echo "" && echo "Base vacía. La contraseña del admin (aleatoria) está en el log del backend." && \
 		echo "Para recuperar los datos de muestra: make db-reset"
 
 # Fija SEED_CONTENIDO en backend/.env.docker. $(1) = true|false.
@@ -358,6 +379,9 @@ db-migrations:
 ## db-schema: Aplica scripts/schema-db.sql a la db (complemento de PRODUCCIÓN)
 #  Opcional: en dev/docker el esquema y la semilla se crean solos (TypeORM
 #  synchronize + seeder). Aquí para el flujo estricto de prod (DB_SYNCHRONIZE=false).
+#  ⚠ Descartado para producción en favor de `make prod-db-init` (genera el esquema
+#    desde las entidades de TypeORM y no puede desincronizarse); este target queda
+#    como alternativa manual para entornos sin Node.
 #
 #  Es idempotente a propósito: prod-up lo llama en cada despliegue, y sin esto
 #  un segundo despliegue moría con 'relation "config_dimensiones" already exists'.
@@ -371,10 +395,11 @@ db-schema:
 		| sed -e 's/^/  /' || true
 	@echo "Esquema aplicado (lo que ya existía se omitió)."
 
-## db-seed: Aplica scripts/seed.sql a la db (semilla inicial para PRODUCCIÓN)
-#  Opcional: el seeder del backend carga los datos iniciales en dev/docker.
+## db-seed: Aplica scripts/seed.sql a la db (semilla inicial)
+#  ⚠ Obsoleto para producción: `make prod-db-init` ya siembra usando el mismo
+#    SeederService que usa la app, así que el contenido no puede divergir.
 db-seed:
-	@if [ ! -s scripts/seed.sql ]; then echo "[!] scripts/seed.sql está vacío. Llénalo con la semilla inicial."; exit 1; fi
+	@if [ ! -s scripts/seed.sql ]; then echo "[!] scripts/seed.sql está vacío. Usa 'make prod-db-init' en su lugar."; exit 1; fi
 	@$(DOCKER) exec -T postgres sh -c 'exec psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"' < scripts/seed.sql && echo "Semilla aplicada."
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -388,6 +413,11 @@ shell:
 # ────────────────────────────────────────────────────────────────────────────
 # 7. PRODUCCIÓN (overlay docker-compose.prod.yml · credenciales y URL reales)
 #    Requiere los .env.prod. Si fallan = te lo dice y te indica `make env-prod`.
+#
+#    FLUJO NORMAL: GitHub Actions construye y publica las imágenes en GHCR, y el
+#    servidor solo hace pull + db-init + up (ver docs/despliegue-aws.md).
+#    Nada de esto compila código, que es lo que tumba una instancia de 1 GB.
+#    prod-build existe solo como plan B para reconstruir en el propio servidor.
 # ────────────────────────────────────────────────────────────────────────────
 
 # Guardia: los targets prod fallan con mensaje claro si no existen los .env.prod
@@ -397,22 +427,72 @@ infra/compose/.env.prod:
 	@echo "  Luego EDITALOS con el password de la db y el dominio real antes de make prod-up."
 	@exit 1
 
-## env-prod: Genera los 4 archivos .env.prod desde los .env.prod.example
-#  Crea: infra/compose/.env.prod · backend/.env.prod · frontend/.env.prod · backoffice/.env.prod
+## env-prod: Genera los 2 archivos .env.prod que SÍ hacen falta
+#  Crea: infra/compose/.env.prod (password de postgres + dominio) y
+#        backend/.env.prod (credenciales de db + JWT_SECRET)
+#  Los .env.prod de frontend/backoffice ya NO hacen falta: la URL de la API se
+#  incrusta en la imagen como build-arg (VITE_API_URL), no como archivo.
+#  En el servidor los genera automáticamente scripts/deploy/bootstrap.sh.
 env-prod:
 	@cp $(COMPOSE_DIR)/.env.prod.example $(COMPOSE_DIR)/.env.prod
 	@cp backend/.env.prod.example backend/.env.prod
-	@cp frontend/.env.prod.example frontend/.env.prod
-	@cp backoffice/.env.prod.example backoffice/.env.prod
-	@echo "Creados los .env.prod. EDÍTALOS: pon el password de la db (los 4) y el dominio real (frontend/backoffice VITE_API_URL) antes de prod-up."
+	@echo "Creados los .env.prod. EDÍTALOS antes de prod-up:"
+	@echo "  · infra/compose/.env.prod → POSTGRES_PASSWORD y HQ_SITE_HOST (dominio real)"
+	@echo "  · backend/.env.prod       → DB_PASSWORD (el MISMO) y un JWT_SECRET nuevo"
+	@echo "  Para generar secretos: openssl rand -hex 24"
 
 ## prod-config: Valida el overlay de producción (config resuelta sin levantar)
 prod-config: infra/compose/.env.prod
 	@$(PROD) config
 
-## prod-build: Construye frontend/backoffice con la URL de prod incrustada (VITE_MODE=prod)
+## prod-build: Construye las imágenes EN ESTA MÁQUINA (solo uso local / emergencia)
+#  ⚠ En un servidor pequeño esto es lo que tumba la instancia (1 vCPU / 1 GB).
+#    El flujo normal es que GitHub Actions construya y este comando solo descargue:
+#    `make prod-deploy`. Déjalo solo como plan B si el registro no está disponible.
 prod-build: infra/compose/.env.prod
-	@$(PROD) build frontend backoffice
+	@$(PROD) build
+
+## prod-pull: Descarga las imágenes publicadas en GHCR (sin compilar nada)
+#  Es el paso que hace el servidor en cada despliegue.
+prod-pull: infra/compose/.env.prod
+	@$(PROD) pull
+
+## prod-login: Guarda credenciales de GHCR en el servidor. Uso: make prod-login TOKEN=ghp_xxx
+#  Necesario si el registro es privado y el bootstrap se hizo sin token.
+prod-login:
+	@[ -n "$(TOKEN)" ] || { echo "Uso: make prod-login TOKEN=ghp_xxx"; exit 1; }
+	@printf '%s' "$(TOKEN)" | docker login ghcr.io -u "$$USER" --password-stdin
+	@echo "Login en ghcr.io guardado."
+
+## prod-db-init: Crea el esquema y siembra la db en producción (idempotente)
+#  ⚠ Imprescindible la PRIMERA VEZ: en prod DB_SYNCHRONIZE=false, así que sin esto
+#    el backend arranca contra una base de datos sin tablas y se cae.
+#  · Crea y arranca primero PostgreSQL y llama a `node dist/cli/db-init.js`,
+#    que sincroniza el esquema desde las entidades de TypeORM y luego siembra
+#    las tablas vacías. Es idempotente y usa el MISMO SeederService que la app.
+#  · `make db-schema` / `make db-seed` (SQL manual) quedan como alternativa para
+#    entornos sin Node; ver la nota de "obsoleto" en sus comentarios.
+#  Es lo que ejecuta scripts/deploy/deploy.sh en cada despliegue.
+prod-db-init: infra/compose/.env.prod
+	@$(PROD) up -d postgres
+	@$(PROD) run --rm --no-deps -T backend node dist/cli/db-init.js
+	@echo "Esquema y semilla aplicados."
+
+## prod-rollback: Vuelve a una versión anterior. Uso: make prod-rollback TAG=v1.0.0
+#  Fija los cuatro tags de imagen y rearranca.
+#  TAG=previous (el valor por defecto de la etiqueta) vuelve a la versión
+#  anterior: deploy.sh etiqueta la imagen en marcha como :previous ANTES de
+#  descargar la nueva. Sin ese paso no habría a dónde volver.
+#  La poda conserva KEEP_IMAGE_VERSIONS versiones por servicio (2 por defecto).
+prod-rollback: infra/compose/.env.prod
+	@[ -n "$(TAG)" ] || { echo "Uso: make prod-rollback TAG=previous (o un tag como v1.0.0)"; exit 1; }
+	@echo "== Reverting a $(TAG) =="
+	@HQ_BACKEND_IMAGE=ghcr.io/innovacion-eam/hq-backend:$(TAG) \
+	 HQ_FRONTEND_IMAGE=ghcr.io/innovacion-eam/hq-frontend:$(TAG) \
+	 HQ_BACKOFFICE_IMAGE=ghcr.io/innovacion-eam/hq-backoffice:$(TAG) \
+	 HQ_REPO_IMAGE=ghcr.io/innovacion-eam/hq-repo:$(TAG) \
+	 $(PROD) up -d
+	@echo "Verifica con: make prod-smoke"
 
 ## prod-up: Levanta el entorno de producción (usa .env.prod)
 #  IMPORTANTE: antes de levantar, la base debe tener el esquema. Con
@@ -425,9 +505,12 @@ prod-up: infra/compose/.env.prod
 	@$(MAKE) --no-print-directory db-migrate
 	@$(PROD) up -d
 
-## prod-deploy: Construye y levanta producción en un solo paso (dominio + build + up)
-#  Primero reescribe los routers de traefik al dominio de infra/compose/.env.prod.
-prod-deploy: traefik-host prod-build prod-up
+## prod-deploy: Descarga y levanta la última versión publicada (pull + db-init + up)
+#  No compila: eso ocurre en GitHub Actions. Es exactamente lo que ejecuta el
+#  despliegue automático por SSH (scripts/deploy/deploy.sh). El dominio se
+#  cambia en infra/compose/.env.prod (HQ_SITE_HOST), no en el código de traefik.
+prod-deploy: prod-pull prod-db-init prod-up
+	@echo "Desplegado. Verifica con: make prod-smoke"
 
 ## prod-down: Detiene producción (SIN borrar datos)
 prod-down: infra/compose/.env.prod
@@ -456,25 +539,58 @@ prod-shell: infra/compose/.env.prod
 	@$(PROD) exec -it $(or $(SERVICE),backend) sh
 
 ## prod-smoke: Smoke test de producción (verifica que la app responde de verdad)
-#  Comprueba: contenedores healthy · frontend (/) · backoffice (/admin) · backend
-#  (/api/health/db) · comportamiento de https (depende de la decisión SSL pendiente).
+#  Comprueba: contenedores healthy · frontend (/) · backoffice (/admin) · repo
+#  (/repo) · backend (/api/health/db) · comportamiento de https (depende de la
+#  decisión SSL pendiente).
+#  OJO: se envía el Host de HQ_SITE_HOST porque los routers de Traefik filtran por
+#  host. Sin esa cabecera, con el dominio real configurado todo respondería 404.
 prod-smoke: infra/compose/.env.prod
 	@echo "── Smoke test de producción ──"
-	@echo "[1/4] Contenedores:"
-	@$(PROD) ps --format "  {{.Name}}: {{.Status}}"
-	@echo "[2/4] Frontend y backoffice (vía traefik):"
-	@curl -sk -o /dev/null -w "  http://localhost/        → HTTP %{http_code}\n" http://localhost/
-	@curl -sk -o /dev/null -w "  http://localhost/admin   → HTTP %{http_code}\n" http://localhost/admin
-	@echo "[3/4] Backend health (db):"
-	@curl -sk http://localhost/api/health/db | head -c 200; echo
-	@echo "[4/4] HTTPS (según decisión SSL):"
-	@curl -sk -o /dev/null -w "  https://localhost → HTTP %{http_code}\n" https://localhost/ 2>/dev/null || echo "  (SSL aún no configurado)"
+	@HQ_HOST=$$(grep -E '^HQ_SITE_HOST=' $(COMPOSE_DIR)/.env.prod | cut -d= -f2- | tr -d '"'); \
+	HQ_HOST="$${HQ_HOST:-localhost}"; \
+	echo "  Host probado: $$HQ_HOST"; \
+	echo "[1/6] Contenedores:"; \
+	$(PROD) ps --format "  {{.Name}}: {{.Status}}"; \
+	echo "[2/6] Frontend, backoffice y repo (vía traefik):"; \
+	curl -sk -o /dev/null -w "  /        → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/; \
+	curl -sk -o /dev/null -w "  /admin   → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/admin; \
+	curl -sk -o /dev/null -w "  /repo    → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" http://localhost/repo; \
+	echo "[3/6] Assets reales:"; \
+	echo "  (pedir /admin o /repo solo devuelve el HTML: el panel puede salir en blanco aunque dé 200)"; \
+	for svc in frontend backoffice repo; do \
+	  asset=$$($(PROD) exec -T $$svc sh -c 'ls /usr/share/nginx/html/assets/*.js 2>/dev/null | head -1' 2>/dev/null | tr -d '\r'); \
+	  if [ -z "$$asset" ]; then echo "  [!] No se encontró ningún asset en $$svc"; continue; fi; \
+	  base=$$(basename "$$asset"); \
+	  prefix=""; \
+	  if [ "$$svc" = "backoffice" ]; then prefix="/admin"; fi; \
+	  if [ "$$svc" = "repo" ]; then prefix="/repo"; fi; \
+	  code=$$(curl -sk -o /dev/null -w '%{http_code}' -H "Host: $$HQ_HOST" "http://localhost$$prefix$$asset"); \
+	  if [ "$$code" = "200" ]; then \
+	    echo "  OK       $$svc $$prefix$$base → HTTP 200"; \
+	  else \
+	    echo "  FALLO    $$svc $$prefix$$base → HTTP $$code"; \
+	    echo "           [!] $$svc NO sirve sus assets: la página saldrá en blanco."; \
+	  fi; \
+	done; \
+	echo "[4/6] Backend health (db):"; \
+	curl -sk -H "Host: $$HQ_HOST" http://localhost/api/health/db | head -c 200; echo; \
+	echo "[5/6] API del repositorio (pública):"; \
+	curl -sk -H "Host: $$HQ_HOST" http://localhost/api/repositorio/estadisticas | head -c 120; echo; \
+	echo "[6/6] HTTPS (neutro si aún no hay certificado):"; \
+	if [ -s $(COMPOSE_DIR)/../traefik/certs/acme.json ] 2>/dev/null; then \
+	  curl -sk -o /dev/null -w "  https://$$HQ_HOST → HTTP %{http_code}\n" -H "Host: $$HQ_HOST" https://localhost/ || echo "  (hay acme.json pero https no responde)"; \
+	else \
+	  echo "  (sin certificado todavía: esperado hasta que se active el TLS)"; \
+	fi
 
-## deploy: Actualiza el server a la última versión (git pull + build + up de producción)
-#  ⚠ Usar en la rama correcta y con el trabajo local commiteado (git pull fallará si hay
-#     cambios sin commitear). Es el comando de "salir a producción" de cada cambio.
+## deploy: Despliegue MANUAL desde tu máquina (git pull + prod-deploy)
+#  En el flujo normal esto no lo usas: haces `git push origin main` y GitHub
+#  Actions construye, publica en GHCR y despliega en la instancia por SSH.
+#  Este comando sirve para el despliegue manual o para probar el overlay en local.
+#  OJO: `prod-deploy` descarga imágenes linux/amd64 construidas en CI, así que no
+#  es lo que quieres si estás en una Mac con Apple Silicon.
 deploy:
-	@echo "── Desplegando la última versión ──"
+	@echo "── Desplegando la última versión (manual) ──"
 	@git pull
 	@$(MAKE) prod-deploy
 	@echo "Desplegado. Verifica con: make prod-smoke"
@@ -536,10 +652,10 @@ status:
 # Targets sin archivo asociado (fuerzan a make a ejecutarlos siempre)
 # ────────────────────────────────────────────────────────────────────────────
 .PHONY: help doctor dev-status \
-        install install-backend install-frontend install-backoffice \
-        dev dev-backend dev-frontend dev-backoffice dev-stop \
-        lint lint-backend lint-frontend lint-backoffice test test-e2e smoke format \
-        up down down-v ps health logs build rebuild restart config traefik-host \
+install install-backend install-frontend install-backoffice install-repo \
+        dev dev-backend dev-frontend dev-backoffice dev-repo dev-stop \
+        lint lint-backend lint-frontend lint-backoffice lint-repo test test-e2e smoke format \
+        up down down-v ps health logs build rebuild restart config \
         db-shell db-logs db-reset db-vacia db-migrate db-migrations db-schema db-seed shell \
         env-prod prod-config prod-build prod-up prod-deploy prod-down \
         prod-down-v prod-ps prod-logs prod-restart prod-shell prod-smoke deploy \

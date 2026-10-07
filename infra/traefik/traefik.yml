@@ -23,6 +23,89 @@ providers:
   file:
     directory: /etc/traefik/dynamic
     watch: true
+    # Plantillas GO: los routers usan `{{ env "HQ_SITE_HOST" }}` (ver
+    # dynamic/routes.yml) para matchear el dominio real, la IP pública o
+    # localhost. En Traefik v3 el templating NO se activa con una opción: está
+    # siempre disponible en los archivos de dynamic/ (el campo
+    # `providers.file.template` que existía en v2 ya no es válido en v3 — si se
+    # pone, Traefik no arranca: "field not found, node: template"). La variable
+    # nunca falta: el compose la pasa con valor por defecto localhost y .env.prod
+    # la fija con el dominio real.
+
+# ─────────────────────────────────────────────────────────────────
+# Resolver de Let's Encrypt (ACME) — CONFIG ESTÁTICA, descomentar
+# ─────────────────────────────────────────────────────────────────
+# OJO, y esto es importante: `certificatesResolvers` SOLO es válido en la
+# configuración ESTÁTICA (este fichero). Si se pone en un fichero de
+# dynamic/, Traefik no avisa del router concreto: descarta el fichero entero
+# y se queda con CERO routers, así que TODO el sitio responde 404. Ya pasó.
+#
+# Está comentado a propósito (no hay dominio ni email todavía). Mientras siga
+# aquí, el sitio se sirve por HTTP sin que se intente emitir nada.
+#
+# PASOS PARA ACTIVARLO cuando tengáis dominio, IP pública fija y puerto 80
+# abierto desde internet. Las partes 1-3 son PARA LOS DUEÑOS DEL DOMINIO:
+#
+#   1. Que el registro A del dominio apunte a la IP de la instancia.
+#   2. Que el puerto 80 responda desde internet (lo necesita el challenge).
+#   3. Poner aquí un email real: Let's Encrypt lo usa para avisar de caducidad.
+#
+# La parte 4 la hacemos nosotros, en este orden:
+#
+#   4a. Quitar las comillas de este bloque y poner el email real.
+#   4b. Añadir `tls: { certResolver: letsencrypt }` a los TRES routers de
+#       dynamic/routes.yml (frontend, backoffice y api).
+#   4c. Recrear Traefik, que es quien lee este fichero estático:
+#
+#         cd /opt/hq-prospectiva2050
+#         HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
+#
+#       y comprobar:  curl -I https://TU_DOMINIO/   → debe responder 200 y
+#       traer la cabecera de certificado.
+#
+# ── ALTERNATIVA si el dueño del dominio no puede dejar el 80 abierto,
+#    o si hay un CDN por delante: validación por DNS (comenta el
+#    httpChallenge y descomenta el dnsChallenge del proveedor que os vale).
+#    Esa vía funciona aunque el registro A todavía no apunte a la instancia.
+#    Detalle completo en docs/dominio-y-ssl.md.
+# ─────────────────────────────────────────────────────────────────
+#
+# tls:
+#   certificatesResolvers:
+#     letsencrypt:
+#       acme:
+#         email: pon-aqui-tu-email-real@example.com
+#
+#         # Validación por HTTP en el 80: la más simple, sin permisos
+#         # especiales, pero exige que el dominio ya apunte a la instancia.
+#         httpChallenge:
+#           entryPoint: web
+#
+#         # ── ALTERNATIVA por DNS (descomenta UNA de estas) ──────────
+#         # dnsChallenge:
+#         #   provider: cloudflare
+#         #   resolver:
+#         #     cloudflare:
+#         #       credentials:
+#         #         CF_DNS_API_TOKEN: se guarda como secreto, no aquí
+#
+#         # dnsChallenge:
+#         #   provider: route53
+#         #   resolver:
+#         #     route53:
+#         #       credentials:
+#         #         accessKeyId:     id
+#         #         secretAccessKey: clave
+#
+#         # dnsChallenge:
+#         #   provider: gandi
+#         #   ...
+#         # ─────────────────────────────────────────────────────────
+#
+#         # El directorio /etc/traefik/certs está montado como volumen
+#         # (docker-compose.yml), así que el certificado sobrevive a los
+#         # despliegues. No lo borres a mano.
+#         storage: /etc/traefik/certs/acme.json
 
 # Endpoint /ping usado por el healthcheck del compose
 ping: true
