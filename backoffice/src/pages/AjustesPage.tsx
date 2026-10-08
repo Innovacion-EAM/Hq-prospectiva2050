@@ -64,7 +64,7 @@ const MODULOS = [
   {
     id: "proyecto",
     label: "El proyecto",
-    desc: "La página /proyecto —no el bloque oscuro de la portada—: titular, bajada, los dos párrafos, las tres etapas y las entidades aliadas.",
+    desc: "La página /proyecto —no el bloque oscuro de la portada—: titular, bajada, los dos párrafos y las tres etapas.",
   },
   {
     id: "dimensiones",
@@ -84,7 +84,7 @@ const MODULOS = [
   {
     id: "participa",
     label: "Participa",
-    desc: "Los talleres de /participa se editan en Configuración → Talleres, y los doce municipios, en Configuración → Municipios.",
+    desc: "Los talleres de /participa se editan en Configuración → Talleres.",
   },
   {
     id: "contactos",
@@ -146,7 +146,7 @@ const PANTALLAS: Record<ModuloId, (props: PropsModulo) => ReactNode> = {
   participa: () => (
     <ModuloPendiente
       bloque="la participación"
-      detalle="La franja con los doce municipios se edita hoy en Home; los municipios, en Configuración → Municipios; y los talleres de /participa, en Configuración → Talleres."
+      detalle="La franja con los doce municipios se edita hoy en Home, y los talleres de /participa, en Configuración → Talleres."
     />
   ),
   contactos: ModuloContactos,

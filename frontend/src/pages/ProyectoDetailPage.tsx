@@ -1,18 +1,34 @@
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 import { NotFoundPage } from "./NotFoundPage";
+
+/** Baraja una copia de la lista (Fisher–Yates) sin tocar el original. */
+function barajar<T>(lista: T[]): T[] {
+  const copia = [...lista];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
 
 export function ProyectoDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { PROJECT_PAGES, getProject } = useSite();
   const page = getProject(slug ?? "");
 
+  // Tres recomendadas al azar para que no sean siempre las mismas: se barajan
+  // una vez por ficha (cuando cambia el slug), no en cada render.
+  const others = useMemo(
+    () => barajar(PROJECT_PAGES.filter((p) => p.slug !== (page?.slug ?? ""))).slice(0, 3),
+    [PROJECT_PAGES, page],
+  );
+
   if (!page) {
     return <NotFoundPage />;
   }
-
-  const others = PROJECT_PAGES.filter((p) => p.slug !== page.slug).slice(0, 3);
 
   return (
     <>
@@ -25,8 +41,8 @@ export function ProyectoDetailPage() {
               alt=""
               className="mb-8 h-72 w-full rounded-2xl object-cover"
             />
-            {page.body.map((para) => (
-              <p key={para.slice(0, 40)} className="mt-4 text-base leading-relaxed text-body">
+            {page.body.map((para, i) => (
+              <p key={i} className="mt-4 text-base leading-relaxed text-body">
                 {para}
               </p>
             ))}

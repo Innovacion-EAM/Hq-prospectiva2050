@@ -1,6 +1,5 @@
 import { Field, Input, TextArea } from "@/components/ui";
 import type { SiteSettings } from "@/lib/types";
-import { EntidadesEditor } from "./entidades-editor";
 import { useEditarPortada } from "./editor-portada";
 import { ModuloCard } from "./nav-links-editor";
 import { SelectorImagen } from "./selector-imagen";
@@ -15,12 +14,12 @@ const PLACEHOLDER_ETAPAS = [
  * Módulo «El proyecto»: el contenido de la página `/proyecto`.
  *
  * No es el bloque oscuro de la portada (ese se edita en Home). Es la página
- * del menú: el titular «Una visión compartida…», los dos párrafos, las tres
- * etapas y las entidades aliadas.
+ * del menú: el titular «Una visión compartida…», los dos párrafos y las tres
+ * etapas.
  *
- * Las tarjetas de detalle (qué es, gobernanza, línea de tiempo…) y los
- * municipios siguen en sus pantallas: Páginas → El proyecto y Configuración
- * → Municipios.
+ * Las tarjetas de detalle (qué es, gobernanza, línea de tiempo…) siguen en su
+ * pantalla: la barra lateral → El proyecto. La cobertura territorial y las
+ * entidades aliadas son fijas del diseño y no se editan.
  */
 export function ModuloProyecto({
   form,
@@ -123,20 +122,8 @@ export function ModuloProyecto({
         </ol>
       </ModuloCard>
 
-      <ModuloCard
-        titulo="Entidades aliadas"
-        descripcion="La lista al pie de /proyecto y la «Red institucional» de /contactos. Se puede agregar, quitar, cambiar el nombre y mover el orden."
-      >
-        <EntidadesEditor
-          value={ep.entidades}
-          onChange={(entidades) => editar("elProyecto", "entidades", entidades)}
-        />
-      </ModuloCard>
-
       <p className="text-xs text-muted">
-        Lo que dejes vacío se sustituye por el texto que trae el sitio. Una
-        lista de entidades vacía también: el sitio muestra entonces las trece
-        de siempre.
+        Lo que dejes vacío se sustituye por el texto que trae el sitio.
       </p>
     </div>
   );

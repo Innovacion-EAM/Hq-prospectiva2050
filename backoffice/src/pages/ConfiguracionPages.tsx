@@ -1,9 +1,8 @@
-import { Navigate } from "react-router-dom";
 import { ConfigCrud, type FieldDef } from "@/components/config-crud";
 import { Badge, PageHeader } from "@/components/ui";
 import { collections } from "@/lib/data";
 import { ICONOS_CATEGORIA, STATUS_TALLER } from "@/lib/types";
-import type { DocCategoria, Municipio, Taller } from "@/lib/types";
+import type { DocCategoria, Taller } from "@/lib/types";
 
 /**
  * Sección de estadísticas del panel, **vacía a propósito**.
@@ -26,37 +25,6 @@ export function EstadisticasPage() {
         tarjeta «Cifras de la portada», donde se ven junto al resto del inicio.
       </p>
     </div>
-  );
-}
-
-export function EntidadesPage() {
-  return <Navigate to="/configuracion?modulo=proyecto" replace />;
-}
-
-export function MunicipiosPage() {
-  const fields: FieldDef<Municipio>[] = [
-    { key: "nombre", label: "Nombre del municipio", hint: "Único campo obligatorio. Ej: Filandia." },
-    {
-      key: "dato",
-      label: "Dato destacado",
-      hint: "Una línea, la que aparece bajo el nombre en el sitio. Ej: Reserva de la biosfera.",
-    },
-    {
-      key: "descripcion",
-      label: "Descripción",
-      type: "textarea",
-      hint: "Párrafo breve con el contexto del municipio. Opcional.",
-    },
-  ];
-  return (
-    <ConfigCrud<Municipio>
-      title="Municipios"
-      description="Los doce municipios del departamento del Quindío. Alimentan la sección de cobertura territorial del sitio y el formulario de inscripción; el orden en que aparecen es el de esta lista."
-      store={collections.municipios}
-      empty={() => ({ id: 0, nombre: "", dato: "", descripcion: "" })}
-      fields={fields}
-      columns={(m) => [m.nombre, m.dato ?? "—"]}
-    />
   );
 }
 

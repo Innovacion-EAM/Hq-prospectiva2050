@@ -13,7 +13,6 @@ import {
   KeyRound,
   LogOut,
   Megaphone,
-  MapPin,
   Menu,
   Newspaper,
   PanelLeftClose,
@@ -73,7 +72,6 @@ function getSections(role: Role): { title: string; items: NavItem[] }[] {
       items: [
         { to: "/configuracion", label: "Ajustes del sitio", icon: Settings, end: true },
         { to: "/configuracion/estadisticas", label: "Estadísticas", icon: ListChecks },
-        { to: "/configuracion/municipios", label: "Municipios", icon: MapPin },
         { to: "/configuracion/talleres", label: "Talleres y eventos", icon: CalendarDays },
         { to: "/configuracion/categorias", label: "Categorías de documentos", icon: FolderOpen },
         {

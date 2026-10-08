@@ -20,22 +20,40 @@ import {
   TextArea,
   Thumb,
 } from "@/components/ui";
+import { MediaPicker } from "@/components/media-picker";
 import type { PaginaProyecto } from "@/lib/types";
 
 export function ProyectoListPage() {
   const { items, loading, remove } = useCollection(collections.paginas());
+  const [q, setQ] = useState("");
+
+  const filtradas = items.filter((p) =>
+    `${p.title} ${p.slug} ${p.kicker}`.toLowerCase().includes(q.trim().toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Páginas del proyecto"
-        description="Contenido de las páginas bajo /proyecto: qué es, contexto, objetivo, gobernanza, principios y línea de tiempo."
+        description="Las tarjetas que se ven en /proyecto, en el orden en que se crean. Cada una tiene su ficha de detalle."
         actions={
           <LinkBtn to="/proyecto/nuevo" variant="lime">
             <BookOpen className="size-4" /> Nueva página
           </LinkBtn>
         }
       />
+
+      {!loading && items.length > 0 ? (
+        <div className="max-w-sm">
+          <Input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar por título o slug…"
+            aria-label="Buscar páginas del proyecto"
+          />
+        </div>
+      ) : null}
 
       {loading ? (
         <div className="p-14">
@@ -46,10 +64,15 @@ export function ProyectoListPage() {
           title="No hay páginas"
           action={<LinkBtn to="/proyecto/nuevo" variant="lime">Crear página</LinkBtn>}
         />
+      ) : filtradas.length === 0 ? (
+        <EmptyState
+          title="Sin resultados"
+          action={<Button variant="outline" onClick={() => setQ("")}>Limpiar búsqueda</Button>}
+        />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-stone bg-paper">
           <ul className="divide-y divide-stone">
-            {items.map((p) => (
+            {filtradas.map((p) => (
               <li
                 key={p.id}
                 className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-fog/60"
@@ -201,13 +224,13 @@ export function ProyectoFormPage() {
                 <Input value={guardar.kicker} onChange={(e) => commit({ kicker: e.target.value })} placeholder="El proyecto" />
               </Field>
             </FormGrid>
-            <Field label="Imagen">
-              <Input value={guardar.image} onChange={(e) => commit({ image: e.target.value })} placeholder="/images/card-que-es.jpg" />
+            <Field label="Imagen" hint="La portada de la tarjeta y de la ficha. Puedes subir una o elegir una de la galería.">
+              <MediaPicker value={guardar.image} onSelect={(url) => commit({ image: url })} />
             </Field>
-            <Field label="Resumen" hint="Se usa en tarjetas y buscador.">
+            <Field label="Descripción corta" hint="El texto que aparece en la tarjeta de /proyecto y en las recomendadas.">
               <TextArea rows={3} value={guardar.excerpt} onChange={(e) => commit({ excerpt: e.target.value })} />
             </Field>
-            <Field label="Lead" hint="Primer párrafo destacado de la página.">
+            <Field label="Descripción / introducción" hint="La frase destacada bajo el título, en la ficha de detalle.">
               <TextArea rows={3} value={guardar.lead} onChange={(e) => commit({ lead: e.target.value })} />
             </Field>
           </CardBody>
@@ -221,7 +244,7 @@ export function ProyectoFormPage() {
             <div className="rounded-xl bg-fog p-4 text-xs text-muted">
               <p className="font-display text-xs font-bold text-ink">Campos que puedes editar</p>
               <p className="mt-1.5">
-                Título, kicker, imagen, resumen, párrafo de introducción (lead) y el cuerpo del artículo. Cada
+                Título, etiqueta, imagen, descripción corta, descripción de la ficha y el contenido. Cada
                 página se publica automáticamente en /proyecto.
               </p>
             </div>
@@ -232,10 +255,10 @@ export function ProyectoFormPage() {
       <Card>
         <CardBody>
           <ParagraphEditor
-            label="Cuerpo"
+            label="Contenido"
             value={guardar.body}
             onChange={(body) => commit({ body })}
-            hint="Cada bloque es un párrafo de la página."
+            hint="Cada bloque es un párrafo de la ficha (la «info» del proyecto)."
           />
         </CardBody>
       </Card>

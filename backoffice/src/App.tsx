@@ -18,9 +18,7 @@ import { RutaNoEncontradaPage } from "@/pages/RutaNoEncontradaPage";
 import { MiCuentaPage } from "@/pages/MiCuentaPage";
 import {
   CategoriasPage,
-  EntidadesPage,
   EstadisticasPage,
-  MunicipiosPage,
   TalleresPage,
 } from "@/pages/ConfiguracionPages";
 
@@ -65,8 +63,6 @@ export default function App() {
 
         <Route path="/configuracion" element={<AjustesPage />} />
         <Route path="/configuracion/estadisticas" element={<EstadisticasPage />} />
-        <Route path="/configuracion/entidades" element={<EntidadesPage />} />
-        <Route path="/configuracion/municipios" element={<MunicipiosPage />} />
         <Route path="/configuracion/talleres" element={<TalleresPage />} />
         <Route path="/configuracion/categorias" element={<CategoriasPage />} />
         {/* La galería es parte del flujo editorial de noticias y documentos,

@@ -1,17 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { MunicipiosSection } from "@/components/municipios-section";
 import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 import { cn } from "@/lib/utils";
 
+/** Cuántas tarjetas de proyecto se muestran por cada sección del paginador. */
+const PROYECTOS_POR_PAGINA = 6;
+
 /**
  * La página «El proyecto» (`/proyecto`).
  *
- * Todo lo que se ve aquí se edita desde el panel en Ajustes → El proyecto: el
- * hero (imagen de fondo, titular e intro), los dos párrafos, las tres etapas y
- * la lista de entidades aliadas, con su orden. El resto —las tarjetas de las
- * páginas de detalle y la cobertura territorial— vienen de sus propias
- * pantallas (Configuración → Proyecto y Configuración → Municipios).
+ * El texto (fondo, titular, intro, los dos párrafos y las tres etapas) se edita
+ * en Ajustes → El proyecto. Las tarjetas salen del CRUD de la barra lateral
+ * («El proyecto»), en orden de creación, y se paginan de a seis para que la
+ * página no se haga interminable cuando haya muchas. La cobertura territorial y
+ * las entidades aliadas son fijas del diseño.
  *
  * Cuando un texto viene vacío cae al del sitio, como en el resto de la portada
  * (ver `textoO` y `listaO` en `site-context.tsx`).
@@ -19,6 +23,23 @@ import { cn } from "@/lib/utils";
 export function ProyectoPage() {
   const { ENTITIES, PORTADA, PROJECT_PAGES } = useSite();
   const ep = PORTADA.elProyecto;
+
+  const totalPaginas = Math.max(1, Math.ceil(PROJECT_PAGES.length / PROYECTOS_POR_PAGINA));
+  const [pagina, setPagina] = useState(1);
+
+  // Si se eliminan páginas, la sección guardada puede quedar fuera de rango: se
+  // recorta al vuelo para no mostrar una grilla vacía.
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaActual - 1) * PROYECTOS_POR_PAGINA;
+  const visibles = PROJECT_PAGES.slice(inicio, inicio + PROYECTOS_POR_PAGINA);
+
+  function irA(n: number) {
+    setPagina(n);
+    document
+      .getElementById("tarjetas-proyecto")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <>
       <PageHero
@@ -49,8 +70,11 @@ export function ProyectoPage() {
             </ol>
           </aside>
         </div>
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {PROJECT_PAGES.map((p) => (
+        <div
+          id="tarjetas-proyecto"
+          className="mt-14 grid scroll-mt-20 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {visibles.map((p) => (
             <Link
               key={p.slug}
               to={`/proyecto/${p.slug}`}
@@ -69,6 +93,32 @@ export function ProyectoPage() {
             </Link>
           ))}
         </div>
+
+        {totalPaginas > 1 ? (
+          <nav
+            aria-label="Paginación de las páginas del proyecto"
+            className="mt-10 flex flex-wrap items-center justify-center gap-2"
+          >
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => irA(n)}
+                aria-current={n === paginaActual ? "page" : undefined}
+                aria-label={`Ir a la página ${n}`}
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl border font-display text-sm font-semibold transition-colors",
+                  n === paginaActual
+                    ? "border-lime bg-lime text-lime-fg"
+                    : "border-stone bg-paper text-ink hover:border-lime-hot",
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </nav>
+        ) : null}
+
         {/* La cobertura territorial va antes que las aliadas: el territorio es
             quién participa, las entidades son quién organiza. Y con la lista de
             municipios ya a la vista, la de las catorce aliadas se lee como lo que

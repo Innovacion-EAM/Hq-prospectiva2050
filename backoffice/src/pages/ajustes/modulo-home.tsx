@@ -51,8 +51,8 @@ export const LINEAS_TITULAR_MAX = 10;
  * quien edita no tenga que saltar de arriba abajo. Lo que **no** está aquí, y es
  * a propósito:
  *
- *  - **Las Municipalidades** (la lista de los doce municipios): igual, en
- *    Configuración → Municipios.
+ *  - **Las Municipalidades**: la lista de los doce municipios es fija del
+ *    sitio y no se edita; aquí solo se edita el texto que la acompaña.
  *  - **Las categorías de documentos**: Configuración → Categorías.
  *  - **Las noticias**: son contenido, se editan en Noticias.
  *  - **Las dimensiones**: Configuración → Dimensiones.
@@ -242,7 +242,7 @@ export function ModuloHome({
 
       <ModuloCard
         titulo="Municipios"
-        descripcion="La franja con los nombres de los doce municipios. Los municipios en sí, en Configuración → Municipios."
+        descripcion="La franja con los nombres de los doce municipios. La lista es fija del sitio; aquí solo se cambia el texto que la acompaña."
       >
         <Field label="Texto">
           <Input
