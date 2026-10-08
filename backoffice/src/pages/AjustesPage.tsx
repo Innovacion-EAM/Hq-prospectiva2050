@@ -10,6 +10,7 @@ import { ModuloHeader } from "./ajustes/modulo-header";
 import { LINEAS_TITULAR_MAX, ModuloHome } from "./ajustes/modulo-home";
 import { ModuloPendiente } from "./ajustes/modulo-pendiente";
 import { ModuloProyecto } from "./ajustes/modulo-proyecto";
+import { ModuloDimensiones } from "./ajustes/modulo-dimensiones";
 import { ModuloContactos } from "./ajustes/modulo-contactos";
 import { ModuloFooter } from "./ajustes/modulo-footer";
 import { ModuloLegal } from "./ajustes/modulo-legal";
@@ -69,7 +70,7 @@ const MODULOS = [
   {
     id: "dimensiones",
     label: "Dimensiones",
-    desc: "Las dimensiones en sí, con su resumen y sus capas, se editan en Configuración → Dimensiones; el texto que las anuncia en la portada, en Home.",
+    desc: "El titular y la bajada de /dimensiones. Las dimensiones en sí, con su resumen y sus capas, se editan en la barra lateral → Dimensiones; sus gráficas, en Configuración → Estadísticas.",
   },
   {
     id: "documentos",
@@ -125,12 +126,7 @@ const PANTALLAS: Record<ModuloId, (props: PropsModulo) => ReactNode> = {
   header: ModuloHeader,
   home: ModuloHome,
   proyecto: ModuloProyecto,
-  dimensiones: () => (
-    <ModuloPendiente
-      bloque="las dimensiones"
-      detalle="La bajada del recuadro que las anuncia se edita hoy en Home, y las dimensiones en sí, con su resumen y sus capas, en Configuración → Dimensiones."
-    />
-  ),
+  dimensiones: ModuloDimensiones,
   documentos: () => (
     <ModuloPendiente
       bloque="los documentos"
@@ -221,6 +217,10 @@ export function AjustesPage() {
             fondo: cadena(value.home?.elProyecto?.fondo),
             etapas: etapasDelFormulario(value.home?.elProyecto?.etapas),
             entidades: [...(value.home?.elProyecto?.entidades ?? [])],
+          },
+          elDimensiones: {
+            ...PORTADA_VACIA.elDimensiones,
+            ...(value.home?.elDimensiones ?? {}),
           },
           cobertura: { ...PORTADA_VACIA.cobertura, ...(value.home?.cobertura ?? {}) },
           documentos: { ...PORTADA_VACIA.documentos, ...(value.home?.documentos ?? {}) },

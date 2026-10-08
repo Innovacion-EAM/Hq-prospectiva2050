@@ -713,6 +713,25 @@ export class ElProyectoPortadaDto {
   entidades?: string[];
 }
 
+/**
+ * El hero de la página `/dimensiones`: titular y bajada.
+ *
+ * No es un bloque de la portada: es la página que cuelga del menú. Vive en
+ * `home` porque ahí viven las secciones editables del sitio, y el módulo
+ * «Dimensiones» del panel la edita con el mismo guardado que el resto.
+ */
+export class ElDimensionesPortadaDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  titulo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  intro?: string;
+}
+
 /** La tira de municipios. */
 export class CoberturaPortadaDto extends SeccionDto {}
 
@@ -872,6 +891,11 @@ export class HomeDto {
   @ValidateNested()
   @Type(() => ElProyectoPortadaDto)
   elProyecto?: ElProyectoPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ElDimensionesPortadaDto)
+  elDimensiones?: ElDimensionesPortadaDto;
 
   @IsOptional()
   @ValidateNested()

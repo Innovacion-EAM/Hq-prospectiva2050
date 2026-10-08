@@ -125,6 +125,10 @@ export const PORTADA_VACIA = {
     // sitio" (`listaO` en el frontend), y el botón de reponer la rellena.
     entidades: [],
   },
+  elDimensiones: {
+    titulo: "",
+    intro: "",
+  },
   cobertura: { titulo: "", texto: "" },
   documentos: { titulo: "", texto: "", botonColor: COLOR_POR_DEFECTO },
   repositorio: {

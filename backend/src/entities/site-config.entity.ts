@@ -233,6 +233,18 @@ export type ElProyectoPortada = {
 };
 
 /**
+ * La página «Dimensiones» (`/dimensiones`).
+ *
+ * Igual que `ElProyectoPortada`: vive en `home` porque ahí viven las secciones
+ * editables del sitio, y es solo el hero (titular y bajada). Las dimensiones en
+ * sí son una colección aparte (`dimensiones`) que se edita en la barra lateral.
+ */
+export type ElDimensionesPortada = {
+  titulo: string;
+  intro: string;
+};
+
+/**
  * El bloque de documentos, que además lleva el botón «Ver más» de cada
  * categoría.
  *
@@ -336,6 +348,8 @@ export type Portada = {
   proyecto: ProyectoPortada;
   /** El contenido de la página `/proyecto`: alojado aquí por compartir `home`. */
   elProyecto: ElProyectoPortada;
+  /** El hero de la página `/dimensiones`: alojado aquí por compartir `home`. */
+  elDimensiones: ElDimensionesPortada;
   /** La tira de municipios: «Todo el departamento participa». */
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;

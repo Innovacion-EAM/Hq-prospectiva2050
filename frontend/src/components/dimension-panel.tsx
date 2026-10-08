@@ -124,7 +124,13 @@ export function DimensionDetail({ dim }: { dim: Dimension }) {
   const rows = chartRows(dim);
   const tieneGraficas = dim.charts.length > 0;
   return (
-    <div className="mt-8 animate-[fade-in_400ms_var(--ease-out)] rounded-2xl border border-stone bg-fog/40 p-5 sm:p-6">
+    // La `key` remonta toda la ficha al cambiar de dimensión: sin ella, recharts
+    // conserva el `ResponsiveContainer` del anterior y la gráfica de la nueva no
+    // se dibuja hasta el primer re-render (pasar el mouse por encima).
+    <div
+      key={dim.slug}
+      className="mt-8 animate-[fade-in_400ms_var(--ease-out)] rounded-2xl border border-stone bg-fog/40 p-5 sm:p-6"
+    >
       <div className="flex flex-wrap items-end justify-between gap-4">
         <h3 className="font-display text-lg font-bold text-ink sm:text-xl">{dim.title}</h3>
         <Link
@@ -139,12 +145,19 @@ export function DimensionDetail({ dim }: { dim: Dimension }) {
       {tieneGraficas ? (
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           {dim.charts.map((s) => (
-            <div key={s.name} className="rounded-xl border border-stone bg-paper p-3">
+            <div key={s.name} className="min-w-0 rounded-xl border border-stone bg-paper p-3">
               <p className="mb-2 font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
                 {s.name}
               </p>
               <div className="h-32">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer
+                  width="100%"
+                  height="100%"
+                  // Sin esto, la gráfica nace con ancho 0 hasta que recharts mide
+                  // el contenedor (o el usuario mueve el mouse). Con una medida
+                  // inicial pinta desde el primer frame y luego se ajusta.
+                  initialDimension={{ width: 480, height: 128 }}
+                >
                   <RLine data={rows} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                     <CartesianGrid stroke="#cfd6d4" strokeDasharray="3 3" />
                     <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#5c7072" }} axisLine={false} />

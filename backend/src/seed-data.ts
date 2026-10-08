@@ -657,6 +657,13 @@ export const SEED_HOME = {
       "CEPAL — ILPES (acompañamiento técnico)",
     ],
   },
+  // La página «Dimensiones» (/dimensiones). Debe coincidir con
+  // `PORTADA.elDimensiones` del frontend.
+  elDimensiones: {
+    titulo: "Las cuatro dimensiones del territorio",
+    intro:
+      "Cuatro lecturas del Quindío que articulan el diagnóstico, los escenarios y los acuerdos del Horizonte 2050.",
+  },
   cobertura: {
     titulo: "Todo el departamento participa",
     texto:

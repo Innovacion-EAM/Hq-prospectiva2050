@@ -1,29 +1,111 @@
+import { useState } from "react";
+import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { ConfigCrud, type FieldDef } from "@/components/config-crud";
-import { Badge, PageHeader } from "@/components/ui";
-import { collections } from "@/lib/data";
+import { ChartsEditor } from "@/components/charts-editor";
+import { Badge, Button, Card, CardBody, EmptyState, PageHeader, Spinner } from "@/components/ui";
+import { collections, useCollection } from "@/lib/data";
 import { ICONOS_CATEGORIA, STATUS_TALLER } from "@/lib/types";
-import type { DocCategoria, Taller } from "@/lib/types";
+import type { ChartSeries, Dimension, DocCategoria, Taller } from "@/lib/types";
 
 /**
- * Sección de estadísticas del panel, **vacía a propósito**.
+ * Tarjeta de las series de una dimensión.
  *
- * Antes editaba las cuatro cifras de la portada (11, 2050, 3 y 60). Esas cifras
- * son datos de la portada, así que ahora se editan donde se ven: en **Ajustes →
- * Home**, en la tarjeta «Cifras de la portada». Esta pantalla queda reservada
- * para otra cosa; mientras tanto, deja claro dónde se edita lo que había aquí.
+ * El estado de las series vive aquí y no en `EstadisticasPage` para que cada
+ * tarjeta se guarde sola: la lista trae las cuatro dimensiones de análisis y los
+ * cuatro bloques, y arrastrar un único formulario para todas obligaría a guardar
+ * filas que nadie tocó.
+ */
+function EstadisticaDimensionCard({
+  dim,
+  onSave,
+}: {
+  dim: Dimension;
+  onSave: (charts: ChartSeries[]) => Promise<void>;
+}) {
+  const [charts, setCharts] = useState<ChartSeries[]>(dim.charts);
+  const [saving, setSaving] = useState(false);
+  const cambio = JSON.stringify(charts) !== JSON.stringify(dim.charts);
+
+  async function guardar() {
+    setSaving(true);
+    try {
+      await onSave(charts);
+      toast.success(`Series de «${dim.title}» guardadas.`);
+    } catch {
+      toast.error("No se pudieron guardar las series.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardBody className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-display text-sm font-semibold text-ink">{dim.title}</p>
+            <p className="mt-0.5 text-xs text-muted">
+              {dim.tipo === "dimension" ? "Dimensión de análisis" : "Bloque del home"} · /{dim.slug}
+            </p>
+          </div>
+          <Button variant="lime" size="sm" onClick={guardar} disabled={saving || !cambio}>
+            <Save className="size-3.5" /> {saving ? "Guardando…" : "Guardar"}
+          </Button>
+        </div>
+        <ChartsEditor value={charts} onChange={setCharts} />
+      </CardBody>
+    </Card>
+  );
+}
+
+/**
+ * Estadísticas: las series de los gráficos, por dimensión.
+ *
+ * Antes esta pantalla editaba las cuatro cifras de la portada (11, 2050, 3 y
+ * 60); esas cifras son datos de la portada y se editan donde se ven, en **Ajustes
+ * → Home**. Aquí se editan en cambio las series de `dimension.charts`, que son
+ * las que dibujan las gráficas de `/dimensiones`. Administra **todas** las
+ * entidades con series: las cuatro dimensiones de análisis y también los bloques
+ * del home (misiones, retos, iniciativas y hallazgos).
  */
 export function EstadisticasPage() {
+  const { items, loading, update } = useCollection(collections.dimensiones());
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Estadísticas"
-        description="Sección reservada para otro contenido."
+        description="Las series de datos que dibujan las gráficas de cada dimensión en el sitio."
       />
-      <p className="max-w-2xl text-sm text-muted">
-        Las cuatro cifras de la portada (11, 2050, 3 y 60) se editan ahora en{" "}
-        <span className="font-semibold text-ink">Ajustes → Home</span>, en la
-        tarjeta «Cifras de la portada», donde se ven junto al resto del inicio.
+
+      <p className="max-w-3xl rounded-2xl border border-mist bg-fog px-4 py-3 text-xs text-muted">
+        Aquí van las series de los gráficos, por dimensión. Las cuatro cifras de la portada (11, 2050,
+        3 y 60) se editan en <span className="font-semibold text-ink">Ajustes → Home</span>, y el texto
+        de cada dimensión en la barra lateral →{" "}
+        <span className="font-semibold text-ink">Dimensiones</span>.
       </p>
+
+      {loading ? (
+        <div className="grid place-items-center py-16">
+          <Spinner />
+        </div>
+      ) : items.length === 0 ? (
+        <EmptyState
+          title="Sin dimensiones"
+          description="Crea una dimensión en la barra lateral para poder cargarle series."
+        />
+      ) : (
+        <div className="space-y-4">
+          {items.map((dim) => (
+            <EstadisticaDimensionCard
+              key={dim.id}
+              dim={dim}
+              onSave={(charts) => update(dim.id, { charts }).then(() => undefined)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

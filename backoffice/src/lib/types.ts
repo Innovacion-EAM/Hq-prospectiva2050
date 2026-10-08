@@ -169,6 +169,18 @@ export type ElProyectoPortada = {
 };
 
 /**
+ * El hero de la página `/dimensiones`.
+ *
+ * Igual que `ElProyectoPortada`: vive en `home` porque ahí viven las secciones
+ * editables del sitio. Solo tiene el titular y la bajada; las dimensiones en sí
+ * son una colección aparte que se edita en la barra lateral.
+ */
+export type ElDimensionesPortada = {
+  titulo: string;
+  intro: string;
+};
+
+/**
  * El bloque de documentos, con el color de su botón «Ver más».
  *
  * Antes era un `SeccionPortada` pelado. Al darle color necesita tipo propio: si
@@ -239,6 +251,7 @@ export type PortadaSettings = {
   hero: HeroPortada;
   proyecto: ProyectoPortada;
   elProyecto: ElProyectoPortada;
+  elDimensiones: ElDimensionesPortada;
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;
   repositorio: RepositorioPortada;

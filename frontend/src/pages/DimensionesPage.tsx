@@ -4,7 +4,8 @@ import { PageHero } from "@/components/site-shell";
 import { useSite } from "@/data/site-context";
 
 export function DimensionesPage() {
-  const { DIMENSIONS } = useSite();
+  const { DIMENSIONS, PORTADA } = useSite();
+  const hero = PORTADA.elDimensiones;
 
   // Solo las 4 dimensiones de análisis del documento. Las entradas marcadas
   // como "bloque" (misiones, retos, iniciativas, hallazgos) son contenido de
@@ -18,11 +19,7 @@ export function DimensionesPage() {
 
   return (
     <>
-      <PageHero
-        kicker="Dimensiones"
-        title="Las cuatro dimensiones del territorio"
-        intro="Cuatro lecturas del Quindío que articulan el diagnóstico, los escenarios y los acuerdos del Horizonte 2050."
-      />
+      <PageHero kicker="Dimensiones" title={hero.titulo} intro={hero.intro} />
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <DimensionGrid items={dimensiones} active={slug} onSelect={setSlug} />
         <DimensionDetail dim={dim} />

@@ -177,6 +177,13 @@ if (this.sembrarContenido) {
           footer: { ...footer, copyright: SEED_HOME.footer.copyright },
         };
       }
+      // El hero de `/dimensiones` también se sumó después: son dos campos dentro
+      // del mismo `home` y, sin esto, el módulo «Dimensiones» del panel abriría
+      // con los campos vacíos aunque el sitio muestre el texto de respaldo.
+      const baseDimensiones = homeNueva ?? (existing.home as Record<string, unknown>);
+      if (!Object.keys((baseDimensiones.elDimensiones as Record<string, unknown>) ?? {}).length) {
+        homeNueva = { ...baseDimensiones, elDimensiones: SEED_HOME.elDimensiones };
+      }
       if (homeNueva) cambios.home = homeNueva as unknown as typeof existing.home;
     }
     // Los datos legales, igual: la columna nueva cae con `{}` en la fila que ya

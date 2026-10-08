@@ -348,6 +348,7 @@ function pickPortada(home: unknown): Portada {
   const hero = b("hero");
   const proyecto = b("proyecto");
   const elProyecto = b("elProyecto");
+  const elDimensiones = b("elDimensiones");
   const cobertura = b("cobertura");
   const documentos = b("documentos");
   const repositorio = b("repositorio");
@@ -392,6 +393,12 @@ function pickPortada(home: unknown): Portada {
       // fijos, es una lista que se ordena y una vacía o a medias cae a la del
       // sitio (mismo criterio que el menú).
       entidades: listaO(elProyecto.entidades, FALLBACK_PORTADA.elProyecto.entidades),
+    },
+    // La página `/dimensiones`. Como `elProyecto`, aquí el titular sí se edita:
+    // es el encabezado de la página, no un rótulo fijo de la portada.
+    elDimensiones: {
+      titulo: textoO(elDimensiones.titulo, FALLBACK_PORTADA.elDimensiones.titulo),
+      intro: textoO(elDimensiones.intro, FALLBACK_PORTADA.elDimensiones.intro),
     },
     cobertura: {
       titulo: fijoPortada("cobertura", "titulo"),

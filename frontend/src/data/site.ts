@@ -195,6 +195,11 @@ export const PORTADA = {
     ],
     entidades: [...ENTITIES, "CEPAL — ILPES (acompañamiento técnico)"],
   },
+  elDimensiones: {
+    titulo: "Las cuatro dimensiones del territorio",
+    intro:
+      "Cuatro lecturas del Quindío que articulan el diagnóstico, los escenarios y los acuerdos del Horizonte 2050.",
+  },
   cobertura: {
     titulo: "Todo el departamento participa",
     texto: "La visión del 2050 se construye para el Quindío completo, no solo para Armenia.",
