@@ -10,7 +10,7 @@
 
 | ✅ | Dato | Formato esperado | Ejemplo |
 |---|---|---|---|
-| ☐ | **Dominio exacto** | FQDN | `prospectivaquindio2050.com` |
+| ☐ | **Dominio exacto** | FQDN | `horizontequindio2050.com` |
 | ☐ | **Confirmación DNS** | `nslookup` resuelve a IP | `3.231.164.130` |
 | ☐ | **Opción TLS elegida** | `auto` \| `manual` | `auto` |
 | ☐ | **Proveedor DNS** | Nombre | `Cloudflare`, `Route53`, `GoDaddy` |
@@ -25,11 +25,11 @@
 
 ```bash
 # 1. Verificar que el DNS ya apunta a la IP de la instancia
-nslookup prospectivaquindio2050.com
+nslookup horizontequindio2050.com
 # Debe devolver: 3.231.164.130
 
 # 2. Verificar que NO hay registro AAAA (IPv6) conflictivo
-nslookup -type=AAAA prospectivaquindio2050.com
+nslookup -type=AAAA horizontequindio2050.com
 # Debe devolver: "no AAAA records" o apuntar a la misma instancia
 
 # 3. Verificar puertos en Security Group AWS
@@ -46,12 +46,12 @@ nslookup -type=AAAA prospectivaquindio2050.com
 cd /opt/hq-prospectiva2050
 
 # Cambiar IP por dominio en .env.prod
-sed -i 's/^HQ_SITE_HOST=.*/HQ_SITE_HOST=prospectivaquindio2050.com/' \
+sed -i 's/^HQ_SITE_HOST=.*/HQ_SITE_HOST=horizontequindio2050.com/' \
   infra/compose/.env.prod
 
 # Verificar cambio
 grep HQ_SITE_HOST infra/compose/.env.prod
-# HQ_SITE_HOST=prospectivaquindio2050.com
+# HQ_SITE_HOST=horizontequindio2050.com
 ```
 
 ### Paso 2: Configurar TLS en Traefik
@@ -65,17 +65,17 @@ vim infra/traefik/traefik.yml
 # certificatesResolvers:
 #   letsencrypt:
 #     acme:
-#       email: admin@prospectivaquindio2050.com   # <-- EMAIL REAL
-#       storage: /letsencrypt/acme.json
+#       email: admin@horizontequindio2050.com   # <-- EMAIL REAL
+#       storage: /etc/traefik/certs/acme.json
 #       httpChallenge:
 #         entryPoint: web
 
 # 2. Si usan DNS challenge (no HTTP-01), configurar provider:
 #    Route53, Cloudflare, etc. (ver ejemplos comentados en el archivo)
 
-# 3. Activar tls: en los 3 routers de routes.yml
+# 3. Activar tls: en los CUATRO routers de routes.yml + el de www-redirect
 vim infra/traefik/dynamic/routes.yml
-# Añadir en cada router (frontend, backoffice, api):
+# Añadir en cada router (frontend, backoffice, repo y api) y en www-redirect:
 #   tls:
 #     certResolver: letsencrypt
 
@@ -93,14 +93,14 @@ scp fullchain.pem privkey.pem \
 # 2. En el servidor, verificar permisos
 chmod 600 /opt/hq-prospectiva2050/infra/traefik/certs/*.pem
 
-# 3. Activar tls: en los 3 routers (SIN certResolver)
+# 3. Activar tls: en los cuatro routers + www-redirect (SIN certResolver)
 vim infra/traefik/dynamic/routes.yml
-# En cada router:
+# En cada router (frontend, backoffice, repo, api y www-redirect):
 #   tls: {}   # vacío, usa los archivos del store default
 
 # 4. Activar redirección HTTP -> HTTPS
 vim infra/traefik/dynamic/redirect.yml
-# Descomentar el router http-to-https
+# Descomentar el router https-redirect
 
 # 5. Recrear Traefik
 HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
@@ -112,8 +112,8 @@ En **GitHub → Settings → Secrets and variables → Actions → Variables**:
 
 | Variable | Valor nuevo |
 |---|---|
-| `PROD_API_URL` | `https://prospectivaquindio2050.com/api` |
-| `PROD_SITE_URL` | `https://prospectivaquindio2050.com` |
+| `PROD_API_URL` | `https://horizontequindio2050.com` |
+| `PROD_SITE_URL` | `https://horizontequindio2050.com` |
 
 > **Importante**: Estas URLs se **incrustan en el bundle** en el build. Hay que hacer push para que se recompilen.
 
@@ -134,17 +134,17 @@ cd /opt/hq-prospectiva2050
 make prod-smoke
 
 # Verificación manual
-curl -I https://prospectivaquindio2050.com/
-curl -I https://prospectivaquindio2050.com/admin
-curl -I https://prospectivaquindio2050.com/api/health
+curl -I https://horizontequindio2050.com/
+curl -I https://horizontequindio2050.com/admin
+curl -I https://horizontequindio2050.com/api/health
 
 # Verificar certificado
-openssl s_client -connect prospectivaquindio2050.com:443 -servername prospectivaquindio2050.com </dev/null 2>/dev/null | openssl x509 -noout -dates
+openssl s_client -connect horizontequindio2050.com:443 -servername horizontequindio2050.com </dev/null 2>/dev/null | openssl x509 -noout -dates
 ```
 
 **Resultado esperado**:
 - Todos los `curl -I` → `HTTP/2 200` + cabecera `strict-transport-security`
-- `openssl` → certificado válido, fechas correctas, CN = prospectivaquindio2050.com
+- `openssl` → certificado válido, fechas correctas, CN = horizontequindio2050.com
 
 ---
 
@@ -152,16 +152,16 @@ openssl s_client -connect prospectivaquindio2050.com:443 -servername prospectiva
 
 | Archivo | Cambio |
 |---|---|
-| `infra/compose/.env.prod` | `HQ_SITE_HOST=prospectivaquindio2050.com` |
+| `infra/compose/.env.prod` | `HQ_SITE_HOST=horizontequindio2050.com` |
 | `infra/traefik/traefik.yml` | Email real en `certificatesResolvers.letsencrypt.acme.email` |
-| `infra/traefik/dynamic/routes.yml` | Bloque `tls: { certResolver: letsencrypt }` en 3 routers |
-| `infra/traefik/dynamic/redirect.yml` | (Solo Opción 2) Router `http-to-https` descomentado |
+| `infra/traefik/dynamic/routes.yml` | Bloque `tls: { certResolver: letsencrypt }` en los 4 routers + `www-redirect` |
+| `infra/traefik/dynamic/redirect.yml` | Router `https-redirect` descomentado (+ el 301 de www ya activo) |
 | GitHub Variables | `PROD_API_URL`, `PROD_SITE_URL` actualizadas |
 
 > **Commit sugerido**:
 > ```bash
 > git add infra/compose/.env.prod infra/traefik/traefik.yml infra/traefik/dynamic/routes.yml
-> git commit -m "feat(https): activar TLS para prospectivaquindio2050.com"
+> git commit -m "feat(https): activar TLS para horizontequindio2050.com"
 > git push origin main
 > ```
 

@@ -555,4 +555,5 @@ Estado completo y detallado en [`TODO.md`](../TODO.md). Resumen de lo que queda:
 - **CI/CD** completo: `ci.yml` (lint, typecheck, tests unit y e2e con PostgreSQL) y `deploy.yml` (buildx → GHCR → SSH al servidor). Guía en [`despliegue-aws.md`](despliegue-aws.md).
 - **Esquema de producción** vía `backend/src/cli/db-init.ts` en lugar del SQL manual, que era un stub vacío.
 - Los routers de Traefik ya no están clavados a `Host(localhost)`: se parametrizan con `HQ_SITE_HOST`.
+- **Dominio canónico**: `HQ_SITE_HOST` es el dominio canónico (apex, sin `www`). El router `www-redirect` (`routes.yml`) + el middleware `redirect-www` (`middlewares.yml`) mandan `www.<dominio>` al apex con un **301**, así el sitio no se indexa dos veces (SEO). El 301 conserva el esquema (`http`/`https`), por lo que sigue sirviendo igual al activar TLS.
 - **Seguridad del despliegue**: `JWT_SECRET` ahora se exige (sin fallback `'dev-secret'`), las rutas públicas de noticias ya no filtran borradores por rol, `/api/forms/*` tiene rate limiting, las URLs de media son relativas (`/uploads/…`) y `trust proxy` está activo.

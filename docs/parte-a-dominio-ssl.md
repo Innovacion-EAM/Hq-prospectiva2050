@@ -1,6 +1,6 @@
 # Guía para el Propietario del Dominio: Configurar DNS y HTTPS
 
-> **Contexto**: El software "Horizonte Quindío 2050" ya está desplegado y funcionando en una instancia AWS EC2, accesible por su IP elástica (`http://3.231.164.130/`). Ahora necesitamos que el dominio propio (`prospectivaquindio2050.com`) apunte a esa instancia y el sitio sirva por HTTPS.
+> **Contexto**: El software "Horizonte Quindío 2050" ya está desplegado y funcionando en una instancia AWS EC2, accesible por su IP elástica (`http://3.231.164.130/`). Ahora necesitamos que el dominio propio (`horizontequindio2050.com`) apunte a esa instancia y el sitio sirva por HTTPS.
 
 ---
 
@@ -79,7 +79,7 @@ Descarguen del panel de su proveedor dos archivos:
 - [ ] Puerto 80 y 443 abiertos en AWS Security Group (ya están)
 - [ ] **Opción 1**: Token API DNS + nombre del proveedor
 - [ ] **Opción 2**: Archivos `fullchain.pem` + `privkey.pem`
-- [ ] Confirmación: "El dominio ya resuelve a 3.231.164.130" (`nslookup prospectivaquindio2050.com` devuelve la IP)
+- [ ] Confirmación: "El dominio ya resuelve a 3.231.164.130" (`nslookup horizontequindio2050.com` devuelve la IP)
 
 ---
 
@@ -88,7 +88,7 @@ Descarguen del panel de su proveedor dos archivos:
 1. Cambiamos `HQ_SITE_HOST` de IP a dominio
 2. Activamos TLS en Traefik (con su token o sus archivos)
 3. Desplegamos (`bash scripts/deploy/deploy.sh`)
-4. Verificamos: `https://prospectivaquindio2050.com/` → **200 OK** con candado verde 🔒
+4. Verificamos: `https://horizontequindio2050.com/` → **200 OK** con candado verde 🔒
 
 ---
 

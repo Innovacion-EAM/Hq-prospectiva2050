@@ -41,7 +41,8 @@
       entero y se quedara sin routers), el volumen `certs/` ya está montado, y
       la redirección http→https está en `redirect.yml` lista para descomentar.
       Pasos exactos para el dominio y para nosotros en
-      [`docs/dominio-y-ssl.md`](docs/dominio-y-ssl.md). Mientras tanto el panel
+      [`docs/parte-a-dominio-ssl.md`](docs/parte-a-dominio-ssl.md) y
+      [`docs/parte-b-checklist-desarrollador.md`](docs/parte-b-checklist-desarrollador.md). Mientras tanto el panel
       viaja por HTTP en claro.
 - [ ] **Migraciones de esquema** — `db-init` usa `synchronize` de TypeORM, que
       solo añade: crea tablas y columnas que falten, nunca las borra. Es

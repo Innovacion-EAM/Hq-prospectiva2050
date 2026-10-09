@@ -1,7 +1,7 @@
 # ── Traefik: TLS / certificados (config DINÁMICA) ────────────────────
 #
 # Hay DOS vías para servir el sitio por HTTPS. Se elige una; el detalle está en
-# docs/dominio-y-ssl.md.
+# docs/parte-a-dominio-ssl.md y docs/parte-b-checklist-desarrollador.md.
 #
 # ─────────────────────────────────────────────────────────────────────
 # VÍA 1 — Let's Encrypt automático (recomendada)

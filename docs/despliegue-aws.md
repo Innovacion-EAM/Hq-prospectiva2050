@@ -98,7 +98,7 @@ Son URLs públicas, no credenciales, por eso van aquí y no como secretos.
 
 | Variable         | Valor                        |
 |------------------|------------------------------|
-| `PROD_API_URL`   | `https://tudominio.com/api`  |
+| `PROD_API_URL`   | `https://tudominio.com`      |
 | `PROD_SITE_URL`  | `https://tudominio.com`      |
 | `PROD_SSH_HOST`  | IP elástica de la instancia  |
 
@@ -657,18 +657,20 @@ y monta los `.pem` en el contenedor. Renueva tú antes de que caduquen.
 
 ### Redirección de HTTP a HTTPS
 
-Una vez emitido el certificado, añade a `routes.yml` un router que redirija:
+Una vez emitido el certificado, descomenta la redirección global que ya está
+preparada en `infra/traefik/dynamic/redirect.yml` (router `https-redirect` +
+middleware `https-redirect`). Equivale a esto:
 
 ```yaml
 http:
   routers:
-    http-to-https:
-      rule: "Host(`{{ env "HQ_SITE_HOST" }}`)"
+    https-redirect:
+      rule: "HostRegexp(`{host:.+}`)"
       entryPoints: [web]
-      middlewares: [redirect-to-https]
+      middlewares: [https-redirect]
       service: noop@internal
   middlewares:
-    redirect-to-https:
+    https-redirect:
       redirectScheme:
         scheme: https
         permanent: true

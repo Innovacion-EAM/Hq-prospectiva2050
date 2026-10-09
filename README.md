@@ -48,7 +48,7 @@ La primera cuenta se siembra sola: `prospectiva@horizontequindio2050.com` / `pro
 - ▶ **Guía completa (cómo correr cada servicio, puertos, compose, producción): [`docs/guia-del-proyecto.md`](docs/guia-del-proyecto.md)**
 - ▶ **Repositorio de información (la cuarta app, /repo): [`docs/repositorio-de-informacion.md`](docs/repositorio-de-informacion.md)**
 - ▶ **Despliegue en AWS EC2 con CI/CD (paso a paso): [`docs/despliegue-aws.md`](docs/despliegue-aws.md)**
-- ▶ **Dominio y HTTPS (para los dueños del dominio y para nosotros): [`docs/dominio-y-ssl.md`](docs/dominio-y-ssl.md)**
+- ▶ **Dominio y HTTPS (para los dueños del dominio y para nosotros): [`docs/parte-a-dominio-ssl.md`](docs/parte-a-dominio-ssl.md) · [`docs/parte-b-checklist-desarrollador.md`](docs/parte-b-checklist-desarrollador.md)**
 
 ## Comandos rápidos
 

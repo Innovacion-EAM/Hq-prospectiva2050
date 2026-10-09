@@ -1,6 +1,20 @@
 # ── Traefik: redirecciones (config DINÁMICA) ─────────────────────────
-# Sin uso todavía. Cuando se active TLS, redirige todo http → https.
-# Requiere tls.yml + certs/ (ver tls.yml).
+# La redirección www → dominio canónico (301) NO está aquí: es el middleware
+# `redirect-www` (middlewares.yml) + el router `www-redirect` (routes.yml).
+# Esa YA está activa y funciona por HTTP; como conserva el esquema, también
+# valdrá por HTTPS sin tocarla.
+#
+# Aquí queda la redirección GLOBAL http → https, COMENTADA hasta que el
+# certificado esté emitido y funcionando (si se descomenta antes, manda a un
+# https que todavía no responde).
+#
+# ⚠ IMPORTANTE: deja el bloque ENTERO comentado, incluida la línea `http:`.
+#   Traefik v3 rechaza un fichero dinámico cuyo único contenido sea `http:` sin
+#   routers/middlewares ("http cannot be a standalone element") y, al fallar,
+#   descarta TODOS los ficheros dinámicos → el sitio entero responde 404.
+#   Activarla = quitar los `#` de todo el bloque y recrear Traefik:
+#       HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
+#   Requiere el resolver de Let's Encrypt activo en traefik.yml.
 #
 # http:
 #   routers:
@@ -11,6 +25,7 @@
 #       middlewares:
 #         - https-redirect
 #       service: noop@internal
+#
 #   middlewares:
 #     https-redirect:
 #       redirectScheme:

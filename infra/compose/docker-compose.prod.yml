@@ -52,7 +52,7 @@ services:
       context: ../../frontend
       args:
         VITE_MODE: prod
-        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com}
+        VITE_API_URL: ${VITE_API_URL:-http://horizontequindio2050.com}
 
   backoffice:
     image: ${HQ_BACKOFFICE_IMAGE:-ghcr.io/innovacion-eam/hq-backoffice:latest}
@@ -62,8 +62,8 @@ services:
       context: ../../backoffice
       args:
         VITE_MODE: prod
-        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com}
-        VITE_SITE_URL: ${VITE_SITE_URL:-https://prospectivaquindio2050.com}
+        VITE_API_URL: ${VITE_API_URL:-http://horizontequindio2050.com}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://horizontequindio2050.com}
 
   repo:
     image: ${HQ_REPO_IMAGE:-ghcr.io/innovacion-eam/hq-repo:latest}
@@ -73,8 +73,8 @@ services:
       context: ../../repo
       args:
         VITE_MODE: prod
-        VITE_API_URL: ${VITE_API_URL:-https://prospectivaquindio2050.com}
-        VITE_SITE_URL: ${VITE_SITE_URL:-https://prospectivaquindio2050.com}
+        VITE_API_URL: ${VITE_API_URL:-http://horizontequindio2050.com}
+        VITE_SITE_URL: ${VITE_SITE_URL:-http://horizontequindio2050.com}
 
   postgres:
     # Memoria de PostgreSQL ajustada a una máquina de 1 GB, para que conviva con

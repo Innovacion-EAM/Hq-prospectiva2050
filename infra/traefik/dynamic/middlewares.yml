@@ -20,6 +20,16 @@ http:
         prefixes:
           - /repo
 
+    # redirect-www: 301 de www.<dominio> al dominio canónico (apex, sin www).
+    # El `${1}` captura el esquema (http o https) y se reusa, así sirve igual
+    # por HTTP ahora y por HTTPS cuando se active TLS, sin reeditarlo. Lo usa
+    # el router `www-redirect` de routes.yml.
+    redirect-www:
+      redirectRegex:
+        regex: '^(https?)://www\.(.*)'
+        replacement: '${1}://${2}'
+        permanent: true
+
     # ── NO hay strip-api (a propósito) ─────────────────────────────────
     # El prefijo /api lo pone el propio backend (prefijo global de Nest, ver
     # backend/src/app.setup.ts) y las tres apps piden `${API_BASE}/api/...`
