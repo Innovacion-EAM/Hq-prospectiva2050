@@ -50,6 +50,14 @@ cd "$APP_DIR"
 # Todo lo que viene después lee docker-compose*.yml y la config de Traefik del
 # disco, así que este paso tiene que ir primero: si no, un despliegue con
 # cambios de configuración arrancaría con los archivos de la versión anterior.
+#
+# La config ESTÁTICA de Traefik (infra/traefik/traefik.yml) solo se lee al
+# arrancar el contenedor. Para que un cambio ahí no quede sin aplicar, se
+# detecta si ese fichero cambió con el pull y, de ser así, se recrea Traefik
+# solo (paso 4). Así un simple push basta: no hay que acordarse de
+# HQ_TRAEFIK_RESTART (aunque sigue disponible para forzarlo a mano).
+TRAEFIK_STATIC="infra/traefik/traefik.yml"
+TRAEFIK_STATIC_BEFORE="$(git rev-parse "HEAD:$TRAEFIK_STATIC" 2>/dev/null || true)"
 if [ "$SKIP_GIT_PULL" = "no" ]; then
   log "Actualizando el repo a la última versión publicada"
   if ! git pull --ff-only; then
@@ -62,6 +70,12 @@ if [ "$SKIP_GIT_PULL" = "no" ]; then
     git reset --hard "origin/$branch"
   fi
   git log --oneline -1
+
+  TRAEFIK_STATIC_AFTER="$(git rev-parse "HEAD:$TRAEFIK_STATIC" 2>/dev/null || true)"
+  if [ -n "$TRAEFIK_STATIC_AFTER" ] && [ "$TRAEFIK_STATIC_BEFORE" != "$TRAEFIK_STATIC_AFTER" ]; then
+    warn "La config estática de Traefik cambió: se recreará el contenedor"
+    HQ_TRAEFIK_RESTART=1
+  fi
 fi
 
 # ── 3. Entorno ────────────────────────────────────────────────────────────────
@@ -153,17 +167,22 @@ if [ "${#APP_IMAGE_REPOS[@]}" -gt 0 ]; then
 fi
 
 # ── 10. Comprobación de salud ─────────────────────────────────────────────────
-# OJO: la cabecera Host debe coincidir con HQ_SITE_HOST. Los routers de Traefik
-# filtran por host, así que sin ella todo responde 404 y el chequeo mentiría.
+# La cabecera Host debe ser un host que Traefik enrute (los routers filtran por
+# host). Se usa `localhost` y NO HQ_SITE_HOST a propósito: la redirección
+# http→https está acotada al dominio + www, así que `localhost` responde 200 en
+# claro y el chequeo no se come un 301.
+#
+# Además, el paso 2 ya recreó Traefik si cambió su config estática, así que aquí
+# la API ya corre con la configuración nueva.
 log "Comprobando estado de los servicios"
 "${COMPOSE[@]}" ps
 
 health_url="http://127.0.0.1/api/health/db"
 probe() {
   if command -v curl >/dev/null 2>&1; then
-    curl -s -o /dev/null -w '%{http_code}' -H "Host: $HQ_SITE_HOST" "$health_url" || echo 000
+    curl -s -o /dev/null -w '%{http_code}' -H "Host: localhost" "$health_url" || echo 000
   else
-    wget -q -S -O /dev/null --header="Host: $HQ_SITE_HOST" "$health_url" 2>&1 \
+    wget -q -S -O /dev/null --header="Host: localhost" "$health_url" 2>&1 \
       | awk '/^  HTTP\//{code=$2} END{print code ? code : "000"}'
   fi
 }
@@ -177,7 +196,7 @@ for i in $(seq 1 30); do
 done
 
 if [ "$ok" = "1" ]; then
-  log "Despliegue correcto. API sana (Host: $HQ_SITE_HOST)"
+  log "Despliegue correcto. API sana (Host: localhost)"
   exit 0
 fi
 

@@ -8,8 +8,9 @@
 #   sirve para docker local (HQ_SITE_HOST=localhost) y para producción con
 #   dominio real (HQ_SITE_HOST=horizontequindio2050.com, en .env.prod).
 #   Cambia el host -> cambia solo .env.prod y recrea traefik (no basta un
-#   restart: `restart` no relee el entorno del contenedor). Camino normal:
-#   `make prod-deploy`, que hace `up -d` y recrea lo que cambió. A mano:
+#   restart: `restart` no relee el entorno del contenedor). deploy.sh recrea
+#   Traefik solo si detecta que cambió la config estática del proxy
+#   (infra/traefik/traefik.yml); para forzarlo a mano:
 #   HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
 #   Traefik v3 usa la función `env` en el provider de archivos (ver traefik.yml).
 #   Además de HQ_SITE_HOST, la regla acepta cualquier IP (acceso a la instancia
@@ -17,6 +18,13 @@
 #
 #   CANÓNICO: HQ_SITE_HOST es el dominio canónico (apex, sin www). El router
 #   `www-redirect` manda www.<dominio> a él con un 301 (SEO: una sola URL).
+#
+#   TLS/ACME: los routers con `tls:` declaran los dominios EXPLÍCITOS en
+#   `tls.domains` (apex + www). Es IMPRESCINDIBLE: el parser de dominios de
+#   ACME no entiende la regla compuesta `Host(...) || HostRegexp(^[0-9.]+$) ||
+#   Host(localhost)` y, sin `domains`, falla con "Error parsing domains in
+#   provider ACME" y NO emite el certificado (se serviría el certificado
+#   interno de Traefik, inválido para el navegador).
 
 http:
   routers:
@@ -25,6 +33,14 @@ http:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/`)'
       entryPoints:
         - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        # Dominios explícitos para ACME (ver nota en la cabecera del archivo).
+        domains:
+          - main: '{{ env "HQ_SITE_HOST" }}'
+            sans:
+              - 'www.{{ env "HQ_SITE_HOST" }}'
       service: frontend
 
     # /admin → backoffice (SPA servida bajo subruta)
@@ -37,6 +53,14 @@ http:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/admin`)'
       entryPoints:
         - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        # Dominios explícitos para ACME (ver nota en la cabecera del archivo).
+        domains:
+          - main: '{{ env "HQ_SITE_HOST" }}'
+            sans:
+              - 'www.{{ env "HQ_SITE_HOST" }}'
       middlewares:
         - strip-admin
       service: backoffice
@@ -46,6 +70,14 @@ http:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/repo`)'
       entryPoints:
         - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        # Dominios explícitos para ACME (ver nota en la cabecera del archivo).
+        domains:
+          - main: '{{ env "HQ_SITE_HOST" }}'
+            sans:
+              - 'www.{{ env "HQ_SITE_HOST" }}'
       middlewares:
         - strip-repo
       service: repo
@@ -60,20 +92,34 @@ http:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/api`)'
       entryPoints:
         - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        # Dominios explícitos para ACME (ver nota en la cabecera del archivo).
+        domains:
+          - main: '{{ env "HQ_SITE_HOST" }}'
+            sans:
+              - 'www.{{ env "HQ_SITE_HOST" }}'
       service: api
 
     # www → dominio canónico (301). SEO: evita que el mismo sitio se indexe dos
     # veces (con y sin www); Google ve una sola URL. El middleware
-    # `redirect-www` (middlewares.yml) conserva el esquema, así que funciona
-    # igual por HTTP ahora y por HTTPS cuando se active TLS.
+    # `redirect-www` (middlewares.yml) conserva el esquema.
     #
-    # Al activar TLS hay que añadir aquí `tls: { certResolver: letsencrypt }`
-    # (igual que en los otros routers) para que el certificado cubra el nombre
-    # con www. Ver el bloque comentado en traefik.yml.
+    # Lleva `tls` con los dominios explícitos para que el certificado cubra
+    # también el nombre con www (el de apex lo emiten los routers de arriba).
     www-redirect:
       rule: 'Host(`www.{{ env "HQ_SITE_HOST" }}`)'
       entryPoints:
         - web
+        - websecure
+      tls:
+        certResolver: letsencrypt
+        # Dominios explícitos para ACME (ver nota en la cabecera del archivo).
+        domains:
+          - main: '{{ env "HQ_SITE_HOST" }}'
+            sans:
+              - 'www.{{ env "HQ_SITE_HOST" }}'
       middlewares:
         - redirect-www
       service: noop@internal
