@@ -1,5 +1,6 @@
 # ── Traefik: routers (config DINÁMICA) ──────────────────────────────
 # Define "quién va a dónde". Se recarga en caliente (file.watch: true).
+#
 # PRIORIDAD: traefik ordena por longitud de regla → /api, /admin y /repo
 # ganan al catch-all "/". No hace falta declarar priority explícita.
 #
@@ -13,26 +14,87 @@
 #   (infra/traefik/traefik.yml); para forzarlo a mano:
 #   HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
 #   Traefik v3 usa la función `env` en el provider de archivos (ver traefik.yml).
-#   Además de HQ_SITE_HOST, la regla acepta cualquier IP (acceso a la instancia
-#   por IP pública) y `localhost` (docker local).
+#
+# ── POR QUÉ HAY DOS JUEGOS DE ROUTERS (http y https) ────────────────────────
+#   En Traefik v3, un router con `tls:` SOLO se sirve por entrypoints TLS
+#   (`websecure`): en un entrypoint en claro (`web`) no se enruta y responde
+#   404. Y al revés: un router SIN `tls` NO se sirve por un entrypoint TLS.
+#   Comprobado con traefik:v3.5 (router con `tls: {}` en `web` = 404).
+#   Por eso cada ruta existe dos veces:
+#     · `<algo>-http` → entrypoint `web`       (sin tls) → sirve o redirige
+#     · `<algo>`      → entrypoint `websecure` (con tls) → sirve con certificado
+#   El bloque HTTP solo cubre el acceso directo por IP o `localhost`; el
+#   dominio y su www se redirigen a HTTPS.
+#
+# ── HTTP → HTTPS ────────────────────────────────────────────────────────────
+#   `https-redirect` (entrypoint `web`) manda el dominio y su www a HTTPS con
+#   301. Excluye `localhost` a propósito: en local HQ_SITE_HOST es `localhost`,
+#   así que `!Host(localhost)` nunca casa y el desarrollo local no se redirige;
+#   además, el health-check del despliegue (que usa `Host: localhost` sobre HTTP)
+#   sigue recibiendo 200. El acceso por IP pública por HTTP sirve contenido.
+#   El challenge HTTP-01 de ACME lo sirve el router interno `acme-http@internal`,
+#   que tiene prioridad máxima (MaxInt64): ni el redirect ni ningún catch-all lo
+#   tapan (comprobado).
+#
+# ── ACME / LET'S ENCRYPT ────────────────────────────────────────────────────
+#   Los routers TLS declaran los dominios EXPLÍCITOS en `tls.domains`
+#   (apex + www). Es IMPRESCINDIBLE: el parser de dominios de ACME no entiende
+#   la regla compuesta `Host(...) || HostRegexp(^[0-9.]+$) || Host(localhost)`
+#   y, sin `domains`, falla con "Error parsing domains in provider ACME" y NO
+#   emite el certificado.
 #
 #   CANÓNICO: HQ_SITE_HOST es el dominio canónico (apex, sin www). El router
 #   `www-redirect` manda www.<dominio> a él con un 301 (SEO: una sola URL).
-#
-#   TLS/ACME: los routers con `tls:` declaran los dominios EXPLÍCITOS en
-#   `tls.domains` (apex + www). Es IMPRESCINDIBLE: el parser de dominios de
-#   ACME no entiende la regla compuesta `Host(...) || HostRegexp(^[0-9.]+$) ||
-#   Host(localhost)` y, sin `domains`, falla con "Error parsing domains in
-#   provider ACME" y NO emite el certificado (se serviría el certificado
-#   interno de Traefik, inválido para el navegador).
 
 http:
   routers:
+    # ═══════════ HTTP (entrypoint `web`, sin TLS) ═══════════
+
+    # Dominio + www por HTTP → 301 a HTTPS (conserva path y query).
+    # `!Host(localhost)` protege el desarrollo local y el health-check.
+    https-redirect:
+      rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || Host(`www.{{ env "HQ_SITE_HOST" }}`)) && !Host(`localhost`)'
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-https
+      service: noop@internal
+
+    # Acceso directo por IP pública o `localhost` por HTTP → sirve la app.
+    # El dominio NO entra aquí: va por el redirect de arriba.
+    frontend-http:
+      rule: '(HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/`)'
+      entryPoints:
+        - web
+      service: frontend
+
+    backoffice-http:
+      rule: '(HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/admin`)'
+      entryPoints:
+        - web
+      middlewares:
+        - strip-admin
+      service: backoffice
+
+    repo-http:
+      rule: '(HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/repo`)'
+      entryPoints:
+        - web
+      middlewares:
+        - strip-repo
+      service: repo
+
+    api-http:
+      rule: '(HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/api`)'
+      entryPoints:
+        - web
+      service: api
+
+    # ═══════════ HTTPS (entrypoint `websecure`, con TLS) ═══════════
     # / → frontend (catch-all)
     frontend:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/`)'
       entryPoints:
-        - web
         - websecure
       tls:
         certResolver: letsencrypt
@@ -52,7 +114,6 @@ http:
     backoffice:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/admin`)'
       entryPoints:
-        - web
         - websecure
       tls:
         certResolver: letsencrypt
@@ -69,7 +130,6 @@ http:
     repo:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/repo`)'
       entryPoints:
-        - web
         - websecure
       tls:
         certResolver: letsencrypt
@@ -91,7 +151,6 @@ http:
     api:
       rule: '(Host(`{{ env "HQ_SITE_HOST" }}`) || HostRegexp(`^[0-9.]+$`) || Host(`localhost`)) && PathPrefix(`/api`)'
       entryPoints:
-        - web
         - websecure
       tls:
         certResolver: letsencrypt
@@ -107,11 +166,10 @@ http:
     # `redirect-www` (middlewares.yml) conserva el esquema.
     #
     # Lleva `tls` con los dominios explícitos para que el certificado cubra
-    # también el nombre con www (el de apex lo emiten los routers de arriba).
+    # también el nombre con www. Por HTTP, www lo captura `https-redirect`.
     www-redirect:
       rule: 'Host(`www.{{ env "HQ_SITE_HOST" }}`)'
       entryPoints:
-        - web
         - websecure
       tls:
         certResolver: letsencrypt

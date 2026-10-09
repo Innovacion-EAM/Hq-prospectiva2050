@@ -21,13 +21,22 @@ http:
           - /repo
 
     # redirect-www: 301 de www.<dominio> al dominio canónico (apex, sin www).
-    # El `${1}` captura el esquema (http o https) y se reusa, así sirve igual
-    # por HTTP ahora y por HTTPS cuando se active TLS, sin reeditarlo. Lo usa
-    # el router `www-redirect` de routes.yml.
+    # El `${1}` captura el esquema (http o https) y se reusa; lo usa el router
+    # `www-redirect` de routes.yml (entrada HTTPS).
     redirect-www:
       redirectRegex:
         regex: '^(https?)://www\.(.*)'
         replacement: '${1}://${2}'
+        permanent: true
+
+    # redirect-https: 301 de HTTP a HTTPS conservando host, path y query.
+    # Lo usa el router `https-redirect` de routes.yml (entrypoint `web`),
+    # acotado al dominio + su www (excluye localhost a propósito).
+    # permanent=true → 301, correcto para SEO una vez el certificado está
+    # estable (Let's Encrypt ya emitido).
+    redirect-https:
+      redirectScheme:
+        scheme: https
         permanent: true
 
     # ── NO hay strip-api (a propósito) ─────────────────────────────────
