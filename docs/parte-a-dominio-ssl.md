@@ -1,95 +1,95 @@
-# Guía para el Propietario del Dominio: Configurar DNS y HTTPS
+# Dominio y HTTPS: estado final
 
-> **Contexto**: El software "Horizonte Quindío 2050" ya está desplegado y funcionando en una instancia AWS EC2, accesible por su IP elástica (`http://3.231.164.130/`). Ahora necesitamos que el dominio propio (`horizontequindio2050.com`) apunte a esa instancia y el sitio sirva por HTTPS.
-
----
-
-## ✅ Resumen rápido: lo que necesitamos de usted
-
-| # | Acción | Detalle |
-|---|---|---|
-| 1 | **Registro DNS A** | Apuntar `@` (o `www`) a la IP: `3.231.164.130` |
-| 2 | **Puertos 80 y 443** | Verificar que estén abiertos en el Security Group de AWS (ya están) |
-| 3 | **Certificado TLS** | Elegir **una** opción: acceso a API de DNS (recomendado) **O** entregarnos `fullchain.pem` + `privkey.pem` |
-| 4 | **Proveedor de DNS** | Decirnos cuál usan (Route53, Cloudflare, GoDaddy, Namecheap, Hostinger, etc.) |
+> **Para el propietario del dominio.** Resumen: **ya está todo configurado y
+> funcionando**. `https://horizontequindio2050.com` sirve el sitio con
+> certificado válido y candado 🔒, y `www` redirige al dominio principal. No
+> hace falta que nos envíen tokens de DNS ni certificados: el certificado es de
+> **Let's Encrypt** y **se renueva solo**.
 
 ---
 
-## 1. Configurar el DNS (Registro A)
+## ✅ Qué está funcionando ahora
 
-En el panel de su proveedor de dominios, cree/edite este registro:
+| URL | Comportamiento |
+|---|---|
+| `https://horizontequindio2050.com/` | **200 OK** con certificado válido (Let's Encrypt) |
+| `https://www.horizontequindio2050.com/` | **301** → `https://horizontequindio2050.com/` |
+| `http://horizontequindio2050.com/` | **301** → `https://horizontequindio2050.com/` (fuerza HTTPS) |
+| `http://www.horizontequindio2050.com/` | **301** → `https://...` (y de ahí, al dominio principal) |
+
+- **Canónico**: el dominio **sin `www`**. Google indexa una sola URL.
+- **Rutas**: el sitio público en `/`, el backoffice en `/admin/`, el repositorio
+  de información en `/repo/` y la API en `/api/`.
+
+---
+
+## 1. Lo único que hizo falta desde el lado del dominio
+
+Un **registro DNS tipo `A`** que apunte a la IP de la instancia:
 
 | Campo | Valor |
 |---|---|
 | **Tipo** | `A` |
-| **Nombre / Host** | `@` (o `www` si prefieren) |
+| **Nombre / Host** | `@` (y `www`) |
 | **Valor / Apunta a** | `3.231.164.130` |
-| **TTL** | `3600` (1 hora) |
+| **TTL** | `3600` |
 
-### ⚠️ Tres avisos importantes
-
-1. **Si usan Cloudflare**: déjenlo en **DNS-only** (nube gris), **no** en proxy (nube naranja). El proxy rompe la validación automática del certificado.
-2. **El TTL de 3600** significa hasta 1 hora de propagación. Es normal que tarde en verse.
-3. **No toquen otros registros** (MX, TXT de correo, NS). Solo cambien el registro `A`.
+Con eso, Let's Encrypt pudo comprobar el dominio automáticamente. ✅ Ya hecho.
 
 ---
 
-## 2. HTTPS: el certificado (elegir **una** opción)
+## 2. ¿Por qué ya no necesitamos token de DNS ni certificados manuales?
 
-### Opción 1 — Acceso a la API de DNS (recomendada, automática)
+Existen varias formas de obtener el certificado. Para este dominio usamos la
+más sencilla y **automática**: **Let's Encrypt con validación HTTP-01**.
 
-Creen un **token de API** de la zona DNS con permiso para **crear y borrar registros TXT**.
+- Let's Encrypt comprueba que el dominio es de quien lo pide haciéndole una
+  petición automática por el **puerto 80**; Traefik la responde.
+- **No** requiere credenciales del proveedor de DNS.
+- **No** requiere que nadie genere ni entregue un certificado `.pem`.
+- El certificado **se renueva automáticamente** cada pocos meses, sin
+  intervención humana.
 
-| Proveedor | Cómo crear el token |
-|---|---|
-| **Cloudflare** | My Profile → API Tokens → Create Token → Zone → DNS → Edit |
-| **Route53 (AWS)** | IAM → Create user → Policy: `route53:ChangeResourceRecordSets` en la hosted zone |
-| **GoDaddy** | Developer Portal → API Keys → Production |
-| **Namecheap** | Profile → API Access → Whitelisted IPs (añadir IP de la instancia) |
-| **Hostinger** | hPanel → Advanced → DNS Zone Editor → API |
-| **Otros** | Buscar "API token DNS TXT records" en su panel |
-
-Con este token **nosotros emitimos y renovamos el certificado solos** (cada 90 días). No tienen que hacer nada más.
-
-### Opción 2 — Nos entregan el certificado ya emitido (manual)
-
-Descarguen del panel de su proveedor dos archivos:
-
-- `fullchain.pem` — el certificado (incluye cadena intermedia)
-- `privkey.pem` — la clave privada
-
-**Renovación**: tendrán que volver a descargárnoslos cada año (o cuando caduque). Si su panel lo renueva solo y avisa por email, solo reenvíennoslo.
+> Alternativas que **no** hicieron falta: validación por DNS (token del
+> proveedor) o certificado manual entregado por el propietario. Solo se usarían
+> si el puerto 80 no pudiera estar abierto o hubiera un CDN por delante.
 
 ---
 
-## 3. Qué nos deben enviar
+## 3. Cómo comprobarlo
 
-| Si eligieron Opción 1 | Si eligieron Opción 2 |
-|---|---|
-| ✅ Token de API de DNS | ✅ `fullchain.pem` |
-| ✅ Nombre del proveedor (Cloudflare, Route53, etc.) | ✅ `privkey.pem` |
-| ✅ Confirmación: "el DNS ya apunta a 3.231.164.130" | ✅ Confirmación: "el DNS ya apunta a 3.231.164.130" |
+Desde cualquier navegador o terminal:
 
----
+```bash
+curl -I http://horizontequindio2050.com/
+# Debe responder 301 y Location: https://horizontequindio2050.com/
 
-## ✅ Checklist final (para que nos confirmen)
+curl -I https://horizontequindio2050.com/
+# Debe responder HTTP/2 200
 
-- [ ] Registro `A` creado apuntando a `3.231.164.130`
-- [ ] Si usan Cloudflare: **DNS-only** (nube gris)
-- [ ] Puerto 80 y 443 abiertos en AWS Security Group (ya están)
-- [ ] **Opción 1**: Token API DNS + nombre del proveedor
-- [ ] **Opción 2**: Archivos `fullchain.pem` + `privkey.pem`
-- [ ] Confirmación: "El dominio ya resuelve a 3.231.164.130" (`nslookup horizontequindio2050.com` devuelve la IP)
+curl -I https://www.horizontequindio2050.com/
+# Debe responder 301 → https://horizontequindio2050.com/
 
----
-
-## Qué pasará después (nosotros nos encargamos)
-
-1. Cambiamos `HQ_SITE_HOST` de IP a dominio
-2. Activamos TLS en Traefik (con su token o sus archivos)
-3. Desplegamos (`bash scripts/deploy/deploy.sh`)
-4. Verificamos: `https://horizontequindio2050.com/` → **200 OK** con candado verde 🔒
+# Ver el certificado:
+openssl s_client -connect horizontequindio2050.com:443 \
+  -servername horizontequindio2050.com </dev/null 2>/dev/null \
+  | openssl x509 -noout -subject -issuer -dates
+# Emisor: Let's Encrypt
+# CN: horizontequindio2050.com
+```
 
 ---
 
-**Contacto técnico**: Para cualquier duda, escriban a quien les envió esta guía. El proceso técnico de nuestra parte tarda ~5 minutos una vez recibimos lo anterior.
+## 4. Qué NO hay que hacer
+
+- ❌ No hay que renovar el certificado a mano: es automático.
+- ❌ No hay que enviarnos ningún `.pem`.
+- ❌ No hay que cambiar nada en el proveedor de DNS (el registro `A` ya está).
+
+> **HSTS** (forzar HTTPS en el navegador durante meses) **no** está activado por
+> ahora, a propósito: primero se confirma que todo funciona estable y se evalúa
+> activarlo más adelante.
+
+---
+
+**Contacto técnico**: Para cualquier duda, escriban a quien les envió esta guía.

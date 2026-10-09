@@ -1,196 +1,235 @@
-# Checklist Desarrollador: Activar Dominio y HTTPS
+# Checklist Desarrollador: Dominio y HTTPS (implementado)
 
-> **Para uso interno** — Qué solicitar, verificar y ejecutar después de que el propietario del dominio complete su parte.
-
----
-
-## 📋 Qué solicitar al propietario del dominio
-
-### Información obligatoria (checklist de recepción)
-
-| ✅ | Dato | Formato esperado | Ejemplo |
-|---|---|---|---|
-| ☐ | **Dominio exacto** | FQDN | `horizontequindio2050.com` |
-| ☐ | **Confirmación DNS** | `nslookup` resuelve a IP | `3.231.164.130` |
-| ☐ | **Opción TLS elegida** | `auto` \| `manual` | `auto` |
-| ☐ | **Proveedor DNS** | Nombre | `Cloudflare`, `Route53`, `GoDaddy` |
-| ☐ | **Token API DNS** (si `auto`) | String (secreto) | `cf_ABC123...` |
-| ☐ | **Archivos certificado** (si `manual`) | `fullchain.pem` + `privkey.pem` | Archivos adjuntos |
-
-> **Nota**: Si eligen Opción 1 (auto), **solo necesitan el token y el proveedor**. Si eligen Opción 2 (manual), necesitan los dos archivos `.pem`.
+> **Para uso interno.** Estado: **COMPLETADO**. El sitio sirve HTTPS con
+> Let's Encrypt, fuerza la redirección HTTP→HTTPS y `www` va al dominio canónico.
+> Este documento explica **cómo quedó montado**, cómo verificarlo y las trampas
+> que ya nos encontramos (para no repetirlas).
 
 ---
 
-## 🔍 Verificaciones previas (antes de tocar nada)
+## ✅ Estado actual
 
-```bash
-# 1. Verificar que el DNS ya apunta a la IP de la instancia
-nslookup horizontequindio2050.com
-# Debe devolver: 3.231.164.130
+| Comprobación | Resultado |
+|---|---|
+| DNS `horizontequindio2050.com` | `A` → `3.231.164.130` |
+| DNS `www.horizontequindio2050.com` | `CNAME` al apex → `3.231.164.130` |
+| `https://horizontequindio2050.com/` | **200** (cert Let's Encrypt válido) |
+| `https://www.horizontequindio2050.com/` | **301** → apex |
+| `http://horizontequindio2050.com/` | **301** → `https://` |
+| `/admin/`, `/repo/`, `/api/...` | **200** |
+| Renovación del certificado | Automática (HTTP-01, cada ~60 días) |
 
-# 2. Verificar que NO hay registro AAAA (IPv6) conflictivo
-nslookup -type=AAAA horizontequindio2050.com
-# Debe devolver: "no AAAA records" o apuntar a la misma instancia
+- **Resolver ACME**: `letsencrypt`, email `prospectiva@horizontequindio2050.com`,
+  método **HTTP-01**, almacenamiento en `/etc/traefik/certs/acme.json`
+  (volumen persistente, sobrevive a los despliegues).
+- **GitHub Variables** (Actions): `PROD_API_URL` y `PROD_SITE_URL` =
+  `https://horizontequindio2050.com`.
+- **HSTS**: NO activado (decisión consciente: se evalúa más adelante).
 
-# 3. Verificar puertos en Security Group AWS
-# 80 (HTTP) y 443 (HTTPS) abiertos a 0.0.0.0/0
+---
+
+## 🧠 Cómo está montado (y por qué así)
+
+### 1. Config estática: el resolver ACME
+
+En `infra/traefik/traefik.yml`, en el **primer nivel** (NO dentro de `tls:`):
+
+```yaml
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: prospectiva@horizontequindio2050.com
+      storage: /etc/traefik/certs/acme.json
+      httpChallenge:
+        entryPoint: web
 ```
 
+> ⚠️ `certificatesResolvers` **solo** es válido en la config estática. Si se
+> pone en un fichero de `dynamic/`, Traefik descarta ese fichero entero y se
+> queda con **cero routers** (todo el sitio responde 404). Ya pasó: no lo muevas.
+
+### 2. Config dinámica: DOS juegos de routers (clave)
+
+**En Traefik v3, un router con `tls:` SOLO se sirve por entrypoints TLS
+(`websecure`).** En el entrypoint en claro (`web`) no se enruta y responde 404.
+Y al revés: un router **sin** `tls` no se sirve por un entrypoint TLS.
+(Comprobado con `traefik:v3.5`: router con `tls: {}` por `web` = 404.)
+
+Por eso en `infra/traefik/dynamic/routes.yml` cada ruta existe **dos veces**:
+
+| Router | Entrypoint | TLS | Para qué |
+|---|---|---|---|
+| `frontend-http`, `backoffice-http`, `repo-http`, `api-http` | `web` | no | Acceso directo por IP/localhost; **en producción el dominio no entra aquí** |
+| `https-redirect` | `web` | no | Manda **dominio + www** a HTTPS con 301 |
+| `frontend`, `backoffice`, `repo`, `api` | `websecure` | sí | Sirve el sitio con certificado |
+| `www-redirect` | `websecure` | sí | `www` → apex (301) |
+
+- Los routers TLS declaran los dominios **explícitos** en `tls.domains`
+  (apex + `www`). Es **imprescindible**: el parser de dominios de ACME no
+  entiende la regla compuesta `Host(...) || HostRegexp(...) || Host(localhost)`
+  y, sin `domains`, falla con *"Error parsing domains in provider ACME"* y no
+  emite el certificado.
+
+### 3. Redirecciones
+
+- **HTTP → HTTPS**: router `https-redirect` (`infra/traefik/dynamic/routes.yml`)
+  + middleware `redirect-https` (`middlewares.yml`). Está **acotado al dominio
+  y su www** y **excluye `localhost`** (`!Host(localhost)`) para no romper el
+  desarrollo local (donde `HQ_SITE_HOST=localhost`) ni el health-check del
+  despliegue (que usa `Host: localhost` sobre HTTP y debe recibir 200).
+- **www → apex**: router `www-redirect` (HTTPS) + middleware `redirect-www`.
+- El **challenge HTTP-01** de ACME lo sirve el router interno
+  `acme-http@internal`, con **prioridad máxima** (`MaxInt64`), así que ni el
+  redirect ni ningún catch-all lo tapan. Verificado.
+
+### 3.b Alternativa NO usada
+
+`infra/traefik/dynamic/redirect.yml` (redirección global) sigue **comentado**.
+No se usó porque una redirección global también atraparía `localhost` (rompería
+el desarrollo local y el health-check). La redirección real vive en
+`routes.yml` (router `https-redirect`), acotada al dominio. **No** descomentes
+`redirect.yml` salvo que sepas lo que haces.
+
 ---
 
-## ⚙️ Pasos de activación (ejecutar en orden)
+## ⚙️ Procedimiento (si hubiera que hacerlo de nuevo / en otro dominio)
 
-### Paso 1: Actualizar variable de host en el servidor
+### Paso 1: DNS
+
+```bash
+nslookup horizontequindio2050.com          # debe devolver 3.231.164.130
+```
+
+Requisitos: registro `A` del apex apuntando a la IP de la instancia, `www`
+resolviendo a lo mismo, y **puertos 80 y 443 abiertos** en el Security Group.
+Si se usa Cloudflare, dejar el registro en **DNS-only** (nube gris).
+
+### Paso 2: Variable de host en el servidor
 
 ```bash
 cd /opt/hq-prospectiva2050
-
-# Cambiar IP por dominio en .env.prod
 sed -i 's/^HQ_SITE_HOST=.*/HQ_SITE_HOST=horizontequindio2050.com/' \
   infra/compose/.env.prod
-
-# Verificar cambio
 grep HQ_SITE_HOST infra/compose/.env.prod
-# HQ_SITE_HOST=horizontequindio2050.com
 ```
 
-### Paso 2: Configurar TLS en Traefik
+### Paso 3: TLS (ya versionado en el repo)
 
-#### SI eligieron Opción 1 (Automática - Let's Encrypt)
+El resolver ACME (config estática) y los routers TLS (config dinámica) ya están
+en `main`. Un despliegue normal los aplica:
 
 ```bash
-# 1. Editar traefik.yml: descomentar bloque tls: y poner email real
-vim infra/traefik/traefik.yml
-# Descomentar y editar:
-# certificatesResolvers:
-#   letsencrypt:
-#     acme:
-#       email: admin@horizontequindio2050.com   # <-- EMAIL REAL
-#       storage: /etc/traefik/certs/acme.json
-#       httpChallenge:
-#         entryPoint: web
-
-# 2. Si usan DNS challenge (no HTTP-01), configurar provider:
-#    Route53, Cloudflare, etc. (ver ejemplos comentados en el archivo)
-
-# 3. Activar tls: en los CUATRO routers de routes.yml + el de www-redirect
-vim infra/traefik/dynamic/routes.yml
-# Añadir en cada router (frontend, backoffice, repo y api) y en www-redirect:
-#   tls:
-#     certResolver: letsencrypt
-
-# 4. Recrear Traefik
 HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
 ```
 
-#### SI eligieron Opción 2 (Certificado manual)
+> `HQ_TRAEFIK_RESTART=1` recrea Traefik. Hace falta cuando cambia la **config
+> estática** (`traefik.yml`) o el entorno (`HQ_SITE_HOST`); un cambio solo en
+> `dynamic/` se recarga **en caliente** (no hace falta).
 
-```bash
-# 1. Subir certificados al servidor (desde tu máquina local)
-scp fullchain.pem privkey.pem \
-  ubuntu@3.231.164.130:/opt/hq-prospectiva2050/infra/traefik/certs/
+### Paso 4: GitHub Variables
 
-# 2. En el servidor, verificar permisos
-chmod 600 /opt/hq-prospectiva2050/infra/traefik/certs/*.pem
+En **Settings → Secrets and variables → Actions → Variables**:
 
-# 3. Activar tls: en los cuatro routers + www-redirect (SIN certResolver)
-vim infra/traefik/dynamic/routes.yml
-# En cada router (frontend, backoffice, repo, api y www-redirect):
-#   tls: {}   # vacío, usa los archivos del store default
-
-# 4. Activar redirección HTTP -> HTTPS
-vim infra/traefik/dynamic/redirect.yml
-# Descomentar el router https-redirect
-
-# 5. Recrear Traefik
-HQ_TRAEFIK_RESTART=1 bash scripts/deploy/deploy.sh
-```
-
-### Paso 3: Actualizar variables de build en GitHub
-
-En **GitHub → Settings → Secrets and variables → Actions → Variables**:
-
-| Variable | Valor nuevo |
+| Variable | Valor |
 |---|---|
 | `PROD_API_URL` | `https://horizontequindio2050.com` |
 | `PROD_SITE_URL` | `https://horizontequindio2050.com` |
 
-> **Importante**: Estas URLs se **incrustan en el bundle** en el build. Hay que hacer push para que se recompilen.
+Se incrustan en el bundle en el build → hace falta push para recompilar.
 
-### Paso 4: Forzar rebuild y deploy
-
-```bash
-# Opción A: Push vacío (forza rebuild en Actions)
-git commit --allow-empty -m "chore: trigger rebuild with HTTPS URLs"
-git push origin main
-
-# Opción B: Desde GitHub Actions UI → Build & Deploy → Run workflow → deploy: true
-```
-
-### Paso 5: Verificación final
+### Paso 5: Verificación
 
 ```bash
 cd /opt/hq-prospectiva2050
-make prod-smoke
+make prod-smoke          # contenedores, /, /admin, /repo, /api/health/db, https
 
-# Verificación manual
+# Desde cualquier máquina:
 curl -I https://horizontequindio2050.com/
-curl -I https://horizontequindio2050.com/admin
-curl -I https://horizontequindio2050.com/api/health
-
-# Verificar certificado
-openssl s_client -connect horizontequindio2050.com:443 -servername horizontequindio2050.com </dev/null 2>/dev/null | openssl x509 -noout -dates
+curl -I https://www.horizontequindio2050.com/
+curl -I http://horizontequindio2050.com/
 ```
 
 **Resultado esperado**:
-- Todos los `curl -I` → `HTTP/2 200` + cabecera `strict-transport-security`
-- `openssl` → certificado válido, fechas correctas, CN = horizontequindio2050.com
+- `https://apex` → `HTTP/2 200`.
+- `https://www` y `http://apex` → `301` con `Location`.
+- Certificado válido, emisor Let's Encrypt, `CN = horizontequindio2050.com`.
+- (HSTS **no** aparece; no está activado.)
 
 ---
 
-## 📝 Resumen de cambios en el repo (para commit posterior)
+## 🚨 Troubleshooting (con lo que ya aprendimos)
 
-| Archivo | Cambio |
-|---|---|
-| `infra/compose/.env.prod` | `HQ_SITE_HOST=horizontequindio2050.com` |
-| `infra/traefik/traefik.yml` | Email real en `certificatesResolvers.letsencrypt.acme.email` |
-| `infra/traefik/dynamic/routes.yml` | Bloque `tls: { certResolver: letsencrypt }` en los 4 routers + `www-redirect` |
-| `infra/traefik/dynamic/redirect.yml` | Router `https-redirect` descomentado (+ el 301 de www ya activo) |
-| GitHub Variables | `PROD_API_URL`, `PROD_SITE_URL` actualizadas |
-
-> **Commit sugerido**:
-> ```bash
-> git add infra/compose/.env.prod infra/traefik/traefik.yml infra/traefik/dynamic/routes.yml
-> git commit -m "feat(https): activar TLS para horizontequindio2050.com"
-> git push origin main
-> ```
-
----
-
-## 🚨 Troubleshooting rápido
-
-| Síntoma | Causa | Solución |
+| Síntoma | Causa real | Solución |
 |---|---|---|
-| `acme.json` = `{}` | Challenge falló | Verificar DNS propagado + puerto 80 abierto |
-| `https://` no carga, `http://` sí | Puerto 443 cerrado | Abrir 443 en Security Group AWS |
-| `too many certificates` | Rate limit Let's Encrypt | Esperar 1 semana o usar certificado manual |
+| **404 en TODO** (dominio, IP y localhost) por HTTP y trabajo con HTTPS | Un router con `tls:` **no se sirve por el entrypoint `web`** | Cada ruta necesita un router sin `tls` en `web` (ver `*-http` en `routes.yml`) |
 | `404` en dominio pero IP funciona | `HQ_SITE_HOST` no actualizado | `sed` + `HQ_TRAEFIK_RESTART=1 deploy.sh` |
-| Certificado manual expira | Renovación anual | Calendar reminder: 30 días antes, pedir nuevos `.pem` |
+| Todo el sitio 404 (nada enruta) | Un fichero de `dynamic/` con `http:` como único elemento, o `certificatesResolvers` mal ubicado | Traefik descarta el fichero entero. Revisar `docker logs hq-traefik` |
+| `Error parsing domains in provider ACME` | Falta `tls.domains` en los routers TLS | Añadir `domains: [main, sans]` (la regla compuesta no se parsea) |
+| `acme.json` = `{}` | Challenge HTTP-01 falló | Verificar DNS propagado + puerto 80 abierto |
+-| `https://` no carga, `http://` sí | Puerto 443 cerrado | Abrir 443 en el Security Group |
+| `too many certificates` | Rate limit Let's Encrypt | Esperar; usar staging mientras se prueba |
+
+---
+
+## 🚨 La trampa que más tiempo nos costó (léela antes de tocar TLS)
+
+En **Traefik v3**, un router con la clave `tls:` (aunque sea `tls: {}`) **solo
+se sirve por entrypoints TLS** (`websecure`). En un entrypoint en claro (`web`)
+**no se enruta y responde 404**. Y un router **sin** `tls` **no** se sirve por
+`websecure`.
+
+Consecuencia: **cada ruta necesita dos routers**, uno por cada entrypoint:
+
+- `*-http` → `entryPoints: [web]`, **sin** `tls` → sirve por HTTP o redirige.
+- `<ruta>` → `entryPoints: [websecure]`, **con** `tls` → sirve con certificado.
+
+Comprobado con `traefik:v3.5`:
+
+| Router | HTTP (`web`) | HTTPS (`websecure`) |
+|---|---|---|
+| con `tls: {}` | **404** | 200 |
+| sin `tls` | 200 | **404** |
+
+Otras trampas ya documentadas en el código:
+- `certificatesResolvers` **solo** en la config estática (si va en `dynamic/`,
+  se descarta el fichero entero → 0 routers → todo 404).
+- Un fichero dinámico cuyo único contenido sea `http:` ("http cannot be a
+  standalone element") descarta **todos** los dinámicos → sitio entero 404.
+- Los routers TLS **deben** declarar `tls.domains` explícitos; el parser de ACME
+  no entiende la regla compuesta y falla.
+- El router interno `acme-http@internal` tiene prioridad **MaxInt64**: ningún
+  catch-all lo tapa (por eso la redirección HTTP no rompe el challenge).
+
+---
+
+## 📝 Cambios en el repo (histórico)
+
+| Commit | Contenido |
+|---|---|
+| `e5efc18` | Servir `horizontequindio2050.com` y redirigir `www` con 301 |
+| `6b9a5a1` | SSL automático con Let's Encrypt (ACME HTTP-01) en Traefik |
+| `ff6b895` | Servir HTTP y HTTPS a la vez: routers `*-http` (sin tls) + `https-redirect` |
+
+| Archivo | Qué contiene |
+|---|---|
+| `infra/traefik/traefik.yml` | `certificatesResolvers.letsencrypt` (ACTIVO, primer nivel) |
+| `infra/traefik/dynamic/routes.yml` | Routers `*-http` (web) + TLS (websecure) + `https-redirect` + `www-redirect` |
+| `infra/traefik/dynamic/middlewares.yml` | `redirect-https`, `redirect-www`, `strip-admin`, `strip-repo` |
+| `infra/traefik/dynamic/redirect.yml` | Redirección global http→https **comentada** (no se usa) |
+| `infra/compose/.env.prod` (servidor) | `HQ_SITE_HOST=horizontequindio2050.com` |
+| GitHub Variables | `PROD_API_URL`, `PROD_SITE_URL` |
 
 ---
 
 ## ✅ Checklist final de entrega
 
-- [ ] `nslookup` devuelve IP correcta
-- [ ] `HQ_SITE_HOST` actualizado en `.env.prod`
-- [ ] TLS configurado en Traefik (Opción 1 o 2)
-- [ ] `HQ_TRAEFIK_RESTART=1 deploy.sh` ejecutado
-- [ ] GitHub Variables actualizadas (`PROD_API_URL`, `PROD_SITE_URL`)
-- [ ] Push a `main` ejecutado (rebuild automático)
-- [ ] `make prod-smoke` → todo verde
-- [ ] `curl -I https://dominio.com/` → 200 + HSTS
-- [ ] Certificado válido (fechas, CN correcto)
-
----
-
-**Tiempo estimado total**: 15-20 minutos (si el DNS ya propagó).
+- [x] `nslookup` devuelve la IP correcta (apex y `www`)
+- [x] `HQ_SITE_HOST` = dominio en `.env.prod` (servidor)
+- [x] TLS activo (Let's Encrypt, HTTP-01)
+- [x] Routers HTTP y HTTPS funcionando (dos juegos)
+- [x] `http://` → 301 `https://` (acotado al dominio, sin romper localhost)
+- [x] `www` → 301 apex
+- [x] GitHub Variables actualizadas (`PROD_API_URL`, `PROD_SITE_URL`)
+- [x] Deploy verde (`Build & Deploy`) y `make prod-smoke` OK
+- [x] Certificado válido (fechas, CN correcto)
+- [ ] HSTS (no activado a propósito; pendiente de evaluación)
