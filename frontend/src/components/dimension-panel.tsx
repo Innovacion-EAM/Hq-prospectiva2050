@@ -120,9 +120,79 @@ function chartRows(dim: Dimension) {
   });
 }
 
-export function DimensionDetail({ dim }: { dim: Dimension }) {
+/**
+ * Estadísticas de una dimensión: la grilla de gráficas de sus series.
+ *
+ * Vive aparte de `DimensionDetail` porque la ficha completa y el panel de
+ * `/dimensiones` la muestran en contextos distintos. Si la dimensión no tiene
+ * series (el documento de arquitectura no trae cifras), se avisa en vez de
+ * dejar una gráfica vacía o inventar datos.
+ */
+export function DimensionStats({ dim }: { dim: Dimension }) {
   const rows = chartRows(dim);
-  const tieneGraficas = dim.charts.length > 0;
+
+  if (dim.charts.length === 0) {
+    return (
+      <p className="mt-6 rounded-xl border border-dashed border-mist px-4 py-6 text-center text-xs text-muted">
+        Esta dimensión todavía no tiene series de datos cargadas.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-6 grid gap-4 md:grid-cols-3">
+      {dim.charts.map((s) => (
+        <div key={s.name} className="min-w-0 rounded-xl border border-stone bg-paper p-3">
+          <p className="mb-2 font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
+            {s.name}
+          </p>
+          <div className="h-32">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              // Sin esto, la gráfica nace con ancho 0 hasta que recharts mide
+              // el contenedor (o el usuario mueve el mouse). Con una medida
+              // inicial pinta desde el primer frame y luego se ajusta.
+              initialDimension={{ width: 480, height: 128 }}
+            >
+              <RLine data={rows} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                <CartesianGrid stroke="#cfd6d4" strokeDasharray="3 3" />
+                <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#5c7072" }} axisLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "#5c7072" }} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 12,
+                    border: "1px solid #e6eae8",
+                    fontSize: 12,
+                  }}
+                />
+                {dim.charts.map((series) => (
+                  <Line
+                    key={series.name}
+                    type="monotone"
+                    dataKey={series.name}
+                    stroke={series.color}
+                    strokeWidth={series.name === s.name ? 2.4 : 1.2}
+                    dot={{ r: 3, strokeWidth: 0, fill: series.color }}
+                    opacity={series.name === s.name ? 1 : 0.35}
+                  />
+                ))}
+              </RLine>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Panel de una dimensión en `/dimensiones` y en el bloque del home.
+ *
+ * Muestra el título, el enlace a la ficha y sus estadísticas. El texto completo
+ * (análisis, retos principales y líneas de trabajo) vive en la ficha completa.
+ */
+export function DimensionDetail({ dim }: { dim: Dimension }) {
   return (
     // La `key` remonta toda la ficha al cambiar de dimensión: sin ella, recharts
     // conserva el `ResponsiveContainer` del anterior y la gráfica de la nueva no
@@ -141,82 +211,7 @@ export function DimensionDetail({ dim }: { dim: Dimension }) {
         </Link>
       </div>
       <p className="mt-2 max-w-3xl text-xs text-muted sm:text-sm">{dim.summary}</p>
-
-      {tieneGraficas ? (
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {dim.charts.map((s) => (
-            <div key={s.name} className="min-w-0 rounded-xl border border-stone bg-paper p-3">
-              <p className="mb-2 font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
-                {s.name}
-              </p>
-              <div className="h-32">
-                <ResponsiveContainer
-                  width="100%"
-                  height="100%"
-                  // Sin esto, la gráfica nace con ancho 0 hasta que recharts mide
-                  // el contenedor (o el usuario mueve el mouse). Con una medida
-                  // inicial pinta desde el primer frame y luego se ajusta.
-                  initialDimension={{ width: 480, height: 128 }}
-                >
-                  <RLine data={rows} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                    <CartesianGrid stroke="#cfd6d4" strokeDasharray="3 3" />
-                    <XAxis dataKey="year" tick={{ fontSize: 10, fill: "#5c7072" }} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: "#5c7072" }} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: 12,
-                        border: "1px solid #e6eae8",
-                        fontSize: 12,
-                      }}
-                    />
-                    {dim.charts.map((series) => (
-                      <Line
-                        key={series.name}
-                        type="monotone"
-                        dataKey={series.name}
-                        stroke={series.color}
-                        strokeWidth={series.name === s.name ? 2.4 : 1.2}
-                        dot={{ r: 3, strokeWidth: 0, fill: series.color }}
-                        opacity={series.name === s.name ? 1 : 0.35}
-                      />
-                    ))}
-                  </RLine>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        // El documento de arquitectura no aporta series numéricas para estas
-        // dimensiones, así que no hay gráfica que dibujar. Antes se dibujaba una
-        // con datos inventados; ahora se muestra el contenido textual real.
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          {dim.body.length > 0 ? (
-            <div className="space-y-3">
-              {dim.body.map((p) => (
-                <p key={p.slice(0, 32)} className="text-sm leading-relaxed text-body">
-                  {p}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          {dim.layers.length > 0 ? (
-            <div>
-              <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
-                {dim.tipo === "bloque" ? "Contenido" : "Líneas de trabajo"}
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {dim.layers.map((l) => (
-                  <li key={l} className="flex gap-2 text-sm text-body">
-                    <span className="mt-2 size-1.5 shrink-0 rounded-full bg-lime-hot" />
-                    {l}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      )}
+      <DimensionStats dim={dim} />
     </div>
   );
 }

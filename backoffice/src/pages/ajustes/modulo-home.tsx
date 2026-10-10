@@ -219,8 +219,8 @@ export function ModuloHome({
               />
             </Field>
             <p className="mt-2 text-xs text-muted">
-              Las cuatro dimensiones en sí, con su resumen y sus capas, se editan
-              en Configuración → Dimensiones.
+              Las cuatro dimensiones en sí, con su resumen, retos y líneas de
+              trabajo, se editan en la barra lateral → Dimensiones.
             </p>
           </div>
         </div>

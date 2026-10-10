@@ -70,7 +70,7 @@ const MODULOS = [
   {
     id: "dimensiones",
     label: "Dimensiones",
-    desc: "El titular y la bajada de /dimensiones. Las dimensiones en sí, con su resumen y sus capas, se editan en la barra lateral → Dimensiones; sus gráficas, en Configuración → Estadísticas.",
+    desc: "El titular y la bajada de /dimensiones. Las dimensiones en sí, con su resumen, retos y líneas de trabajo, se editan en la barra lateral → Dimensiones; sus gráficas, en Configuración → Estadísticas.",
   },
   {
     id: "documentos",

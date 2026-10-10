@@ -47,7 +47,7 @@ export function DimensionesListPage() {
     <div className="space-y-6">
       <PageHeader
         title="Dimensiones"
-        description="Las siete dimensiones del ejercicio de prospectiva, con texto, capas, pasos y series de datos para sus gráficos."
+        description="Las dimensiones del ejercicio de prospectiva y sus bloques de apoyo, con texto, retos, líneas de trabajo y series de datos para sus gráficos."
         actions={
           <LinkBtn to="/dimensiones/nuevo" variant="lime">
             <Boxes className="size-4" /> Nueva dimensión
@@ -75,7 +75,7 @@ export function DimensionesListPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-sm font-semibold text-ink">{d.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {d.charts.length} series · {d.steps.length} pasos · {d.layers.length} capas
+                    {d.charts.length} series · {d.steps.length} retos · {d.layers.length} líneas
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -245,10 +245,10 @@ export function DimensionFormPage() {
       <Card>
         <CardBody>
           <ParagraphEditor
-            label="Cuerpo"
+            label="Análisis"
             value={guardar.body}
             onChange={(body) => commit({ body })}
-            hint="Párrafos descriptivos de la dimensión."
+            hint="Párrafos que describen la dimensión (el texto que abre la ficha, después de la descripción)."
           />
         </CardBody>
       </Card>
@@ -257,11 +257,11 @@ export function DimensionFormPage() {
         <Card>
           <CardBody>
             <StringsEditor
-              label="Capas / Ejes"
+              label="Líneas de trabajo"
               value={guardar.layers}
               onChange={(layers) => commit({ layers })}
-              hint="Por ejemplo: Base cafetera, Servicios y turismo, Nueva industria."
-              placeholder="Capa"
+              hint="Una línea por fila. Se muestran con el encabezado «Líneas de trabajo» en la ficha."
+              placeholder="Línea de trabajo"
             />
             <div className="mt-6">
               <StepsEditor value={guardar.steps} onChange={(steps) => commit({ steps })} />
@@ -314,10 +314,10 @@ function StepsEditor({ value, onChange }: { value: Step[]; onChange: (next: Step
 
   return (
     <div className="space-y-2">
-      <span className="font-display text-xs font-semibold text-ink">Pasos de la metodología</span>
+      <span className="font-display text-xs font-semibold text-ink">Retos principales</span>
       <div className="flex gap-2">
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Nombre del paso" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
-        <Button variant="lime" size="icon" onClick={add} aria-label="Agregar paso">
+        <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Escribe un reto" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+        <Button variant="lime" size="icon" onClick={add} aria-label="Agregar reto">
           <Plus className="size-4" />
         </Button>
       </div>
