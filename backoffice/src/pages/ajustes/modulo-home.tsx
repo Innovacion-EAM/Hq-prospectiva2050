@@ -125,23 +125,9 @@ export function ModuloHome({
               forma="corta"
             />
             <p className="mt-1 text-xs text-muted">
-              Se ve al 45% de opacidad y en escala de grises, para que el titular
-              en blanco se lea encima. Conviene una imagen apaisada.
-            </p>
-          </div>
-
-          <div>
-            <p className="mb-2 font-display text-xs font-bold text-ink">Foto de las personas</p>
-            <SelectorImagen
-              valor={hero.imagen}
-              onChange={(imagen) => editar("hero", "imagen", imagen)}
-              etiqueta="la foto de las personas"
-              respaldo="la foto del sitio"
-              forma="corta"
-            />
-            <p className="mt-1 text-xs text-muted">
-              Va en la derecha, con el anillo verde detrás. El encuadre se recorta
-              en sí misma, así que conviene una foto vertical o de personas de pie.
+              Es la imagen única del héroe: trae en una sola pieza el fondo y las
+              personas. Debe ser apaisada (por ejemplo 16:9), porque el titular va
+              encima de la mitad izquierda.
             </p>
           </div>
 

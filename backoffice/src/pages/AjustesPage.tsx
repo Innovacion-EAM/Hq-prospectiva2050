@@ -60,7 +60,7 @@ const MODULOS = [
   {
     id: "home",
     label: "Home",
-    desc: "La portada entera, de arriba abajo: el titular del hero, sus imágenes, los botones, las cifras y el texto de cada sección hasta antes del pie.",
+    desc: "La portada entera, de arriba abajo: el titular del hero, su imagen, los botones, las cifras y el texto de cada sección hasta antes del pie.",
   },
   {
     id: "proyecto",

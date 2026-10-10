@@ -10,16 +10,18 @@ import { Button } from "./ui/button";
 export function HomeHero() {
   const { SITE, PORTADA } = useSite();
   return (
-    <section className="relative isolate overflow-hidden bg-ink text-paper pb-24 sm:pb-32 lg:pb-40">
-      {/* Fondo del hero. Se ve con `grayscale` y al 45% porque el titular va en
-          blanco encima: a plena saturación el texto perdía legibilidad. Editable
-          en Ajustes → Home. */}
+    <section className="relative isolate overflow-hidden bg-ink text-paper">
+      {/* Imagen única del héroe. Antes eran dos piezas —la foto de fondo de
+          ciudad y la foto de las personas— y ahora es una sola imagen que trae
+          el conjunto completo. Se ve a plena imagen; el degradado de abajo solo
+          oscurece el lado izquierdo, donde va el titular, para que se lea.
+          Editable en Ajustes → Home. */}
       <img
         src={PORTADA.hero.fondo}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover opacity-45 grayscale"
+        className="absolute inset-0 h-full w-full object-cover object-center"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-ink/90 via-ink/80 to-ink lg:bg-gradient-to-r lg:from-ink lg:via-ink/85 lg:to-ink/40" />
+      <div className="absolute inset-0 bg-gradient-to-b from-ink/90 via-ink/60 to-ink/80 lg:bg-gradient-to-r lg:from-ink lg:via-ink/55 lg:to-transparent" />
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[0.88fr_1.12fr] lg:py-16">
         {/* Left hero headline */}
@@ -50,62 +52,12 @@ export function HomeHero() {
               {PORTADA.hero.botonTexto}
             </Link>
           </div>
-        </div>
 
-        {/* Right column: People image centered perfectly over green circle ring */}
-        <div className="relative mx-auto w-full max-w-md sm:max-w-lg lg:max-w-none">
-          <div className="relative flex items-center justify-center py-4">
-            {/* Green Ring Graphic centered behind people */}
-            <div
-              aria-hidden="true"
-              className="absolute top-[48%] left-[50%] size-[16rem] sm:size-[22rem] lg:size-[27rem] -translate-x-1/2 -translate-y-1/2 rounded-full border-[20px] sm:border-[28px] lg:border-[34px] border-lime shadow-[0_0_50px_rgba(143,203,50,0.35)] pointer-events-none"
-            />
-
-            {/* Perfectly aligned people image container */}
-            <div
-              className="relative z-10 mx-auto w-full overflow-hidden rounded-2xl"
-              style={{
-                WebkitMaskImage: "radial-gradient(ellipse 85% 85% at 50% 50%, black 60%, transparent 100%)",
-                maskImage: "radial-gradient(ellipse 85% 85% at 50% 50%, black 60%, transparent 100%)",
-              }}
-            >
-              <img
-                src={PORTADA.hero.imagen}
-                alt="Talento local del Quindío: jóvenes profesionales del territorio"
-                className="w-full h-[18rem] sm:h-[22rem] lg:h-[26rem] object-cover object-[center_20%]"
-                style={{
-                  filter: "brightness(1.08) contrast(1.05)",
-                }}
-              />
-            </div>
-
-            {/* La caja de sugerencias flota sobre la esquina inferior derecha de
-                la foto de las personas. Como está anclada por abajo (`absolute
-                -bottom-*`), bajarla es la única forma de que tape menos: con
-                `-bottom-6` tapaba casi dos tercios del alto de la imagen (que en lg
-                mide 26rem = 416px) y le caía encima de la cara a alguien.
-
-                Ahora cuelga 160px bajo la foto en lg y solo tapa el 27% de abajo:
-                el borde superior de la tarjeta queda a 304px de los 416px, muy
-                por debajo de la altura de la cara.
-
-                Para llegar aquí hubo que agrandar la sección, no solo estirar el
-                `-bottom-`: el `lg:pb-24` original se quedó sin margen y con el
-                `overflow-hidden` de la sección la tarjeta se recortaba. Ese
-                padding creció con el `-bottom-` a la par, y es lo que sostiene el
-                hueco. Hoy de la base de la foto al borde del hero hay 240px en lg
-                (192 en sm, 144 en móvil) contra los 160/128/112px que sobresale, así
-                que la caja sigue entera dentro de la sección —el `rotate-2` suma
-                ~10px de envolvente—.
-
-                Bajar más ya no es posible sin romper algo: la tarjeta no puede
-                pasar del borde inferior de la sección o aparecería recortada. Si
-                hay que bajarla otro tramo, el siguiente paso es moverla fuera de
-                la foto (por ejemplo al lado del titular en escritorio), no un
-                `-bottom-` mayor. */}
-            <div className="absolute -bottom-28 right-0 z-30 w-64 sm:-bottom-32 sm:right-2 sm:w-72 lg:-bottom-40">
-              <SuggestForm rotated inputId="sugerencia-hero" />
-            </div>
+          {/* La caja de sugerencias va debajo del titular, en la mitad izquierda
+              oscura: la foto de las personas sobre la que flotaba antes ahora es
+              parte de la imagen única del héroe, así que ya no hay dónde apoyarla. */}
+          <div className="mt-10 max-w-xs sm:max-w-sm">
+            <SuggestForm rotated inputId="sugerencia-hero" />
           </div>
         </div>
       </div>
