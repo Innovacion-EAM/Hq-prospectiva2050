@@ -802,10 +802,10 @@ export const SEED_MUNICIPIOS: SeedMunicipio[] = [
       "Municipio joven, formado en 1986, que ha crecido al ritmo de la expansión del valle. Es hoy el principal corredor de crecimiento entre Armenia y el sur del departamento.",
   },
   {
-    nombre: "Montúbel",
-    dato: "Bosque alto y agua",
+    nombre: "Montenegro",
+    dato: "Emporio cafetero",
     descripcion:
-      "El de mayor altura del departamento, con su casco urbano por encima de los mil metros. Su bosque alto y sus fuentes de agua son la referencia del ejercicio frente al cambio climático.",
+      "Corazón de la cultura cafetera del Quindío y sede del Parque del Café. Su vocación turística, agroindustrial y de servicios lo convierten en un nodo clave del desarrollo económico del departamento.",
   },
   {
     nombre: "Pijao",

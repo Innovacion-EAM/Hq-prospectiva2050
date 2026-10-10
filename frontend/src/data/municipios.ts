@@ -17,7 +17,7 @@ export const MUNICIPIOS_QUINDIO = [
   "Filandia",
   "Génova",
   "La Tebaida",
-  "Montúbel",
+  "Montenegro",
   "Pijao",
   "Quimbaya",
   "Salento",
