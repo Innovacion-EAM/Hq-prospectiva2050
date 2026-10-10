@@ -11,11 +11,11 @@ export function HomeHero() {
   const { SITE, PORTADA } = useSite();
   return (
     <section className="relative isolate overflow-hidden bg-ink text-paper">
-      {/* Imagen única del héroe. Antes eran dos piezas —la foto de fondo de
-          ciudad y la foto de las personas— y ahora es una sola imagen que trae
-          el conjunto completo. Se ve a plena imagen; el degradado de abajo solo
-          oscurece el lado izquierdo, donde va el titular, para que se lea.
-          Editable en Ajustes → Home. */}
+      {/* Imagen única del héroe: trae el fondo y las personas en una sola pieza.
+          La sección mide lo que mida su contenido (las imágenes son absolutas),
+          así que se mantiene baja y deja ver la franja de cifras de justo debajo.
+          El degradado solo oscurece el lado izquierdo, donde va el titular, para
+          que se lea sin tapar la imagen. Editable en Ajustes → Home. */}
       <img
         src={PORTADA.hero.fondo}
         alt=""
@@ -23,7 +23,7 @@ export function HomeHero() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-ink/90 via-ink/60 to-ink/80 lg:bg-gradient-to-r lg:from-ink lg:via-ink/55 lg:to-transparent" />
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[0.88fr_1.12fr] lg:py-16">
+      <div className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
         {/* Left hero headline */}
         <div className="relative z-10 max-w-xl text-left">
           <h1 className="font-display text-hero leading-[1.1] font-extrabold tracking-tight text-paper">
@@ -39,7 +39,7 @@ export function HomeHero() {
               </span>
             ))}
           </h1>
-          <div className="mt-8 flex justify-start">
+          <div className="mt-6 flex justify-start">
             {/* El color sale de una lista cerrada con su texto ya emparejado, no
                 de un color libre: ver `COLOR_BOTON` en `portada-colores.ts`. */}
             <Link
@@ -52,13 +52,13 @@ export function HomeHero() {
               {PORTADA.hero.botonTexto}
             </Link>
           </div>
+        </div>
 
-          {/* La caja de sugerencias va debajo del titular, en la mitad izquierda
-              oscura: la foto de las personas sobre la que flotaba antes ahora es
-              parte de la imagen única del héroe, así que ya no hay dónde apoyarla. */}
-          <div className="mt-10 max-w-xs sm:max-w-sm">
-            <SuggestForm rotated inputId="sugerencia-hero" />
-          </div>
+        {/* La caja de sugerencias vuelve a flotar a la derecha, sobre la imagen
+            (como estaba antes), para no alargar hacia abajo la columna del
+            titular. En móvil se apila debajo, que no hay ancho para que flote. */}
+        <div className="relative z-10 mt-8 w-60 sm:w-64 lg:absolute lg:bottom-8 lg:right-6 lg:mt-0 lg:w-72">
+          <SuggestForm rotated inputId="sugerencia-hero" />
         </div>
       </div>
     </section>
