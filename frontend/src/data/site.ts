@@ -365,6 +365,14 @@ export type Dimension = {
   charts: ChartSeries[];
   layers: string[];
   steps: { n: string; title: string }[];
+  /**
+   * Rótulos que encabezan las listas `steps` y `layers`. Cada fila nombra las
+   * suyas: en las 4 dimensiones son «Retos principales» / «Líneas de trabajo»,
+   * pero en los bloques de apoyo no (en «Misiones» los steps son las misiones).
+   * Si vienen vacíos, el sitio usa esos dos por defecto.
+   */
+  stepsLabel: string;
+  layersLabel: string;
 };
 
 export const DIMENSIONS: Dimension[] = [
@@ -375,6 +383,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "dimension",
     icon: "target",
     summary: "Gobernanza territorial, institucionalidad pública y privada, planeación, participación ciudadana y seguridad pública.",
+    stepsLabel: "Retos principales",
+    layersLabel: "Líneas de trabajo",
     body: ["Este eje analiza la gobernanza territorial, la institucionalidad pública y privada, la planeación, la participación ciudadana, la seguridad pública y la capacidad de coordinación entre organizaciones.", "El proyecto busca fortalecer la articulación institucional entre niveles de gobierno y actores del territorio, mejorar la capacidad de planeación pública y seguimiento a largo plazo, promover una gobernanza más abierta, coordinada y participativa, e integrar la vigilancia tecnológica y el análisis de tendencias en la toma de decisiones."],
     layers: ["Gobernanza territorial y ejercicio político", "Institucionalidad pública y gremial", "Planeación y gestión territorial", "Participación ciudadana y control social", "Seguridad pública y gobernabilidad"],
     steps: [
@@ -404,6 +414,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "dimension",
     icon: "chart",
     summary: "Caficultura, turismo, agroindustria, nuevas economías, emprendimiento, innovación y transición productiva.",
+    stepsLabel: "Retos principales",
+    layersLabel: "Líneas de trabajo",
     body: ["Este eje examina la estructura económica del Quindío, con énfasis en caficultura, turismo, agroindustria, nuevas economías, emprendimiento, innovación, transición productiva y transformación digital.", "Los retos principales son diversificar y fortalecer la base productiva del departamento, potenciar cadenas de valor con mayor innovación y competitividad, anticipar los efectos de la automatización, la inteligencia artificial y la transición energética, y consolidar apuestas productivas estratégicas con visión de largo plazo."],
     layers: ["Caficultura y agroindustria", "Turismo y economía creativa", "Bioeconomía y economía del cuidado", "Inteligencia artificial y transformación digital productiva", "Emprendimiento, innovación y economía circular"],
     steps: [
@@ -433,6 +445,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "dimension",
     icon: "leaf",
     summary: "Sistema físico-biótico, cambio climático, recursos hídricos, biodiversidad, gestión del riesgo y sostenibilidad.",
+    stepsLabel: "Retos principales",
+    layersLabel: "Líneas de trabajo",
     body: ["Este eje aborda el sistema físico-biótico del departamento, el cambio climático, los recursos hídricos, la biodiversidad, la gestión del riesgo, el ordenamiento territorial, la movilidad, la infraestructura y la sostenibilidad ambiental.", "Los retos principales son proteger y regenerar los ecosistemas estratégicos, reducir vulnerabilidades frente al cambio climático y el riesgo, articular el desarrollo urbano, la infraestructura y el ordenamiento territorial, e integrar herramientas SIG y análisis espacial para mejorar la lectura territorial."],
     layers: ["Cambio climático y adaptación territorial", "Biodiversidad y sostenibilidad ecosistémica", "Recursos hídricos y gestión ambiental", "Ordenamiento territorial y desarrollo urbano", "Infraestructura, vivienda, servicios públicos y gestión del riesgo"],
     steps: [
@@ -462,6 +476,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "dimension",
     icon: "users",
     summary: "Estructura social, calidad de vida, educación, salud, equidad, identidades territoriales, juventud y cohesión social.",
+    stepsLabel: "Retos principales",
+    layersLabel: "Líneas de trabajo",
     body: ["Este eje analiza la estructura social del Quindío, la calidad de vida, la educación, la salud, la equidad, las identidades territoriales, la juventud, la diversidad y la cohesión social.", "Los retos principales son mejorar el bienestar, la inclusión y la calidad de vida; reconocer la diversidad social, cultural y generacional del territorio; fortalecer la participación de comunidades y grupos poblacionales diversos; e incorporar las voces del territorio en la construcción de futuro."],
     layers: ["Salud y calidad de vida", "Educación y comunidad educativa", "Demografía e inclusión social", "Género, diversidad e identidades", "Juventud, cultura, historia, artes, deporte y convivencia"],
     steps: [
@@ -491,6 +507,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "bloque",
     icon: "trophy",
     summary: "Las cinco misiones que articulan el desarrollo del estudio prospectivo.",
+    stepsLabel: "Misiones",
+    layersLabel: "Líneas de trabajo",
     body: ["Las misiones son los instrumentos de trabajo del proceso. Cada una agrupa un conjunto de actividades que se ejecutan de manera articulada y que, en conjunto, llevan desde el diagnóstico hasta la capacidad instalada en el territorio."],
     layers: ["Misión de diagnóstico", "Misión de visión", "Misión de escenarios", "Misión estratégica", "Misión de institucionalización"],
     steps: [
@@ -524,6 +542,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "bloque",
     icon: "alert",
     summary: "Condiciones comunes que el proceso debe atender en todas sus dimensiones.",
+    stepsLabel: "Retos transversales",
+    layersLabel: "Condiciones comunes",
     body: ["Los retos transversales atraviesan las cuatro dimensiones y condicionan el éxito de todo el estudio. No pertenecen a un eje en particular: son condiciones que el proceso debe resolver de manera transversal."],
     layers: ["Participación amplia, representativa y continua", "Traducir el lenguaje técnico a mensajes claros", "Mantener memoria, trazabilidad y acceso a la información", "Asegurar continuidad institucional más allá del convenio", "Hacer del sitio una herramienta viva de comunicación"],
     steps: [
@@ -557,6 +577,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "bloque",
     icon: "folder",
     summary: "Espacio para registrar las iniciativas y fichas que se construyan sobre cada eje del proyecto.",
+    stepsLabel: "Ciclo de la iniciativa",
+    layersLabel: "Frentes de trabajo",
     body: ["Este bloque reúne las iniciativas y fichas que el equipo técnico elabore a partir del trabajo de cada dimensión. Se alimenta a medida que avancen los productos del estudio."],
     layers: [],
     steps: [],
@@ -569,6 +591,8 @@ export const DIMENSIONS: Dimension[] = [
     tipo: "bloque",
     icon: "file",
     summary: "Espacio para consolidar los hallazgos, señales débiles y tendencias que surjan del diagnóstico.",
+    stepsLabel: "Ruta del análisis",
+    layersLabel: "Escalas",
     body: ["Este bloque consolida los hallazgos del diagnóstico: tendencias globales, nacionales y locales, señales débiles e incertidumbres críticas identificadas para el departamento."],
     layers: [],
     steps: [],

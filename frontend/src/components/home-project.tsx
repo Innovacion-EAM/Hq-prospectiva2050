@@ -19,6 +19,12 @@ export function HomeProject() {
   // una, que es lo que la gente espera de un desplegable.
   const [dim, setDim] = useState<string | null>(null);
   const active = visibles.find((d) => d.slug === dim) ?? visibles[0];
+  // Los bloques de apoyo (misiones, retos, iniciativas, hallazgos) se despliegan
+  // igual que las dimensiones: una grilla con su icono y, al tocar, el resumen,
+  // las estadísticas y el enlace a su ficha completa. Antes solo se veían el
+  // título y el `short`, así que lo demás parecía no guardarse.
+  const [bloque, setBloque] = useState<string | null>(null);
+  const bloqueActivo = bloques.find((b) => b.slug === bloque) ?? bloques[0];
   /*
    * Las tarjetas del carrusel son las páginas del proyecto, no una lista aparte.
    *
@@ -189,21 +195,19 @@ export function HomeProject() {
                   <p className="font-display text-[0.7rem] font-semibold tracking-wide text-muted uppercase">
                     {PORTADA.proyecto.accionTitulo}
                   </p>
-                  <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-                    {bloques.map((b) => (
-                      <li
-                        key={b.slug}
-                        className="flex items-start gap-2 rounded-lg border border-stone bg-paper px-3 py-2"
-                      >
-                        <span className="font-display text-xs font-semibold text-ink">
-                          {b.title}
-                        </span>
-                        {b.short ? (
-                          <span className="text-xs text-muted">— {b.short}</span>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-4">
+                    <DimensionGrid
+                      items={bloques}
+                      active={bloque}
+                      expanded={bloque !== null}
+                      onSelect={(slug) =>
+                        setBloque((actual) => (actual === slug ? null : slug))
+                      }
+                    />
+                    {bloque !== null ? (
+                      <DimensionDetail dim={bloqueActivo} />
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
             </div>

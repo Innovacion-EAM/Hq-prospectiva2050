@@ -21,11 +21,18 @@ export function DimensionDetailPage() {
     return <NotFoundPage />;
   }
 
-  const otras = DIMENSIONS.filter((d) => d.slug !== dim.slug && d.tipo === "dimension");
+  const esBloque = dim.tipo === "bloque";
+  // Para una dimensión, enlaza las otras tres dimensiones; para un bloque, los
+  // otros bloques. Así no se mezclan dimensiones de análisis con apoyo.
+  const otras = DIMENSIONS.filter((d) => d.slug !== dim.slug && d.tipo === dim.tipo);
 
   return (
     <>
-      <PageHero kicker="Dimensiones" title={dim.title} intro={dim.summary} />
+      <PageHero
+        kicker={esBloque ? "Misiones, retos y hoja de ruta" : "Dimensiones"}
+        title={dim.title}
+        intro={dim.summary}
+      />
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         {dim.body.length > 0 ? (
           <div className="max-w-3xl space-y-3">
@@ -42,7 +49,7 @@ export function DimensionDetailPage() {
             {dim.steps.length > 0 ? (
               <div>
                 <h2 className="font-display text-xs font-semibold tracking-wide text-muted uppercase">
-                  Retos principales
+                  {dim.stepsLabel}
                 </h2>
                 <ul className="mt-3 space-y-2">
                   {dim.steps.map((s) => (
@@ -58,7 +65,7 @@ export function DimensionDetailPage() {
             {dim.layers.length > 0 ? (
               <div>
                 <h2 className="font-display text-xs font-semibold tracking-wide text-muted uppercase">
-                  Líneas de trabajo
+                  {dim.layersLabel}
                 </h2>
                 <ul className="mt-3 space-y-2">
                   {dim.layers.map((l) => (

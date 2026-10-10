@@ -137,20 +137,32 @@ describe('API pública y validación (e2e)', () => {
           short: 'De prueba',
           summary: 'Dimensión que crea el e2e.',
           body: ['Primer párrafo.', 'Segundo párrafo.'],
+          stepsLabel: 'Retos de prueba',
+          layersLabel: 'Líneas de prueba',
         }),
       );
 
       try {
         const res = await request(app.getHttpServer()).get('/api/site').expect(200);
-        const dimensiones = (res.body.dimensiones as Array<{ slug: string; body: unknown }>).filter(
-          (d) => d.slug === slug,
-        );
+        const dimensiones = (
+          res.body.dimensiones as Array<{
+            slug: string;
+            body: unknown;
+            stepsLabel?: unknown;
+            layersLabel?: unknown;
+          }>
+        ).filter((d) => d.slug === slug);
         expect(dimensiones).toHaveLength(1);
 
         for (const parrafo of dimensiones[0].body as string[]) {
           expect(typeof parrafo).toBe('string');
         }
         expect(dimensiones[0].body as string[]).toEqual(['Primer párrafo.', 'Segundo párrafo.']);
+
+        // Los rótulos de las listas viajan en el mismo payload público: la ficha
+        // los usa para encabezar «retos» y «líneas», que en un bloque cambian.
+        expect(dimensiones[0].stepsLabel).toBe('Retos de prueba');
+        expect(dimensiones[0].layersLabel).toBe('Líneas de prueba');
       } finally {
         await repo.delete(creada.id);
       }

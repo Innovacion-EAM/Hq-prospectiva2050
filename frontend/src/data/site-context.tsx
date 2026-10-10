@@ -510,6 +510,10 @@ function pickDimensiones(dimensiones: RawDimension[] | undefined): Dimension[] {
     short: d.short || d.title,
     body: toStringArray(d.body),
     layers: toStringArray(d.layers),
+    // Cada fila puede nombrar sus listas; si no lo hizo, se usan los rótulos
+    // de siempre (que son los correctos para las 4 dimensiones de análisis).
+    stepsLabel: (d.stepsLabel || "").trim() || "Retos principales",
+    layersLabel: (d.layersLabel || "").trim() || "Líneas de trabajo",
     steps: toArray(d.steps, (s) => {
       const step = (s ?? {}) as { n?: unknown; title?: unknown };
       return {

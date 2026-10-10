@@ -38,6 +38,18 @@ export class Dimension {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   steps: unknown[];
 
+  /**
+   * Rótulo que encabeza la lista `steps`. Por defecto «Retos principales», pero
+   * cada fila nombra la suya: en «Misiones del proceso» los pasos son las
+   * misiones, no retos. Se edita en la barra lateral → Dimensiones.
+   */
+  @Column({ name: 'steps_label', type: 'text', nullable: true })
+  stepsLabel: string | null;
+
+  /** Rótulo que encabeza la lista `layers`. Por defecto «Líneas de trabajo». */
+  @Column({ name: 'layers_label', type: 'text', nullable: true })
+  layersLabel: string | null;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   charts: unknown[];
 

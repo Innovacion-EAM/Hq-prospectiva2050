@@ -332,6 +332,10 @@ export type Dimension = {
   body: string[];
   layers: string[];
   steps: { n: string; title: string }[];
+  /** Rótulo que encabeza la lista `steps`. Vacío = «Retos principales». */
+  stepsLabel: string;
+  /** Rótulo que encabeza la lista `layers`. Vacío = «Líneas de trabajo». */
+  layersLabel: string;
   charts: ChartSeries[];
   /** Fecha de baja lógica; `null` mientras el registro está vigente. */
   eliminadoAt?: string | null;

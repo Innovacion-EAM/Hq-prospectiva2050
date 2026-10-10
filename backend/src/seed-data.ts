@@ -105,6 +105,14 @@ export type SeedDimension = {
   body: string[];
   layers: string[];
   steps: { n: string; title: string }[];
+  /**
+   * Rótulos que encabezan las listas `steps` y `layers` en el sitio. Van vacíos
+   * en las 4 dimensiones (el frontend usa «Retos principales» / «Líneas de
+   * trabajo»); en los bloques se llenan porque su contenido no es «retos» ni
+   * «líneas».
+   */
+  stepsLabel?: string;
+  layersLabel?: string;
   charts: { name: string; color: string; data: { year: string; value: number }[] }[];
 };
 
@@ -1065,6 +1073,8 @@ export const SEED_DIMENSIONES: SeedDimension[] = [
     short: "Misiones",
     tipo: "bloque",
     icon: "trophy",
+    stepsLabel: "Misiones",
+    layersLabel: "Fases del proceso",
     summary: "Las cinco misiones que articulan el desarrollo del estudio prospectivo.",
     body: [
       "Las misiones son los instrumentos de trabajo del proceso. Cada una agrupa un conjunto de actividades que se ejecutan de manera articulada y que, en conjunto, llevan desde el diagnóstico hasta la capacidad instalada en el territorio.",
@@ -1091,6 +1101,8 @@ export const SEED_DIMENSIONES: SeedDimension[] = [
     short: "Retos",
     tipo: "bloque",
     icon: "alert",
+    stepsLabel: "Retos transversales",
+    layersLabel: "Condiciones comunes",
     summary: "Condiciones comunes que el proceso debe atender en todas sus dimensiones.",
     body: [
       "Los retos transversales atraviesan las cuatro dimensiones y condicionan el éxito de todo el estudio. No pertenecen a un eje en particular: son condiciones que el proceso debe resolver de manera transversal.",
@@ -1117,6 +1129,8 @@ export const SEED_DIMENSIONES: SeedDimension[] = [
     short: "Iniciativas",
     tipo: "bloque",
     icon: "folder",
+    stepsLabel: "Ciclo de la iniciativa",
+    layersLabel: "Frentes de trabajo",
     summary:
       "Espacio para registrar las iniciativas y fichas que se construyan sobre cada eje del proyecto.",
     body: [
@@ -1132,6 +1146,8 @@ export const SEED_DIMENSIONES: SeedDimension[] = [
     short: "Hallazgos",
     tipo: "bloque",
     icon: "file",
+    stepsLabel: "Ruta del análisis",
+    layersLabel: "Escalas",
     summary:
       "Espacio para consolidar los hallazgos, señales débiles y tendencias que surjan del diagnóstico.",
     body: [

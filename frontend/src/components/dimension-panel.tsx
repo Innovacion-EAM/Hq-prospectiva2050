@@ -134,7 +134,9 @@ export function DimensionStats({ dim }: { dim: Dimension }) {
   if (dim.charts.length === 0) {
     return (
       <p className="mt-6 rounded-xl border border-dashed border-mist px-4 py-6 text-center text-xs text-muted">
-        Esta dimensión todavía no tiene series de datos cargadas.
+        {dim.tipo === "bloque"
+          ? "Este bloque todavía no tiene series de datos cargadas."
+          : "Esta dimensión todavía no tiene series de datos cargadas."}
       </p>
     );
   }

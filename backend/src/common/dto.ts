@@ -1300,6 +1300,22 @@ export class DimensionDto {
   @ArrayMaxSize(50)
   steps?: unknown[];
 
+  /**
+   * Rótulos que encabezan las listas `steps` y `layers`. **No** llevan
+   * `VacioOpcional` a propósito: la cadena vacía es un valor —«usa el rótulo
+   * del sitio», «Retos principales» / «Líneas de trabajo»—, y con ese decorador
+   * el vacío llegaría como `undefined` y no se podría volver al de por defecto.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  stepsLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  layersLabel?: string;
+
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)

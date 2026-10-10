@@ -35,7 +35,9 @@ function emptyDimension(): Dimension {
     summary: "",
     body: [""],
     layers: [],
+    layersLabel: "Líneas de trabajo",
     steps: [],
+    stepsLabel: "Retos principales",
     charts: [],
   };
 }
@@ -75,7 +77,9 @@ export function DimensionesListPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-display text-sm font-semibold text-ink">{d.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted">
-                    {d.charts.length} series · {d.steps.length} retos · {d.layers.length} líneas
+                    {d.charts.length} series · {d.steps.length}{" "}
+                    {(d.stepsLabel || "retos").toLowerCase()} ·{" "}
+                    {d.layers.length} {(d.layersLabel || "líneas").toLowerCase()}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -128,6 +132,8 @@ export function DimensionFormPage() {
       item
         ? {
             ...item,
+            stepsLabel: item.stepsLabel || "",
+            layersLabel: item.layersLabel || "",
             body: [...item.body],
             layers: [...item.layers],
             steps: item.steps.map((s) => ({ ...s })),
@@ -255,16 +261,42 @@ export function DimensionFormPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardBody>
+          <CardBody className="space-y-5">
+            <Field
+              label="Título de la lista de líneas"
+              hint="El encabezado que verá el visitante sobre esta lista. Si va vacío, se usa «Líneas de trabajo»."
+            >
+              <Input
+                value={guardar.layersLabel}
+                onChange={(e) => commit({ layersLabel: e.target.value })}
+                placeholder="Líneas de trabajo"
+              />
+            </Field>
             <StringsEditor
-              label="Líneas de trabajo"
+              label={guardar.layersLabel || "Líneas de trabajo"}
               value={guardar.layers}
               onChange={(layers) => commit({ layers })}
-              hint="Una línea por fila. Se muestran con el encabezado «Líneas de trabajo» en la ficha."
+              hint="Una línea por fila. En la ficha salen bajo el encabezado de arriba."
               placeholder="Línea de trabajo"
             />
-            <div className="mt-6">
-              <StepsEditor value={guardar.steps} onChange={(steps) => commit({ steps })} />
+            <div className="border-t border-stone pt-5">
+              <Field
+                label="Título de la lista de retos"
+                hint="El encabezado que verá el visitante sobre esta lista. Si va vacío, se usa «Retos principales». En «Misiones del proceso» puede ser «Misiones»."
+              >
+                <Input
+                  value={guardar.stepsLabel}
+                  onChange={(e) => commit({ stepsLabel: e.target.value })}
+                  placeholder="Retos principales"
+                />
+              </Field>
+              <div className="mt-4">
+                <StepsEditor
+                  title={guardar.stepsLabel || "Retos principales"}
+                  value={guardar.steps}
+                  onChange={(steps) => commit({ steps })}
+                />
+              </div>
             </div>
           </CardBody>
         </Card>
@@ -297,7 +329,15 @@ export function DimensionFormPage() {
   );
 }
 
-function StepsEditor({ value, onChange }: { value: Step[]; onChange: (next: Step[]) => void }) {
+function StepsEditor({
+  value,
+  onChange,
+  title,
+}: {
+  value: Step[];
+  onChange: (next: Step[]) => void;
+  title: string;
+}) {
   const [draft, setDraft] = useState("");
 
   function add() {
@@ -314,7 +354,7 @@ function StepsEditor({ value, onChange }: { value: Step[]; onChange: (next: Step
 
   return (
     <div className="space-y-2">
-      <span className="font-display text-xs font-semibold text-ink">Retos principales</span>
+      <span className="font-display text-xs font-semibold text-ink">{title}</span>
       <div className="flex gap-2">
         <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Escribe un reto" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
         <Button variant="lime" size="icon" onClick={add} aria-label="Agregar reto">
