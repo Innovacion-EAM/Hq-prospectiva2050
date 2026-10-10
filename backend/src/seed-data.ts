@@ -602,7 +602,6 @@ export const SEED_SITE: SeedSite = {
 export const SEED_HOME = {
   hero: {
     fondo: null,
-    imagen: null,
     botonTexto: "Explorar más »",
     botonColor: "lima" as const,
     cajaTitulo: "¿Tienes alguna pregunta o quieres darnos una recomendación?",

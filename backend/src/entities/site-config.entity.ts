@@ -150,7 +150,7 @@ export type ColorBoton = 'lima' | 'lima-oscuro' | 'verde' | 'tinta' | 'convoca';
 export type ColorBotonSobreLima = 'verde' | 'tinta' | 'convoca';
 
 /**
- * El hero de la portada: titular, imágenes y botón.
+ * El hero de la portada: titular, imagen y botón.
  *
  * `titular` no está aquí: es la columna `headline` de la fila, que ya existía de
  * antes de este módulo. Duplicarla dentro de `hero` habría dejado dos sitios
@@ -166,8 +166,6 @@ export type HeroPortada = {
    * `null`—. El frontend lo resuelve al respaldo (`imagenO`).
    */
   fondo: string | null;
-  /** Ruta de la foto de las personas. `null` = la que trae el sitio. */
-  imagen: string | null;
   botonTexto: string;
   botonColor: ColorBoton;
   /** El rótulo de la caja «pregunta o recomendación». */

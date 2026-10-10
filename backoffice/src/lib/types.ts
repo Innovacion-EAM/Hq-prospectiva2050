@@ -121,7 +121,6 @@ export type HeroPortada = {
    * `string | null` para no mentir sobre lo que llega del servidor.
    */
   fondo: string | null;
-  imagen: string | null;
   botonTexto: string;
   botonColor: ColorBoton;
   cajaTitulo: string;

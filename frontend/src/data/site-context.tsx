@@ -358,7 +358,6 @@ function pickPortada(home: unknown): Portada {
   return {
     hero: {
       fondo: imagenO(hero.fondo, FALLBACK_PORTADA.hero.fondo),
-      imagen: imagenO(hero.imagen, FALLBACK_PORTADA.hero.imagen),
       botonTexto: textoO(hero.botonTexto, FALLBACK_PORTADA.hero.botonTexto),
       botonColor: colorO(hero.botonColor, FALLBACK_PORTADA.hero.botonColor),
       cajaTitulo: textoO(hero.cajaTitulo, FALLBACK_PORTADA.hero.cajaTitulo),

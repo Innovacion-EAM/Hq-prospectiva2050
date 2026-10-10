@@ -53,8 +53,8 @@ export const VacioOpcional = () =>
  * no, y la causa era que el campo vacío y el campo "no vine a tocarlo" se
  * confundían en el mismo hueco.
  *
- * Se aplica en las tres imágenes de la portada (`hero.fondo`, `hero.imagen` y
- * `proyecto.fondo`), que son las que el panel edita con ese botón.
+ * Se aplica a las imágenes de la portada (`hero.fondo`, `proyecto.fondo` y
+ * `elProyecto.fondo`), que son las que el panel edita con ese botón.
  */
 export const VacioEnPortada = () =>
   Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value));
@@ -560,7 +560,7 @@ export class SeccionDto {
 /**
  * El hero de la portada.
  *
- * Las dos imágenes aceptan ruta interna (`/images/…` para las que trae el sitio,
+ * La imagen acepta ruta interna (`/images/…` para las que trae el sitio,
  * `/uploads/…` para las que se suben desde el panel) o dirección completa.
  *
  * El patrón `^(\/|https?:\/\/)` de las imágenes no es un adorno: sin él,
@@ -578,15 +578,6 @@ export class HeroDto {
     message: 'La imagen de fondo debe empezar por "/" o por "https://"',
   })
   fondo?: string;
-
-  @IsOptional()
-  @VacioEnPortada()
-  @IsString()
-  @MaxLength(500)
-  @Matches(/^(\/|https?:\/\/)/, {
-    message: 'La imagen debe empezar por "/" o por "https://"',
-  })
-  imagen?: string;
 
   @IsOptional()
   @IsString()

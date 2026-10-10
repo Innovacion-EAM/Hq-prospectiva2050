@@ -498,7 +498,6 @@ describe('API pública y validación (e2e)', () => {
       const home = {
         hero: {
           fondo: '/uploads/hero.jpg',
-          imagen: '/images/otra-hero.jpg',
           botonTexto: 'Ver el proyecto',
           botonColor: 'tinta',
           cajaTitulo: '¿Alguna pregunta?',
@@ -659,39 +658,35 @@ describe('API pública y validación (e2e)', () => {
       expect(guardada.noticias.titulo).toBe('Solo noticias');
     });
 
-    it.each([
-      ['fondo', 'imagen', '/images/otra-hero.jpg'],
-      ['imagen', 'fondo', '/uploads/fondo-que-sigue.jpg'],
-    ])(
-      'deja volver a la del sitio "%s" del hero sin llevarse "%s"',
-      async (clave, otra, valorDeLaOtra) => {
-        // Es el botón «Usar la del sitio» del panel, y hace falta cuando una
-        // imagen subida no era la buena. La cadena vacía es cómo el panel dice
-        // "usa la del sitio": el backend tiene que aceptarla y guardarla, porque
-        // el frontend la resuelve al respaldo (`imagenO`). Antes devolvía `400`
-        // —"La imagen de fondo debe empezar por "/" o por "https://""—, así que
-        // subir una imagen nueva funcionaba pero quitarla no, que es justo lo
-        // que dejaba el botón sin efecto.
-        const auth = `Bearer ${await tokenAdmin()}`;
-        // Las dos quedan con un valor conocido antes de probar a quitarlas.
-        await request(app.getHttpServer())
-          .put('/api/config/site')
-          .set('authorization', auth)
-          .send({ home: { hero: { [clave]: '/uploads/nueva.jpg', [otra]: valorDeLaOtra } } })
-          .expect(200);
+    it('deja volver a la del sitio el fondo del hero sin llevarse el resto', async () => {
+      // Es el botón «Usar la del sitio» del panel, y hace falta cuando una
+      // imagen subida no era la buena. La cadena vacía es cómo el panel dice
+      // "usa la del sitio": el backend tiene que aceptarla y guardarla, porque
+      // el frontend la resuelve al respaldo (`imagenO`). Antes devolvía `400`
+      // —"La imagen de fondo debe empezar por "/" o por "https://""—, así que
+      // subir una imagen nueva funcionaba pero quitarla no, que es justo lo
+      // que dejaba el botón sin efecto.
+      const auth = `Bearer ${await tokenAdmin()}`;
+      // El fondo queda con un valor conocido antes de probar a quitarlo, y el
+      // rótulo de la caja con el suyo para comprobar que vaciar el fondo no se
+      // lleva el resto de la sección.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', auth)
+        .send({ home: { hero: { fondo: '/uploads/nueva.jpg', cajaTitulo: '¿Alguna pregunta?' } } })
+        .expect(200);
 
-        await request(app.getHttpServer())
-          .put('/api/config/site')
-          .set('authorization', auth)
-          .send({ home: { hero: { [clave]: '' } } })
-          .expect(200);
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', auth)
+        .send({ home: { hero: { fondo: '' } } })
+        .expect(200);
 
-        const hero = (await portadaPublica()).hero as unknown as Record<string, unknown>;
-        expect(hero[clave]).toBeFalsy();
-        // Y quitarla no puede llevarse la otra imagen del hero.
-        expect(hero[otra]).toBe(valorDeLaOtra);
-      },
-    );
+      const hero = (await portadaPublica()).hero;
+      expect(hero.fondo).toBeFalsy();
+      // Y quitarlo no puede llevarse el resto de la sección.
+      expect(hero.cajaTitulo).toBe('¿Alguna pregunta?');
+    });
 
     it('deja volver a la del sitio el fondo de la sección del proyecto', async () => {
       // La tercera imagen de la portada, y el mismo caso: se sube una y hay que
@@ -773,7 +768,7 @@ describe('API pública y validación (e2e)', () => {
         { hero: { cajaBotonColor: 'lima' } },
       ],
       ['una imagen que no es ruta ni http', { hero: { fondo: 'uploads/hero.jpg' } }],
-      ['un javascript: como imagen', { hero: { imagen: 'javascript:alert(1)' } }],
+      ['un javascript: como imagen', { proyecto: { fondo: 'javascript:alert(1)' } }],
       ['un campo de más dentro de una sección', { hero: { color: 'rojo' } }],
       ['una sección que no existe', { pieDePagina: { titulo: 'X' } }],
     ])('rechaza %s', async (_caso, home) => {

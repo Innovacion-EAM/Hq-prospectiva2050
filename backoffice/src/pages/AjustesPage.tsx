@@ -204,7 +204,6 @@ export function AjustesPage() {
             ...PORTADA_VACIA.hero,
             ...(value.home?.hero ?? {}),
             fondo: cadena(value.home?.hero?.fondo),
-            imagen: cadena(value.home?.hero?.imagen),
           },
           proyecto: {
             ...PORTADA_VACIA.proyecto,

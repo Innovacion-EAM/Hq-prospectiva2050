@@ -95,7 +95,6 @@ export function esColorBotonSobreLima(valor: string): valor is ColorBotonSobreLi
 export const PORTADA_VACIA = {
   hero: {
     fondo: "",
-    imagen: "",
     botonTexto: "",
     botonColor: COLOR_POR_DEFECTO,
     cajaTitulo: "",

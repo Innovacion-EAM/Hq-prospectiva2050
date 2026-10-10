@@ -161,9 +161,7 @@ export const ENTITIES = [
 export const PORTADA = {
   hero: {
     // Imagen única del héroe: trae el fondo y las personas en una sola pieza.
-    // (El campo `imagen` queda por compatibilidad, pero el héroe ya no lo usa.)
     fondo: "/images/hero-banner.jpg",
-    imagen: "/images/hero-people.jpg",
     botonTexto: "Explorar más »",
     botonColor: "lima" as ColorBoton,
     cajaTitulo: "¿Tienes alguna pregunta o quieres darnos una recomendación?",

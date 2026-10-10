@@ -113,14 +113,14 @@ export function ModuloHome({
         />
       </ModuloCard>
 
-      <ModuloCard titulo="Hero: imágenes y botón">
+      <ModuloCard titulo="Hero: imagen y botón">
         <div className="space-y-6">
           <div>
-            <p className="mb-2 font-display text-xs font-bold text-ink">Fondo del hero</p>
+            <p className="mb-2 font-display text-xs font-bold text-ink">Imagen del hero</p>
             <SelectorImagen
               valor={hero.fondo}
               onChange={(fondo) => editar("hero", "fondo", fondo)}
-              etiqueta="el fondo del hero"
+              etiqueta="la imagen del hero"
               respaldo="la imagen del sitio"
               forma="corta"
             />
