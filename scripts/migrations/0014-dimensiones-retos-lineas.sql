@@ -40,8 +40,14 @@ BEGIN
     SELECT id, body
     FROM config_dimensiones
     WHERE eliminado_at IS NULL
-      AND body ? 'RETOS PRINCIPALES'
-      AND body ? 'LÍNEAS DE TRABAJO'
+      AND EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(body) AS x
+            WHERE upper(btrim(x, E' \t\n\r')) = 'RETOS PRINCIPALES'
+          )
+      AND EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(body) AS x
+            WHERE upper(btrim(x, E' \t\n\r')) = 'LÍNEAS DE TRABAJO'
+          )
   LOOP
     SELECT array_agg(value ORDER BY ord)
       INTO elems
@@ -57,7 +63,7 @@ BEGIN
     fase     := 0;
 
     FOREACH e IN ARRAY elems LOOP
-      c := upper(btrim(e));
+      c := upper(btrim(e, E' \t\n\r'));
 
       IF c = 'RETOS PRINCIPALES' THEN
         fase := 1;
@@ -68,11 +74,11 @@ BEGIN
       END IF;
 
       IF fase = 0 THEN
-        analisis := analisis || btrim(e);
+        analisis := analisis || btrim(e, E' \t\n\r');
       ELSIF fase = 1 THEN
-        retos := retos || btrim(ltrim(btrim(e), '•·-–— '));
+        retos := retos || btrim(ltrim(e, E' \t\n\r•·-–—'), E' \t\n\r');
       ELSE
-        lineas := lineas || btrim(ltrim(btrim(e), '•·-–— '));
+        lineas := lineas || btrim(ltrim(e, E' \t\n\r•·-–—'), E' \t\n\r');
       END IF;
     END LOOP;
 
