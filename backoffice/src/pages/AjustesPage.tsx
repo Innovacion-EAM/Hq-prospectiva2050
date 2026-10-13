@@ -11,6 +11,7 @@ import { LINEAS_TITULAR_MAX, ModuloHome } from "./ajustes/modulo-home";
 import { ModuloPendiente } from "./ajustes/modulo-pendiente";
 import { ModuloProyecto } from "./ajustes/modulo-proyecto";
 import { ModuloDimensiones } from "./ajustes/modulo-dimensiones";
+import { ModuloDocumentos } from "./ajustes/modulo-documentos";
 import { ModuloContactos } from "./ajustes/modulo-contactos";
 import { ModuloFooter } from "./ajustes/modulo-footer";
 import { ModuloLegal } from "./ajustes/modulo-legal";
@@ -75,7 +76,7 @@ const MODULOS = [
   {
     id: "documentos",
     label: "Documentos",
-    desc: "El encabezado sobre el repositorio se edita en Home; las categorías, en Configuración → Categorías; y los documentos, en Documentos.",
+    desc: "El hero de /documentos (titular, bajada y foto de fondo) y el bloque de la portada con su texto y el color del botón. Los documentos se editan en la barra lateral → Documentos; las categorías, en Configuración → Categorías.",
   },
   {
     id: "noticias",
@@ -127,12 +128,7 @@ const PANTALLAS: Record<ModuloId, (props: PropsModulo) => ReactNode> = {
   home: ModuloHome,
   proyecto: ModuloProyecto,
   dimensiones: ModuloDimensiones,
-  documentos: () => (
-    <ModuloPendiente
-      bloque="los documentos"
-      detalle="El encabezado sobre el repositorio se edita hoy en Home; las categorías, en Configuración → Categorías; y los documentos, en Documentos."
-    />
-  ),
+  documentos: ModuloDocumentos,
   noticias: () => (
     <ModuloPendiente
       bloque="las noticias"
@@ -220,6 +216,11 @@ export function AjustesPage() {
           elDimensiones: {
             ...PORTADA_VACIA.elDimensiones,
             ...(value.home?.elDimensiones ?? {}),
+          },
+          elDocumentos: {
+            ...PORTADA_VACIA.elDocumentos,
+            ...(value.home?.elDocumentos ?? {}),
+            fondo: cadena(value.home?.elDocumentos?.fondo),
           },
           cobertura: { ...PORTADA_VACIA.cobertura, ...(value.home?.cobertura ?? {}) },
           documentos: { ...PORTADA_VACIA.documentos, ...(value.home?.documentos ?? {}) },

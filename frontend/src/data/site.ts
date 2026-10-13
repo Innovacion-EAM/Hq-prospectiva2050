@@ -200,6 +200,12 @@ export const PORTADA = {
     intro:
       "Cuatro lecturas del Quindío que articulan el diagnóstico, los escenarios y los acuerdos del Horizonte 2050.",
   },
+  elDocumentos: {
+    fondo: "/images/hero-city.jpg",
+    titulo: "Repositorio de documentos",
+    intro:
+      "Convenios, informes, memorias, boletines y piezas de socialización del proceso, con autor, alcance territorial y formato de cada documento.",
+  },
   cobertura: {
     titulo: "Todo el departamento participa",
     texto: "La visión del 2050 se construye para el Quindío completo, no solo para Armenia.",

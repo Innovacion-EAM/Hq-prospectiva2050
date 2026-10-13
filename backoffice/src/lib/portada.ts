@@ -128,6 +128,11 @@ export const PORTADA_VACIA = {
     titulo: "",
     intro: "",
   },
+  elDocumentos: {
+    fondo: "",
+    titulo: "",
+    intro: "",
+  },
   cobertura: { titulo: "", texto: "" },
   documentos: { titulo: "", texto: "", botonColor: COLOR_POR_DEFECTO },
   repositorio: {

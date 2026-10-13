@@ -180,6 +180,20 @@ export type ElDimensionesPortada = {
 };
 
 /**
+ * El hero de la página `/documentos`.
+ *
+ * Igual que `ElProyectoPortada`: vive en `home` porque ahí viven las secciones
+ * editables del sitio. A diferencia de `ElDimensionesPortada` lleva `fondo`,
+ * porque la página se encabeza con una imagen.
+ */
+export type ElDocumentosPortada = {
+  /** Como `HeroPortada.fondo`: `null` = la imagen que trae el sitio. */
+  fondo: string | null;
+  titulo: string;
+  intro: string;
+};
+
+/**
  * El bloque de documentos, con el color de su botón «Ver más».
  *
  * Antes era un `SeccionPortada` pelado. Al darle color necesita tipo propio: si
@@ -251,6 +265,7 @@ export type PortadaSettings = {
   proyecto: ProyectoPortada;
   elProyecto: ElProyectoPortada;
   elDimensiones: ElDimensionesPortada;
+  elDocumentos: ElDocumentosPortada;
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;
   repositorio: RepositorioPortada;

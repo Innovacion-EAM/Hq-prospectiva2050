@@ -53,8 +53,9 @@ export const VacioOpcional = () =>
  * no, y la causa era que el campo vacío y el campo "no vine a tocarlo" se
  * confundían en el mismo hueco.
  *
- * Se aplica a las imágenes de la portada (`hero.fondo`, `proyecto.fondo` y
- * `elProyecto.fondo`), que son las que el panel edita con ese botón.
+ * Se aplica a las imágenes de la portada (`hero.fondo`, `proyecto.fondo`,
+ * `elProyecto.fondo` y `elDocumentos.fondo`), que son las que el panel edita con
+ * ese botón.
  */
 export const VacioEnPortada = () =>
   Transform(({ value }) => (typeof value === 'string' && value.trim() === '' ? null : value));
@@ -723,6 +724,35 @@ export class ElDimensionesPortadaDto {
   intro?: string;
 }
 
+/**
+ * El hero de la página `/documentos`: titular, bajada e imagen de fondo.
+ *
+ * Como `ElProyectoPortadaDto`, aquí el titular **sí** se edita: es el
+ * encabezado de la página, no un rótulo fijo de la portada. Lleva `fondo`
+ * porque la página se encabeza con una imagen.
+ */
+export class ElDocumentosPortadaDto {
+  /** Como `ProyectoPortadaDto.fondo`: `null` = la imagen que trae el sitio. */
+  @IsOptional()
+  @VacioEnPortada()
+  @IsString()
+  @MaxLength(500)
+  @Matches(/^(\/|https?:\/\/)/, {
+    message: 'La imagen de fondo debe empezar por "/" o por "https://"',
+  })
+  fondo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  titulo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(600)
+  intro?: string;
+}
+
 /** La tira de municipios. */
 export class CoberturaPortadaDto extends SeccionDto {}
 
@@ -887,6 +917,11 @@ export class HomeDto {
   @ValidateNested()
   @Type(() => ElDimensionesPortadaDto)
   elDimensiones?: ElDimensionesPortadaDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ElDocumentosPortadaDto)
+  elDocumentos?: ElDocumentosPortadaDto;
 
   @IsOptional()
   @ValidateNested()

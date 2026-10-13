@@ -671,6 +671,15 @@ export const SEED_HOME = {
     intro:
       "Cuatro lecturas del Quindío que articulan el diagnóstico, los escenarios y los acuerdos del Horizonte 2050.",
   },
+  // La página «Documentos» (/documentos). Debe coincidir con
+  // `PORTADA.elDocumentos` del frontend. El `fondo` va `null` para que una base
+  // nueva use la imagen del sitio (mismo criterio que el resto del hero).
+  elDocumentos: {
+    fondo: null,
+    titulo: "Repositorio de documentos",
+    intro:
+      "Convenios, informes, memorias, boletines y piezas de socialización del proceso, con autor, alcance territorial y formato de cada documento.",
+  },
   cobertura: {
     titulo: "Todo el departamento participa",
     texto:

@@ -243,6 +243,24 @@ export type ElDimensionesPortada = {
 };
 
 /**
+ * La página «Documentos» (`/documentos`).
+ *
+ * Como `ElDimensionesPortada`: vive en `home` porque ahí viven las secciones
+ * editables del sitio, y es solo el hero (titular, bajada e imagen de fondo).
+ * Los documentos en sí son una colección aparte (`documentos`) que se edita en
+ * la barra lateral, y las categorías otra (`config_doc_categorias`).
+ *
+ * Es un tipo propio y no un `SeccionPortada` porque lleva `fondo`, que es la
+ * imagen que encabeza la página.
+ */
+export type ElDocumentosPortada = {
+  /** Como `ElProyectoPortada.fondo`: `null` = la imagen que trae el sitio. */
+  fondo: string | null;
+  titulo: string;
+  intro: string;
+};
+
+/**
  * El bloque de documentos, que además lleva el botón «Ver más» de cada
  * categoría.
  *
@@ -348,6 +366,8 @@ export type Portada = {
   elProyecto: ElProyectoPortada;
   /** El hero de la página `/dimensiones`: alojado aquí por compartir `home`. */
   elDimensiones: ElDimensionesPortada;
+  /** El hero de la página `/documentos`: alojado aquí por compartir `home`. */
+  elDocumentos: ElDocumentosPortada;
   /** La tira de municipios: «Todo el departamento participa». */
   cobertura: SeccionPortada;
   documentos: DocumentosPortada;

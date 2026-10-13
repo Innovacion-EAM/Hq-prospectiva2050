@@ -761,6 +761,39 @@ describe('API pública y validación (e2e)', () => {
       expect(guardada.hero).toEqual(antes.hero);
     });
 
+    it('guarda el hero de la página Documentos, incluida su imagen de fondo', async () => {
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({
+          home: {
+            elDocumentos: {
+              titulo: 'Archivo del proceso',
+              intro: 'Convenios, informes y memorias.',
+              fondo: '/images/hero-city.jpg',
+            },
+          },
+        })
+        .expect(200);
+
+      const guardada = await portadaPublica();
+      expect(guardada.elDocumentos.titulo).toBe('Archivo del proceso');
+      expect(guardada.elDocumentos.intro).toBe('Convenios, informes y memorias.');
+      expect(guardada.elDocumentos.fondo).toContain('hero-city');
+
+      // El botón «Usar la del sitio» manda `''`; el backend lo guarda como
+      // `null` y el sitio vuelve a su imagen, sin perder el titular.
+      await request(app.getHttpServer())
+        .put('/api/config/site')
+        .set('authorization', `Bearer ${await tokenAdmin()}`)
+        .send({ home: { elDocumentos: { fondo: '' } } })
+        .expect(200);
+
+      const conRespaldo = await portadaPublica();
+      expect(conRespaldo.elDocumentos.fondo).toBeFalsy();
+      expect(conRespaldo.elDocumentos.titulo).toBe('Archivo del proceso');
+    });
+
     it.each([
       ['un color que no está en la lista', { hero: { botonColor: 'blanco-neon' } }],
       [

@@ -349,6 +349,7 @@ function pickPortada(home: unknown): Portada {
   const proyecto = b("proyecto");
   const elProyecto = b("elProyecto");
   const elDimensiones = b("elDimensiones");
+  const elDocumentos = b("elDocumentos");
   const cobertura = b("cobertura");
   const documentos = b("documentos");
   const repositorio = b("repositorio");
@@ -398,6 +399,14 @@ function pickPortada(home: unknown): Portada {
     elDimensiones: {
       titulo: textoO(elDimensiones.titulo, FALLBACK_PORTADA.elDimensiones.titulo),
       intro: textoO(elDimensiones.intro, FALLBACK_PORTADA.elDimensiones.intro),
+    },
+    // La página `/documentos`. Como `elProyecto` y `elDimensiones`, el titular
+    // sí se edita; además lleva imagen de fondo, así que se resuelve con
+    // `imagenO` como el hero.
+    elDocumentos: {
+      fondo: imagenO(elDocumentos.fondo, FALLBACK_PORTADA.elDocumentos.fondo),
+      titulo: textoO(elDocumentos.titulo, FALLBACK_PORTADA.elDocumentos.titulo),
+      intro: textoO(elDocumentos.intro, FALLBACK_PORTADA.elDocumentos.intro),
     },
     cobertura: {
       titulo: fijoPortada("cobertura", "titulo"),

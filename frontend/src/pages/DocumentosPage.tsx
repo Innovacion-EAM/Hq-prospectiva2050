@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { HomeDocuments } from "@/components/shared-sections";
 import { PageHero } from "@/components/site-shell";
+import { useSite } from "@/data/site-context";
 import { fetchDocumentos, formatFecha, type ApiDocumento } from "@/lib/api";
 
 export function DocumentosPage() {
+  const { PORTADA, DOC_CATEGORIES } = useSite();
   const [docs, setDocs] = useState<ApiDocumento[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [categoria, setCategoria] = useState("todos");
+  const listaRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     fetchDocumentos()
@@ -18,31 +22,49 @@ export function DocumentosPage() {
   }, []);
 
   // El Excel de repositorio define las columnas: título, autor(es), fecha,
-  // tipo, delimitación espacial, formato y enlace. Se puede buscar por todas.
+  // tipo, delimitación espacial, formato y enlace. Se puede buscar por todas y
+  // además filtrar por la categoría que se elige en el recuadro oscuro.
   const filtrados = useMemo(() => {
     const t = q.trim().toLowerCase();
-    if (!t) return docs;
-    return docs.filter((d) =>
-      [d.titulo, d.autor, d.tipo, d.delimitacion, d.formato]
+    return docs.filter((d) => {
+      if (categoria !== "todos" && d.tipo !== categoria) return false;
+      if (!t) return true;
+      return [d.titulo, d.autor, d.tipo, d.delimitacion, d.formato]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(t)),
-    );
-  }, [docs, q]);
+        .some((v) => String(v).toLowerCase().includes(t));
+    });
+  }, [docs, q, categoria]);
+
+  const categoriaActiva = DOC_CATEGORIES.find((c) => c.slug === categoria);
+  const filtrando = categoria !== "todos" || Boolean(q.trim());
+
+  // La tarjeta del recuadro oscuro filtra el listado que hay justo debajo; se
+  // baja hasta él para que el cambio se vea sin tener que buscarlo.
+  function elegirCategoria(slug: string) {
+    setCategoria(slug);
+    listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
     <>
       <PageHero
         kicker="Archivo"
-        title="Repositorio de documentos"
-        intro="Convenios, informes, memorias, boletines y piezas de socialización del proceso, con autor, alcance territorial y formato de cada documento."
+        title={PORTADA.elDocumentos.titulo}
+        intro={PORTADA.elDocumentos.intro}
+        fondo={PORTADA.elDocumentos.fondo}
       />
-      <HomeDocuments />
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <HomeDocuments onSelectCategory={elegirCategoria} />
+      <section
+        ref={listaRef}
+        className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-6"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-display text-xl font-bold text-ink">Todos los documentos</h2>
+            <h2 className="font-display text-xl font-bold text-ink">
+              {categoriaActiva ? categoriaActiva.title : "Todos los documentos"}
+            </h2>
             <p className="mt-1 text-xs text-muted">
-              {q.trim()
+              {filtrando
                 ? `${filtrados.length} de ${docs.length} documentos`
                 : `${docs.length} documentos en el repositorio`}
             </p>
@@ -59,11 +81,25 @@ export function DocumentosPage() {
           </label>
         </div>
 
+        {categoriaActiva ? (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setCategoria("todos")}
+              className="rounded-pill border border-mist bg-paper px-3.5 py-1.5 font-display text-xs font-semibold text-muted transition-colors hover:text-ink"
+            >
+              ← Ver todas las categorías
+            </button>
+          </div>
+        ) : null}
+
         {loading ? (
           <p className="mt-6 text-muted">Cargando documentos…</p>
         ) : filtrados.length === 0 ? (
           <p className="mt-6 text-muted">
-            {q.trim() ? "Ningún documento coincide con la búsqueda." : "El repositorio se está poblando. Vuelve pronto."}
+            {filtrando
+              ? "Ningún documento coincide con la búsqueda."
+              : "El repositorio se está poblando. Vuelve pronto."}
           </p>
         ) : (
           <ul className="mt-6 divide-y divide-stone overflow-hidden rounded-2xl border border-stone">

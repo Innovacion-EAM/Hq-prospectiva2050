@@ -67,7 +67,18 @@ const DOC_ICONS: Record<DocCategory["icon"], typeof FileText> = {
   book: BookOpen,
 };
 
-export function HomeDocuments() {
+export function HomeDocuments({
+  onSelectCategory,
+}: {
+  /**
+   * Si se pasa, las tarjetas dejan de navegar y llaman a esta función con el
+   * slug de la categoría. Lo usa `/documentos` para filtrar el listado en la
+   * misma página en vez de saltar a `/documentos/:categoria`; en Home y en
+   * Repositorio no se pasa y las tarjetas siguen llevando a la página de la
+   * categoría.
+   */
+  onSelectCategory?: (slug: string) => void;
+} = {}) {
   const { DOC_CATEGORIES, PORTADA } = useSite();
   return (
     <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
@@ -89,11 +100,11 @@ export function HomeDocuments() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {DOC_CATEGORIES.map((cat) => {
               const Icon = DOC_ICONS[cat.icon];
-              return (
-                <article
-                  key={cat.slug}
-                  className="flex flex-col items-start gap-3 rounded-2xl border border-paper/10 bg-paper/5 px-5 py-6"
-                >
+              // El color sale de la lista cerrada con su texto ya emparejado
+              // (ver `portada-colores.ts`), no de un color libre. Se edita en
+              // Ajustes → Home y Ajustes → Documentos.
+              const contenido = (
+                <>
                   <span className="grid size-10 place-items-center rounded-full bg-lime text-ink">
                     <Icon className="size-4" />
                   </span>
@@ -101,19 +112,31 @@ export function HomeDocuments() {
                   <p className="flex-1 text-[0.72rem] leading-relaxed text-mist">
                     {cat.description}
                   </p>
-                  {/* El color sale de la lista cerrada con su texto ya
-                      emparejado (ver `portada-colores.ts`), no de un color
-                      libre. Se edita en Ajustes → Home. */}
-                  <Link
-                    to={`/documentos/${cat.slug}`}
+                  <span
                     className={cn(
-                      "rounded-pill px-3 py-1 font-display text-[0.68rem] font-semibold no-underline",
+                      "rounded-pill px-3 py-1 font-display text-[0.68rem] font-semibold",
                       clasesBoton(PORTADA.documentos.botonColor),
                     )}
                   >
                     Ver más
-                  </Link>
-                </article>
+                  </span>
+                </>
+              );
+              const clasesTarjeta =
+                "flex flex-col items-start gap-3 rounded-2xl border border-paper/10 bg-paper/5 px-5 py-6 text-left no-underline transition-colors hover:border-lime/40 hover:bg-paper/10";
+              return onSelectCategory ? (
+                <button
+                  key={cat.slug}
+                  type="button"
+                  onClick={() => onSelectCategory(cat.slug)}
+                  className={clasesTarjeta}
+                >
+                  {contenido}
+                </button>
+              ) : (
+                <Link key={cat.slug} to={`/documentos/${cat.slug}`} className={clasesTarjeta}>
+                  {contenido}
+                </Link>
               );
             })}
           </div>
